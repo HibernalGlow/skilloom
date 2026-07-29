@@ -1,0 +1,4 @@
+interface:
+  display_name: "Civitai LoRA Upload"
+  short_description: "Batch LoRA uploads to Civitai with recovery"
+  default_prompt: "Use $civitai-lora-upload to upload confirmed local LoRA checkpoints to Civitai drafts and recover missing preview posts."
