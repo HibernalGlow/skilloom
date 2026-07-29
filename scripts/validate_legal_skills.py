@@ -115,13 +115,21 @@ def validate_contract(path: Path, contract: SkillContract) -> list[Finding]:
         ]
 
     findings = validate_frontmatter(path, text, contract.directory)
+    searchable_text = text
+    for reference in sorted(path.parent.rglob("*.md")):
+        if reference == path:
+            continue
+        try:
+            searchable_text += "\n" + reference.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            findings.append(Finding(reference, 1, "E007", "Markdown references must be valid UTF-8."))
     for phrase, anchor in contract.required_rules:
-        if phrase not in text:
-            anchor_offset = text.find(anchor)
+        if phrase not in searchable_text:
+            anchor_offset = searchable_text.find(anchor)
             findings.append(
                 Finding(
                     path,
-                    line_number(text, anchor_offset),
+                    line_number(searchable_text, anchor_offset),
                     "E101",
                     f"Missing required contract near this section: {phrase}",
                 ),
@@ -129,17 +137,17 @@ def validate_contract(path: Path, contract: SkillContract) -> list[Finding]:
 
     if contract.requires_color_table:
         for color in range(2, 14):
-            if not re.search(rf"^\s*\|\s*{color}\s*\|", text, re.MULTILINE):
+            if not re.search(rf"^\s*\|\s*{color}\s*\|", searchable_text, re.MULTILINE):
                 anchor = text.find("13种可用颜色变量")
                 findings.append(
-                    Finding(path, line_number(text, anchor), "E102", f"Missing color-{color} semantic mapping."),
+                    Finding(path, line_number(searchable_text, anchor), "E102", f"Missing color-{color} semantic mapping."),
                 )
-        if "**文本内容**{: style=\"color: var(--b3-font-color数字);" not in text:
-            anchor = text.find("思源笔记行内文本颜色语法")
+        if "**文本内容**{: style=\"color: var(--b3-font-color数字);" not in searchable_text:
+            anchor = searchable_text.find("思源笔记行内文本颜色语法")
             findings.append(
                 Finding(
                     path,
-                    line_number(text, anchor),
+                    line_number(searchable_text, anchor),
                     "E103",
                     "Missing the canonical bold-first Siyuan color syntax example.",
                 ),
