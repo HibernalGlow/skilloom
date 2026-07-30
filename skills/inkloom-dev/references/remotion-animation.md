@@ -2,6 +2,15 @@
 
 Use this reference after the legal source has been checked for `legal-marknote` completion. Run `legal-marknote` only for raw material; keep its completed Markdown result in the user-supplied original file and do not reprocess a note that is already structured.
 
+## Mandatory Remotion prerequisite
+
+Before writing or changing any Remotion composition, scene, player, or render command, read and follow `$remotion-best-practices`.
+
+- Load React Markup Best Practices when implementing compositions, scenes, or player components.
+- Load Rendering Best Practices when producing video output or publishing a rendered asset.
+- Load Remotion Multimedia when using image, audio, or video media.
+- Load any additional routed Remotion reference required by the task, such as Captions or Interactivity.
+
 ## Choose and scope the animation
 
 1. Create exactly two focused explainers from the completed note's important and difficult points. Cover two distinct points where possible; for one especially complex point, use two complementary explainers only when each has a separate learning objective.
