@@ -11,6 +11,7 @@ Run the smallest relevant checks after an edit, then run the full build when cha
 - Confirm there are exactly two Remotion explainers, each with a focused legal learning objective, a stable `animation.meta.ts`, a source under `src/animations/<subject>/<chapter>/<animation-id>/remotion/`, and a direct Astro/React player embed in its own thin MDX carrier.
 - Confirm `$remotion-best-practices` was read before the Remotion edit and that the React Markup, Rendering, Multimedia, or other routed reference was loaded when that task required it.
 - Confirm moving a note would require changing only the relevant `sourceReference` metadata field, not the animation ID or published MDX carrier route.
+- When an existing SiYuan note was explicitly requested as an embed target, confirm `$siyuan-cli` inserted two new sibling iframe blocks after their respective source-point blocks, in source-note order. Confirm every `src` uses the verified `https://inkloomer.github.io/inkloom/...` production URL and none use a local, preview, branch, or repository URL.
 - Search changed MDX/Astro files for bare absolute site links such as `/objective/`; replace them with `/inkloom/...` or a relative link.
 - Check nearby `_meta.yml` files when adding, moving, or renaming pages.
 

@@ -1,6 +1,6 @@
 ---
 name: inkloom-dev
-description: "Develop and maintain the InkLoom Astro Starlight legal-learning site: create and publish independent Remotion explainers from completed Markdown notes without converting or relocating those notes, and maintain the site MDX carriers, components, routes, and responsive styles. Use when working inside the InkLoom repository or its src/content/docs, src/animations, src/components, notes, and .agents/skills areas."
+description: "Develop and maintain the InkLoom Astro Starlight legal-learning site: create and publish independent Remotion explainers from completed Markdown notes, embed published explainers into explicitly requested existing SiYuan notes, and maintain the site MDX carriers, components, routes, and responsive styles. Use when working inside the InkLoom repository or its src/content/docs, src/animations, src/components, notes, SiYuan notes, and .agents/skills areas."
 ---
 
 # InkLoom development
@@ -16,7 +16,9 @@ Use this skill before editing InkLoom animation pages, Remotion sources, Astro c
 5. Before creating or modifying any Remotion file, read and follow `$remotion-best-practices`. Then load its relevant reference: React Markup for compositions or player components, Rendering for output or publishing, and Multimedia for image, audio, or video work. Do not write Remotion source before completing this step.
 6. Follow [content-boundaries.md](references/content-boundaries.md). Keep the Markdown note and its assets in place, then create two independent Remotion explainers using [remotion-animation.md](references/remotion-animation.md).
 7. Give each explainer a stable ID, a separate `src/animations/` directory, and its own thin MDX carrier page. The MDX exists only to route and embed the animation on InkLoom; it must not reproduce, convert, or relocate the note.
-8. Commit and push the animation sources, player components, metadata, and MDX carriers to the InkLoom repository. Validate the changed pages with [validation.md](references/validation.md) and report any unverified route, animation, or deployment URL.
+8. Commit and push the animation sources, player components, metadata, and MDX carriers to the InkLoom repository. Verify the production page URL before reporting it as published.
+9. Only when the user explicitly asks to add the published animations to an existing SiYuan note, follow [siyuan-embed.md](references/siyuan-embed.md). Use `$siyuan-cli` to locate the exact source blocks and insert each production iframe in its correct sequence and position; do not edit the note otherwise.
+10. Validate the changed pages and any SiYuan embeds with [validation.md](references/validation.md). Report any unverified route, animation, deployment URL, or SiYuan block insertion.
 
 ## Repository conventions
 
@@ -53,6 +55,7 @@ Use this skill before editing InkLoom animation pages, Remotion sources, Astro c
 - Do not generate a generic video merely because an animation was requested. The animation must teach a specific completed legal note's key point or difficult point and must not add unsupported legal conclusions.
 - Do not create or modify a Remotion composition, scene, player, or render command before reading `$remotion-best-practices` and the task-relevant React Markup, Rendering, or Multimedia reference.
 - Do not report an uploaded website or public URL before the relevant commit is deployed successfully.
+- Do not insert an iframe into an existing SiYuan note unless the user explicitly requests that exact edit. Use `$siyuan-cli`, insert new sibling blocks instead of rewriting the source blocks, and use only a verified `https://inkloomer.github.io/inkloom/...` production URL. Never insert `localhost`, preview, branch, or repository URLs.
 - Keep legal conclusions and source wording intact unless the user explicitly asks for substantive editing.
 
 ## References
@@ -60,4 +63,5 @@ Use this skill before editing InkLoom animation pages, Remotion sources, Astro c
 - [components.md](references/components.md): component props and interaction hooks.
 - [content-boundaries.md](references/content-boundaries.md): Markdown-note, animation-source, and MDX-carrier separation and move-safe IDs.
 - [remotion-animation.md](references/remotion-animation.md): legal-note-to-Remotion workflow, independent source placement, page embedding, and deployment handoff.
+- [siyuan-embed.md](references/siyuan-embed.md): explicit existing-note authorization, ordered production-iframe insertion through `$siyuan-cli`, and verification.
 - [validation.md](references/validation.md): build, route, visual, and compatibility checks.

@@ -30,4 +30,4 @@ Before writing or changing any Remotion composition, scene, player, or render co
 1. Build the site and verify the player in the target page.
 2. Commit both Remotion explainers, their metadata, player components, and thin MDX carriers as one feature, then push them to the InkLoom repository. Do not include source-note rewrites or relocations unless separately requested.
 3. Push to the branch that deploys the website. Once GitHub Pages finishes, verify `https://inkloomer.github.io/inkloom/<page-route>/`.
-4. Return the deployed page URL as the completed embedded result. Do not return an iframe snippet as a manual follow-up task.
+4. When the user explicitly requests an existing SiYuan-note embed, use [siyuan-embed.md](siyuan-embed.md) after the production URL is verified. Do not return an iframe snippet as a manual follow-up task.
