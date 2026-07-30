@@ -36,6 +36,10 @@ Run the smallest relevant checks after an edit, then run the full build when cha
   14. Reject motion that creates false legal meaning: unsupported morphs suggesting identity, nesting suggesting inclusion, arrows suggesting causation or direction, or animation order suggesting priority or procedure that the source does not establish.
   15. If any page fails, fix the composition, scene timing, information design, choreography, or shared visual system and rerun the affected animation. If the fix touches shared animation behavior or tokens, rerun `pnpm animation:pages` for all animations. Continue until every contact sheet and every full-resolution page passes inspection.
   16. Use `--at <0..1>` only when the default stable frame at `0.82` is not the scene's intended complete teaching state. Record why a different ratio is correct; never use it to conceal an animation defect.
+  17. Mark focal emphasis as failed when an important rule or connecting factor is distinguished only by text color, bold weight, solid fill, or border color. Require at least two nearby semantic channels and confirm the icon, locator, annotation, connector, enclosure, or motion cue clearly belongs to that exact phrase.
+  18. Mark the stable or final frame as failed when an authored summary bar, subtitle, conclusion card, badge, or other overlay covers, intersects, crowds, or visually suppresses any teaching node. Verify the authored composition with player controls visible and keep essential content outside the bottom control-safe zone.
+  19. For a scene with a long stable phase, verify its primary focal rule either retains one restrained semantic attention cue or uses deliberate stillness for a documented climax. Reject motion applied to the text baseline, more than two competing persistent cues, continuous scale/opacity breathing, or movement that has no legal meaning.
+  20. Run `pnpm animation:pages <animation-id> --motion` whenever persistent emphasis is added or changed. Inspect the three checkpoint frames for every scene: the teaching layout must remain stable and readable, while at least one authored focal cue changes phase, position, or progress where sustained emphasis is intended.
 - Do not proceed to publishing or report the animation complete while any captured page is uninspected, defective, or unverified.
 - Inspect the page at narrow and wide widths.
 - Verify tables do not overflow unexpectedly and flow diagrams remain legible.
@@ -65,6 +69,7 @@ astro dev status
 astro dev logs
 astro dev stop
 pnpm animation:pages <animation-id>
+pnpm animation:pages <animation-id> --motion
 pnpm animation:pages
 pnpm build
 ```
