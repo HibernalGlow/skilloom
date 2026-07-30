@@ -7,8 +7,9 @@ Run the smallest relevant checks after an edit, then run the full build when cha
 - Confirm changed files are under the intended InkLoom area.
 - Confirm every imported component exists and its props match the implementation.
 - Confirm local images exist and use the intended relative `./assets/...` path.
-- Confirm raw legal material was first processed with `legal-marknote`, while an already structured legal note was not processed again. Confirm its final MDX, local assets, and animation paths follow the original source directory's mapped topic/chapter location.
-- Confirm there are exactly two Remotion explainers, each with a focused legal learning objective, a source under `src/animations/<topic-slug>/remotion/`, and a direct Astro/React player embed in its target MDX page.
+- Confirm raw legal material was first processed with `legal-marknote` in its user-supplied original file, while an already structured Markdown note was not processed again. Confirm the note and its assets remain at that original location and are absent from the website carrier.
+- Confirm there are exactly two Remotion explainers, each with a focused legal learning objective, a stable `animation.meta.ts`, a source under `src/animations/<subject>/<chapter>/<animation-id>/remotion/`, and a direct Astro/React player embed in its own thin MDX carrier.
+- Confirm moving a note would require changing only the relevant `sourceNote` metadata field, not the animation ID or published MDX carrier route.
 - Search changed MDX/Astro files for bare absolute site links such as `/objective/`; replace them with `/inkloom/...` or a relative link.
 - Check nearby `_meta.yml` files when adding, moving, or renaming pages.
 
