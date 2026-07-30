@@ -21,10 +21,12 @@ Before writing or changing any Remotion composition, scene, player, or render co
 
 1. Express the legal structure spatially and through motion. Use nodes and connectors for relationships, forks for alternative conditions, nested regions for inclusion, timelines for procedure, aligned lanes for comparison, and transformation or causal motion for changes and effects.
 2. Make the visual relationship carry the explanation. Use text only for short concept labels, keywords, conditions, outcomes, values, and one brief subordinate caption when unavoidable.
-3. Reject text-only teaching surfaces. A heading such as “核心原理” followed by a sentence or paragraph is not an animation scene; decorative icons, borders, or highlighted words do not turn prose into a diagram.
-4. Reject plain tables and table-like grids. Do not reproduce the source table, even with animated rows, colored cells, rounded borders, or icon headers. Recompose comparisons into lanes, paired or grouped modules, axes, relationship maps, or progressive state changes whose motion exposes the differences.
-5. Use the 16:9 canvas deliberately. Let the main teaching structure occupy and balance most of the usable frame instead of forming a small island in one corner or half. Retain whitespace only when it creates hierarchy, focus, movement space, or a planned reveal.
-6. Do not simulate canvas usage by stretching cards, enlarging paragraphs, or adding unrelated decoration. Improve utilization by showing the actual branch, containment, sequence, comparison, or causal structure more clearly.
+3. Build a reusable visual vocabulary for concrete legal concepts. Pair people and roles, groups, institutions, documents or decisions, remedies or measures, procedural actions, and legal outcomes with semantically recognizable icons or compact pictograms. Prefer the project's existing icon library, keep stroke weight and color roles consistent, and retain a short adjacent label when the symbol is not universally clear.
+4. Make icons perform within the explanation. Let a person token move into a branch, a document receive a decision mark, a measure act on its target, or an outcome token emerge from the causing step. Do not scatter unrelated icons beside sentences or use icons merely to fill empty space.
+5. Reject text-only teaching surfaces. A heading such as “核心原理” followed by a sentence or paragraph is not an animation scene; decorative icons, borders, or highlighted words do not turn prose into a diagram.
+6. Reject plain tables and table-like grids. Do not reproduce the source table, even with animated rows, colored cells, rounded borders, or icon headers. Recompose comparisons into lanes, paired or grouped modules, axes, relationship maps, or progressive state changes whose motion exposes the differences.
+7. Use the 16:9 canvas deliberately. Let the main teaching structure occupy and balance most of the usable frame instead of forming a small island in one corner or half. Retain whitespace only when it creates hierarchy, focus, movement space, or a planned reveal.
+8. Do not simulate canvas usage by stretching cards, enlarging paragraphs, or adding unrelated decoration. Improve utilization by showing the actual branch, containment, sequence, comparison, or causal structure more clearly.
 
 ## Direct motion as legal reasoning
 
