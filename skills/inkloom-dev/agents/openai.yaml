@@ -1,6 +1,6 @@
 interface:
   display_name: "InkLoom Developer"
-  short_description: "Publish InkLoom explainers and SiYuan embeds"
-  default_prompt: "Use $inkloom-dev to publish two Remotion explainers from a completed legal note and, when explicitly requested, use $siyuan-cli to insert their production URLs into the correct positions of an existing SiYuan note."
+  short_description: "Build and visually validate InkLoom explainers"
+  default_prompt: "Use $inkloom-dev to publish two Remotion explainers from a completed legal note, iteratively inspect every generated page still until all animation frames are correct, and, when explicitly requested, use $siyuan-cli to insert their production URLs into the correct positions of an existing SiYuan note."
 policy:
   allow_implicit_invocation: true
