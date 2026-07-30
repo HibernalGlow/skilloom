@@ -21,5 +21,5 @@ Use this reference whenever a completed Markdown note supplies the legal content
 
 - Follow the local `_meta.yml` convention for carrier labels and ordering.
 - Use `/inkloom/...` for absolute website links and retain the published carrier route when possible.
-- Keep source media used by the composition beside its Remotion source. The only carrier-local derived assets are the approved final-frame PNGs and their manifest; do not move note assets into the website just because the animation was derived from that note.
-- Keep transient captures and contact sheets in `.artifacts`; promote only approved full-resolution final frames and their manifest into the carrier-local version directory.
+- Keep source media used by the composition beside its Remotion source. The only carrier-local derived assets are the approved final-frame WebP quality 60 files and their manifest; do not move note assets into the website just because the animation was derived from that note.
+- Keep lossless PNG captures and contact sheets as transient QA artifacts in `.artifacts`; encode only approved full-resolution final frames to WebP quality 60 for the carrier-local version directory.

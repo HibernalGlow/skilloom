@@ -42,11 +42,11 @@ Run the smallest relevant checks after an edit, then run the full build when cha
   20. Run `pnpm animation:pages <animation-id> --motion` whenever persistent emphasis is added or changed. Inspect the three checkpoint frames for every scene: the teaching layout must remain stable and readable, while at least one authored focal cue changes phase, position, or progress where sustained emphasis is intended.
 - Do not proceed to publishing or report the animation complete while any captured page is uninspected, defective, or unverified.
 - After the page-still loop passes, verify the published still set before building:
-  1. Confirm the carrier-local path is exactly `<md-dir>/animation/<md-basename>/<version>/`, where `<version>` is a sortable timestamp such as `20260730T143214Z`.
-  2. Confirm there is one full-resolution PNG per semantic scene, named `<scene-id>.png`, and no scene is represented only by a contact-sheet crop.
-  3. Confirm `manifest.json` records the animation ID, dimensions, generation time, and exact scene ID, title, frame, and filename mapping.
-  4. Open each published PNG at original resolution and confirm it is byte-for-byte or visually identical to the approved final frame; promotion must not resize, crop, recompress, or change the frame.
-  5. Confirm the MD/MDX renders every PNG directly in scene order with meaningful alt text and relative paths. A filename link, hidden disclosure, `.artifacts` reference, broken image, stale version reference, or missing scene is a failure.
+  1. Run `pnpm animation:publish-stills <animation-id>` after inspection of the PNG QA captures. Use `--dry-run` before a sensitive first publication; do not hand-build the version directory, manifest, or MDX image block.
+  2. Confirm the command created `<md-dir>/animation/<md-basename>/<version>/`, where `<version>` is a sortable UTC timestamp, and one full-resolution WebP quality 60 file named `<scene-id>.webp` exists for every semantic scene.
+  3. Confirm `manifest.json` records the animation ID, dimensions, generation time, `format: "webp"`, `quality: 60`, and exact scene ID, title, frame, and filename mapping.
+  4. Open each published WebP at original resolution beside its approved lossless capture. Confirm it was encoded once without resizing or cropping and reject smeared small text, ringing around glyphs or icons, broken thin connectors, color banding that changes hierarchy, or any other q60 artifact that reduces comprehension.
+  5. Confirm the command updated only its paired carrier markers and the MD/MDX renders every WebP directly in scene order with meaningful alt text and relative paths. A PNG carrier asset, filename link, hidden disclosure, `.artifacts` reference, broken image, stale version reference, or missing scene is a failure.
   6. When updating an animation, confirm the carrier references only the new fully validated version and that the prior version remains available unless cleanup was explicitly requested.
 - Inspect the page at narrow and wide widths.
 - Verify tables do not overflow unexpectedly and flow diagrams remain legible.
@@ -78,6 +78,8 @@ astro dev stop
 pnpm animation:pages <animation-id>
 pnpm animation:pages <animation-id> --motion
 pnpm animation:pages
+pnpm animation:publish-stills <animation-id>
+pnpm animation:publish-stills <animation-id> --dry-run
 pnpm build
 ```
 
