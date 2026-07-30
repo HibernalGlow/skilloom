@@ -1,6 +1,6 @@
 interface:
   display_name: "InkLoom Developer"
-  short_description: "Publish independent InkLoom Remotion explainers"
-  default_prompt: "Use $inkloom-dev to create two independent Remotion explainers from a completed legal Markdown note, keep that note untouched, and publish each through a thin InkLoom MDX carrier."
+  short_description: "Publish InkLoom explainers and SiYuan embeds"
+  default_prompt: "Use $inkloom-dev to publish two Remotion explainers from a completed legal note and, when explicitly requested, use $siyuan-cli to insert their production URLs into the correct positions of an existing SiYuan note."
 policy:
   allow_implicit_invocation: true
