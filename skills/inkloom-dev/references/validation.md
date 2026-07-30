@@ -17,6 +17,14 @@ Run the smallest relevant checks after an edit, then run the full build when cha
 
 ## Visual and interaction checks
 
+- Treat Remotion page-still QA as a blocking iterative loop, not a one-time command:
+  1. After creating or changing one animation, run `pnpm animation:pages <animation-id>`. Pass multiple changed IDs when appropriate.
+  2. After completing a batch or all animations, run `pnpm animation:pages` with no ID so automatic discovery validates every animation.
+  3. Open the generated `.artifacts/animation-pages/<animation-id>/<timestamp>/contact-sheet.png` to check page coverage, then inspect every `page-*.png` at its original resolution. Read `manifest.json` when the captured frame or scene boundary needs diagnosis.
+  4. For every page, verify that the frame is nonblank and error-free; all intended teaching content has entered; no text, icon, connector, label, or emphasis is clipped, overlapping, occluded, or outside the canvas; text remains readable; branch, sequence, containment, comparison, and causal relationships are unambiguous; colors and emphasis match their semantics; the page contains no unintended adjacent-scene content; and the legal conclusion remains faithful to the source note.
+  5. If any page fails, fix the composition, scene timing, or shared visual system and rerun the affected animation. If the fix touches shared animation behavior or tokens, rerun `pnpm animation:pages` for all animations. Continue until every contact sheet and every full-resolution page passes inspection.
+  6. Use `--at <0..1>` only when the default stable frame at `0.82` is not the scene's intended complete teaching state. Record why a different ratio is correct; never use it to conceal an animation defect.
+- Do not proceed to publishing or report the animation complete while any captured page is uninspected, defective, or unverified.
 - Inspect the page at narrow and wide widths.
 - Verify tables do not overflow unexpectedly and flow diagrams remain legible.
 - Test memory challenge: toggle the checkbox, confirm `.answer-node` blur, and confirm hover reveal.
@@ -36,7 +44,9 @@ astro dev --background
 astro dev status
 astro dev logs
 astro dev stop
+pnpm animation:pages <animation-id>
+pnpm animation:pages
 pnpm build
 ```
 
-Use the dev server for route and visual checks. Use `pnpm build` as the final production-oriented gate; capture the first actionable error instead of hiding it behind a generic failure summary.
+Use page-still QA first, then the dev server for responsive route and interaction checks. Use `pnpm build` as the final production-oriented gate; capture the first actionable error instead of hiding it behind a generic failure summary. Report the inspected artifact directory and any non-default capture ratio in the handoff.

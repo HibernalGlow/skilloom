@@ -27,7 +27,8 @@ Before writing or changing any Remotion composition, scene, player, or render co
 
 ## Publish as one finished flow
 
-1. Build the site and verify the player in the target page.
-2. Commit both Remotion explainers, their metadata, player components, and thin MDX carriers as one feature, then push them to the InkLoom repository. Do not include source-note rewrites or relocations unless separately requested.
-3. Push to the branch that deploys the website. Once GitHub Pages finishes, verify `https://inkloomer.github.io/inkloom/<page-route>/`.
-4. When the user explicitly requests an existing SiYuan-note embed, use [siyuan-embed.md](siyuan-embed.md) after the production URL is verified. Do not return an iframe snippet as a manual follow-up task.
+1. Run the blocking iterative Remotion page-still QA in [validation.md](validation.md). Fix and recapture every defective page until all full-resolution stills pass; run the all-animation command after a batch is complete.
+2. Build the site and verify the responsive player in the target page.
+3. Commit both Remotion explainers, their metadata, player components, and thin MDX carriers as one feature, then push them to the InkLoom repository. Do not include source-note rewrites or relocations unless separately requested.
+4. Push to the branch that deploys the website. Once GitHub Pages finishes, verify `https://inkloomer.github.io/inkloom/<page-route>/`.
+5. When the user explicitly requests an existing SiYuan-note embed, use [siyuan-embed.md](siyuan-embed.md) after the production URL is verified. Do not return an iframe snippet as a manual follow-up task.
