@@ -7,6 +7,16 @@ description: "Develop and maintain the InkLoom Astro Starlight legal-learning si
 
 Use this skill before editing InkLoom animation pages, Remotion sources, Astro components, layout overrides, or custom CSS. Treat the repository's existing components and content conventions as the source of truth; do not replace them with generic Starlight patterns without checking the surrounding implementation.
 
+## Remotion skill routing
+
+Use the installed Remotion skills as the default implementation toolkit for InkLoom animations. Do not hand-roll a familiar animation pattern before checking whether the relevant skill or Remotion Bits example already provides it.
+
+- Load `$remotion-best-practices` first for every task that touches Remotion. It is the routing entry point, not an optional reading list.
+- Load `$remotion-create` when scaffolding a new Remotion project or composition. Existing InkLoom pages already have their project structure, so do not scaffold a second project inside the site.
+- Load `$remotion-markup` when writing or refactoring Remotion React markup, timing, layout, effects, or transitions.
+- Strongly prefer `$remotion-bits` for reusable motion patterns, especially its **Text Animations**. Use its example-first discovery flow before writing custom frame math, then adapt `AnimatedText` for short headings, legal terms, section labels, and key callouts; use `TypeWriter` for terminal-like sequences and `StaggeredMotion` for repeated labels, cards, or nodes. Keep text concise and readable, and do not animate every paragraph merely because a text primitive is available.
+- Use `@remotion/transitions` and `@remotion/effects` when the scene needs their specific capabilities, while keeping the semantic diagram and legal meaning primary. Do not add custom equivalents when an installed package or Remotion Bits primitive already covers the behavior.
+
 ## Working sequence
 
 1. Locate the user-supplied Markdown source file at its existing path and the intended independent animation and website areas. The note may live outside InkLoom; it is source evidence, not InkLoom MDX input.
