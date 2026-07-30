@@ -1,0 +1,6 @@
+interface:
+  display_name: "InkLoom Developer"
+  short_description: "Build InkLoom legal notes and Remotion embeds"
+  default_prompt: "Use $inkloom-dev with $legal-marknote to convert a legal source note, create a focused Remotion animation for its difficult point, and embed it directly in the mapped InkLoom MDX page."
+policy:
+  allow_implicit_invocation: true
