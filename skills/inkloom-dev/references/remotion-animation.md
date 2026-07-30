@@ -62,10 +62,20 @@ Treat `SCENES` as the shared timing contract for the composition, the embedded P
 5. Create a thin, dedicated MDX carrier under `src/content/docs/` for each animation. Import that Astro wrapper directly; never paste the source note into the carrier or leave the user to copy iframe markup.
 6. Keep each player scene addressable through the shared `scene` query. Every new `RemotionScene` entry must define a stable, descriptive, kebab-case `id` such as `first-instance`, `emergency-measures`, or `review-remedy`; never derive that ID from the page number or mutable display title. Preserve IDs across page insertion, reordering, and title edits. Use numeric keys only as backward-compatible aliases for legacy animations, and record which source-note concept maps to which semantic ID.
 
+## Publish final-frame stills with the carrier
+
+1. Export one full-resolution PNG from the approved readable final frame of every semantic scene. Use the same stable scene ID as the filename, such as `first-instance.png`; do not publish only a contact sheet or an arbitrary frame near the end.
+2. Resolve the carrier path first. For `src/content/docs/.../trial-organization-path.mdx`, publish into `src/content/docs/.../animation/trial-organization-path/<version>/`. Apply the same `<md-dir>/animation/<md-basename>/<version>/` rule to a `.md` carrier.
+3. Use a sortable UTC timestamp version such as `20260730T143214Z`. Write `manifest.json` in that version directory with at least the version, generation time, animation ID, composition dimensions, and each scene's semantic ID, title, source frame, and PNG filename.
+4. Treat published version directories as immutable. For an animation update, generate and validate a new version directory, update every carrier image reference together, and retain the prior version for traceability unless the user explicitly requests cleanup.
+5. Render every scene PNG directly in the MD/MDX with a relative Markdown image or equivalent accessible image element. Use the scene title as meaningful alt text, preserve scene order, and do not hide the images in `<details>`, replace them with filename links, or point the carrier at `.artifacts`.
+6. Keep the interactive player as the primary motion surface and the final-frame images as inspectable static states. Do not replace the player unless the user explicitly requests a static-only carrier.
+
 ## Publish as one finished flow
 
 1. Run the blocking iterative Remotion page-still QA in [validation.md](validation.md). Fix and recapture every defective page until all full-resolution stills pass; run the all-animation command after a batch is complete.
-2. Build the site and verify the responsive player in the target page.
-3. Commit both Remotion explainers, their metadata, player components, and thin MDX carriers as one feature, then push them to the InkLoom repository. Do not include source-note rewrites or relocations unless separately requested.
-4. Push to the branch that deploys the website. Once GitHub Pages finishes, verify `https://inkloomer.github.io/inkloom/<page-route>/`.
-5. When the user explicitly requests an existing SiYuan-note embed, use [siyuan-embed.md](siyuan-embed.md) after the production URL is verified. Do not return an iframe snippet as a manual follow-up task.
+2. Promote the approved scene final frames into the carrier-local version directory, write its manifest, and render all of them directly in the carrier.
+3. Build the site and verify the responsive player and every rendered final-frame image in the target page.
+4. Commit both Remotion explainers, their metadata, player components, versioned final-frame assets, and thin MDX carriers as one feature, then push them to the InkLoom repository. Do not include source-note rewrites or relocations unless separately requested.
+5. Push to the branch that deploys the website. Once GitHub Pages finishes, verify `https://inkloomer.github.io/inkloom/<page-route>/`.
+6. When the user explicitly requests an existing SiYuan-note embed, use [siyuan-embed.md](siyuan-embed.md) after the production URL is verified. Do not return an iframe snippet as a manual follow-up task.

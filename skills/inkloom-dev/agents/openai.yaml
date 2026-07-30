@@ -1,6 +1,6 @@
 interface:
   display_name: "InkLoom Developer"
   short_description: "Build and visually validate InkLoom explainers"
-  default_prompt: "Use $inkloom-dev to publish Remotion explainers from a completed legal note, require strong canvas utilization and diagrammatic visual explanation instead of prose cards or plain tables, inspect every generated page still until all frames are correct, and, when explicitly requested, map each SiYuan or Markdown knowledge point to its matching semantic scene iframe URL."
+  default_prompt: "Use $inkloom-dev to publish Remotion explainers from a completed legal note, require diagrammatic visual explanation and full page-still QA, publish and directly render one versioned final-frame image per semantic scene beside its MDX carrier, and, when explicitly requested, map each SiYuan or Markdown knowledge point to its matching semantic scene iframe URL."
 policy:
   allow_implicit_invocation: true
