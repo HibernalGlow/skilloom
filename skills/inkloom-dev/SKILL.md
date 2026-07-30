@@ -18,7 +18,7 @@ Use this skill before editing InkLoom animation pages, Remotion sources, Astro c
 7. Give each explainer a stable ID, a separate `src/animations/` directory, and its own thin MDX carrier page. The MDX exists only to route and embed the animation on InkLoom; it must not reproduce, convert, or relocate the note.
 8. Complete the mandatory iterative page-still QA in [validation.md](references/validation.md) before calling any animation finished. Capture each changed animation with `pnpm animation:pages <animation-id>`; after a batch or all animations are complete, run `pnpm animation:pages`. Inspect every contact sheet and full-resolution page, fix the animation source, and repeat until every page is visually correct.
 9. Validate the responsive player and production build only after the page-still loop passes. Commit and push the animation sources, player components, metadata, and MDX carriers to the InkLoom repository. Verify the production page URL before reporting it as published.
-10. Only when the user explicitly asks to add the published animations to an existing SiYuan note, follow [siyuan-embed.md](references/siyuan-embed.md). Use `$siyuan-cli` to locate the exact source blocks and insert each production iframe in its correct sequence and position; do not edit the note otherwise.
+10. When the user explicitly asks to embed animations in an existing SiYuan note or Markdown file, map each knowledge-point anchor to its matching animation scene and use its semantic deep link, such as `?scene=first-instance`; do not insert only one generic first-page player when several distinct points are explained. For SiYuan, follow [siyuan-embed.md](references/siyuan-embed.md), use `$siyuan-cli`, and do not edit unrelated note content.
 11. Validate the changed pages and any SiYuan embeds with [validation.md](references/validation.md). Report any unverified route, animation page, deployment URL, or SiYuan block insertion.
 
 ## Repository conventions
@@ -67,7 +67,8 @@ Use this skill before editing InkLoom animation pages, Remotion sources, Astro c
 - Do not use a morph, connector, movement direction, or transition that falsely implies identity, inclusion, causation, priority, or procedural order. Motion semantics must remain legally accurate.
 - Do not change `--at` merely to hide unfinished, clipped, overlapping, or mistimed animation content. Change the capture ratio only when the scene's intended stable teaching frame genuinely occurs elsewhere, and still fix defects in the composition itself.
 - Do not report an uploaded website or public URL before the relevant commit is deployed successfully.
-- Do not insert an iframe into an existing SiYuan note unless the user explicitly requests that exact edit. Use `$siyuan-cli`, insert new sibling blocks instead of rewriting the source blocks, and use only a verified `https://inkloomer.github.io/inkloom/...` production URL. Never insert `localhost`, preview, branch, or repository URLs.
+- Do not insert an iframe into an existing SiYuan note or Markdown file unless the user explicitly requests that exact edit. Use `$siyuan-cli` for SiYuan and add new iframe blocks instead of rewriting legal-content blocks. Use verified production URLs for durable embeds; allow localhost only for an explicitly temporary pre-publication workflow and replace it before calling the note portable, published, or finished. Never use branch, preview, or repository URLs.
+- Do not omit the `scene` query when an iframe is intended to explain one specific knowledge point. New animations must expose stable semantic kebab-case IDs such as `first-instance`; use a displayed number such as `?scene=02` only for a legacy animation that has not yet been migrated. Verify the link opens the intended page because an invalid key silently falls back to the first scene.
 - Keep legal conclusions and source wording intact unless the user explicitly asks for substantive editing.
 
 ## References
@@ -75,5 +76,5 @@ Use this skill before editing InkLoom animation pages, Remotion sources, Astro c
 - [components.md](references/components.md): component props and interaction hooks.
 - [content-boundaries.md](references/content-boundaries.md): Markdown-note, animation-source, and MDX-carrier separation and move-safe IDs.
 - [remotion-animation.md](references/remotion-animation.md): legal-note-to-Remotion workflow, independent source placement, page embedding, and deployment handoff.
-- [siyuan-embed.md](references/siyuan-embed.md): explicit existing-note authorization, ordered production-iframe insertion through `$siyuan-cli`, and verification.
+- [siyuan-embed.md](references/siyuan-embed.md): explicit note-edit authorization, knowledge-point-to-scene mapping, semantic iframe deep links, and SiYuan/Markdown verification.
 - [validation.md](references/validation.md): mandatory iterative page-still QA, responsive player, build, route, and compatibility checks.

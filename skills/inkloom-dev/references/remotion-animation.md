@@ -41,6 +41,10 @@ Before writing or changing any Remotion composition, scene, player, or render co
 
 Implement these direction rules through `$remotion-best-practices`; do not duplicate or replace its frame-driven timing, sequencing, transition, measurement, asset, or deterministic-render guidance here.
 
+## Web-page end state
+
+Treat `SCENES` as the shared timing contract for the composition, the embedded Player, and page QA. Every scene must explicitly declare `previewEndTrimFrames` in final playback-frame units: use the exact tail length from the first authored exit frame to the scene end, or write `0` when no exit occurs. The shared Player uses this field to stop on the last stable teaching frame without changing the full-video timeline. Do not infer it from scene duration or use a generic fractional trim; derive it from the authored exit interpolation and remeasure after changing the exit.
+
 ## Put each artifact in its independent project location
 
 1. Leave the Markdown note and all note-local assets at their original location. `legal-marknote` may have edited the note in place; after that, read it as evidence only.
@@ -48,6 +52,7 @@ Implement these direction rules through `$remotion-best-practices`; do not dupli
 3. Reuse `src/animations/legal-jurisdiction/remotion/` as the structural reference. Keep FPS, duration, scene boundaries, composition dimensions, and the stable animation ID explicit.
 4. Add a focused React player component under `src/components/` that passes the composition and scene metadata to the shared `RemotionDeck` pattern. Add an Astro wrapper when the page needs the existing `AnimationSource` presentation.
 5. Create a thin, dedicated MDX carrier under `src/content/docs/` for each animation. Import that Astro wrapper directly; never paste the source note into the carrier or leave the user to copy iframe markup.
+6. Keep each player scene addressable through the shared `scene` query. Every new `RemotionScene` entry must define a stable, descriptive, kebab-case `id` such as `first-instance`, `emergency-measures`, or `review-remedy`; never derive that ID from the page number or mutable display title. Preserve IDs across page insertion, reordering, and title edits. Use numeric keys only as backward-compatible aliases for legacy animations, and record which source-note concept maps to which semantic ID.
 
 ## Publish as one finished flow
 
