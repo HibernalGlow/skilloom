@@ -13,9 +13,10 @@ Use this skill before editing InkLoom animation pages, Remotion sources, Astro c
 2. Determine whether the note is raw material or already processed by `legal-marknote`. Use `legal-marknote` only for raw material and edit its result in that original file; do not process an already structured note again.
 3. Preserve the site's base route: `base: '/inkloom'`. Every absolute MDX or Astro link must begin with `/inkloom/`; use relative asset paths such as `./assets/cover.png` for page-local images.
 4. Read the source note, the target website page, its nearest `_meta.yml`, imported components, and relevant styles before editing. Choose two important or difficult points without copying the note into the site.
-5. Follow [content-boundaries.md](references/content-boundaries.md). Keep the Markdown note and its assets in place, then create two independent Remotion explainers using [remotion-animation.md](references/remotion-animation.md).
-6. Give each explainer a stable ID, a separate `src/animations/` directory, and its own thin MDX carrier page. The MDX exists only to route and embed the animation on InkLoom; it must not reproduce, convert, or relocate the note.
-7. Commit and push the animation sources, player components, metadata, and MDX carriers to the InkLoom repository. Validate the changed pages with [validation.md](references/validation.md) and report any unverified route, animation, or deployment URL.
+5. Before creating or modifying any Remotion file, read and follow `$remotion-best-practices`. Then load its relevant reference: React Markup for compositions or player components, Rendering for output or publishing, and Multimedia for image, audio, or video work. Do not write Remotion source before completing this step.
+6. Follow [content-boundaries.md](references/content-boundaries.md). Keep the Markdown note and its assets in place, then create two independent Remotion explainers using [remotion-animation.md](references/remotion-animation.md).
+7. Give each explainer a stable ID, a separate `src/animations/` directory, and its own thin MDX carrier page. The MDX exists only to route and embed the animation on InkLoom; it must not reproduce, convert, or relocate the note.
+8. Commit and push the animation sources, player components, metadata, and MDX carriers to the InkLoom repository. Validate the changed pages with [validation.md](references/validation.md) and report any unverified route, animation, or deployment URL.
 
 ## Repository conventions
 
@@ -50,6 +51,7 @@ Use this skill before editing InkLoom animation pages, Remotion sources, Astro c
 - Do not move source-note images into `src/content/docs/` or a shared global folder. Animation-specific media belongs with its own animation source.
 - Do not put animation sources or player components in a generic scratch folder. Use stable animation IDs and the independent directory contract in [content-boundaries.md](references/content-boundaries.md).
 - Do not generate a generic video merely because an animation was requested. The animation must teach a specific completed legal note's key point or difficult point and must not add unsupported legal conclusions.
+- Do not create or modify a Remotion composition, scene, player, or render command before reading `$remotion-best-practices` and the task-relevant React Markup, Rendering, or Multimedia reference.
 - Do not report an uploaded website or public URL before the relevant commit is deployed successfully.
 - Keep legal conclusions and source wording intact unless the user explicitly asks for substantive editing.
 

@@ -9,7 +9,8 @@ Run the smallest relevant checks after an edit, then run the full build when cha
 - Confirm local images exist and use the intended relative `./assets/...` path.
 - Confirm raw legal material was first processed with `legal-marknote` in its user-supplied original file, while an already structured Markdown note was not processed again. Confirm the note and its assets remain at that original location and are absent from the website carrier.
 - Confirm there are exactly two Remotion explainers, each with a focused legal learning objective, a stable `animation.meta.ts`, a source under `src/animations/<subject>/<chapter>/<animation-id>/remotion/`, and a direct Astro/React player embed in its own thin MDX carrier.
-- Confirm moving a note would require changing only the relevant `sourceNote` metadata field, not the animation ID or published MDX carrier route.
+- Confirm `$remotion-best-practices` was read before the Remotion edit and that the React Markup, Rendering, Multimedia, or other routed reference was loaded when that task required it.
+- Confirm moving a note would require changing only the relevant `sourceReference` metadata field, not the animation ID or published MDX carrier route.
 - Search changed MDX/Astro files for bare absolute site links such as `/objective/`; replace them with `/inkloom/...` or a relative link.
 - Check nearby `_meta.yml` files when adding, moving, or renaming pages.
 
