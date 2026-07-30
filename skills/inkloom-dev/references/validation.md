@@ -11,13 +11,15 @@ Run the smallest relevant checks after an edit, then run the full build when cha
 - Confirm there are exactly two Remotion explainers, each with a focused legal learning objective, a stable `animation.meta.ts`, a source under `src/animations/<subject>/<chapter>/<animation-id>/remotion/`, and a direct Astro/React player embed in its own thin MDX carrier.
 - Confirm `$remotion-best-practices` was read before the Remotion edit and that the React Markup, Rendering, Multimedia, or other routed reference was loaded when that task required it.
 - Confirm moving a note would require changing only the relevant `sourceReference` metadata field, not the animation ID or published MDX carrier route.
-- When an existing SiYuan note was explicitly requested as an embed target, confirm `$siyuan-cli` inserted two new sibling iframe blocks after their respective source-point blocks, in source-note order. Confirm every `src` uses the verified `https://inkloomer.github.io/inkloom/...` production URL and none use a local, preview, branch, or repository URL.
+- When an existing SiYuan note was explicitly requested as an embed target, confirm `$siyuan-cli` inserted one new sibling iframe block after every requested source-point block, in source-note order. Verify the explicit mapping from source block to animation route, scene key, and scene title; do not assume only two embeds or one embed per animation.
+- When Markdown iframe insertion was explicitly requested, confirm each new iframe follows the exact paragraph, list, section, or callout it explains and that surrounding source content was not moved, rewritten, or converted to MDX.
 - Search changed MDX/Astro files for bare absolute site links such as `/objective/`; replace them with `/inkloom/...` or a relative link.
 - Check nearby `_meta.yml` files when adding, moving, or renaming pages.
 
 ## Visual and interaction checks
 
 - Treat Remotion page-still QA as a blocking iterative loop, not a one-time command:
+  - Inspect every `SCENES` entry before rendering: `previewEndTrimFrames` is mandatory. Confirm it is `0` only when the scene has no authored exit; otherwise confirm it reaches the first stable frame immediately before the exit. Verify the embedded Player ends on that stable frame, while the full composition duration remains unchanged.
   1. After creating or changing one animation, run `pnpm animation:pages <animation-id>`. Pass multiple changed IDs when appropriate.
   2. After completing a batch or all animations, run `pnpm animation:pages` with no ID so automatic discovery validates every animation.
   3. Open the generated `.artifacts/animation-pages/<animation-id>/<timestamp>/contact-sheet.png` to check page coverage, then inspect every `page-*.png` at its original resolution. Read `manifest.json` when the captured frame or scene boundary needs diagnosis.
@@ -40,7 +42,15 @@ Run the smallest relevant checks after an edit, then run the full build when cha
 - Test memory challenge: toggle the checkbox, confirm `.answer-node` blur, and confirm hover reveal.
 - Test `trigger-link-1` and `trigger-link-2` hover emphasis when the page uses `VisualFlow`.
 - Test the embedded Remotion player at narrow and wide widths; verify its scene navigation, playback, and reduced-size layout without a copied iframe.
+- Open every scene-specific iframe URL and verify `?scene=<key>` selects the expected visible page number and title. Test repeated uses of the same route with different scene keys independently; an invalid key silently falling back to page 01 is a failure.
 - Check PageTitle quick actions, floating TOC, and any widescreen layout override touched by the change.
+
+## Note-embed checks
+
+- Require every new player scene to expose a unique, stable, descriptive kebab-case ID. Verify durable iframe URLs use semantic keys such as `?scene=first-instance`; allow displayed numbers such as `?scene=02` only for unmigrated legacy animations. Do not append prose or punctuation to the key.
+- Require verified `https://inkloomer.github.io/inkloom/.../?scene=<key>` URLs for durable SiYuan, portable Markdown, or published Markdown embeds. Never use branch, preview, or repository URLs.
+- Allow `http://localhost:4321/inkloom/.../?scene=<key>` only for an explicitly requested temporary pre-publication workflow. Record every temporary iframe and do not report the note portable, published, or finished until its host is replaced and reverified.
+- Read each inserted iframe block and nearby siblings after writing. Confirm knowledge-point order, exact host, route, scene query, visible scene number, and scene title.
 
 ## Deployment handoff
 
