@@ -41,11 +41,18 @@ Run the smallest relevant checks after an edit, then run the full build when cha
   19. For a scene with a long stable phase, verify its primary focal rule either retains one restrained semantic attention cue or uses deliberate stillness for a documented climax. Reject motion applied to the text baseline, more than two competing persistent cues, continuous scale/opacity breathing, or movement that has no legal meaning.
   20. Run `pnpm animation:pages <animation-id> --motion` whenever persistent emphasis is added or changed. Inspect the three checkpoint frames for every scene: the teaching layout must remain stable and readable, while at least one authored focal cue changes phase, position, or progress where sustained emphasis is intended.
 - Do not proceed to publishing or report the animation complete while any captured page is uninspected, defective, or unverified.
+- After the page-still loop passes, verify the published still set before building:
+  1. Confirm the carrier-local path is exactly `<md-dir>/animation/<md-basename>/<version>/`, where `<version>` is a sortable timestamp such as `20260730T143214Z`.
+  2. Confirm there is one full-resolution PNG per semantic scene, named `<scene-id>.png`, and no scene is represented only by a contact-sheet crop.
+  3. Confirm `manifest.json` records the animation ID, dimensions, generation time, and exact scene ID, title, frame, and filename mapping.
+  4. Open each published PNG at original resolution and confirm it is byte-for-byte or visually identical to the approved final frame; promotion must not resize, crop, recompress, or change the frame.
+  5. Confirm the MD/MDX renders every PNG directly in scene order with meaningful alt text and relative paths. A filename link, hidden disclosure, `.artifacts` reference, broken image, stale version reference, or missing scene is a failure.
+  6. When updating an animation, confirm the carrier references only the new fully validated version and that the prior version remains available unless cleanup was explicitly requested.
 - Inspect the page at narrow and wide widths.
 - Verify tables do not overflow unexpectedly and flow diagrams remain legible.
 - Test memory challenge: toggle the checkbox, confirm `.answer-node` blur, and confirm hover reveal.
 - Test `trigger-link-1` and `trigger-link-2` hover emphasis when the page uses `VisualFlow`.
-- Test the embedded Remotion player at narrow and wide widths; verify its scene navigation, playback, and reduced-size layout without a copied iframe.
+- Test the embedded Remotion player and rendered final-frame images at narrow and wide widths; verify scene navigation, playback, reduced-size layout, image loading, aspect ratio, and readable static-state sizing without a copied iframe.
 - Open every scene-specific iframe URL and verify `?scene=<key>` selects the expected visible page number and title. Test repeated uses of the same route with different scene keys independently; an invalid key silently falling back to page 01 is a failure.
 - Check PageTitle quick actions, floating TOC, and any widescreen layout override touched by the change.
 
@@ -58,7 +65,7 @@ Run the smallest relevant checks after an edit, then run the full build when cha
 
 ## Deployment handoff
 
-- After the production build passes, commit and push the changed page, player, and Remotion source together. The `main` branch deploys to GitHub Pages.
+- After the production build passes, commit and push the changed page, player, Remotion source, and carrier-local versioned final-frame assets together. The `main` branch deploys to GitHub Pages.
 - Confirm the deployed page at `https://inkloomer.github.io/inkloom/<page-route>/` before reporting it as uploaded. The page itself is the embed target; do not hand the user iframe markup to paste manually.
 
 ## Commands
