@@ -9,7 +9,8 @@ Run the smallest relevant checks after an edit, then run the full build when cha
 - Confirm local images exist and use the intended relative `./assets/...` path.
 - Confirm raw legal material was first processed with `legal-marknote` in its user-supplied original file, while an already structured Markdown note was not processed again. Confirm the note and its assets remain at that original location and are absent from the website carrier.
 - Confirm there are exactly two Remotion explainers, each with a focused legal learning objective, a stable `animation.meta.ts`, a source under `src/animations/<subject>/<chapter>/<animation-id>/remotion/`, and a direct Astro/React player embed in its own thin MDX carrier.
-- Confirm the MDX carrier contains only the animation component import and frontmatter. It must not contain `## 动态...` description titles (such as `## 动态判断路径` or `## 动态选择路径`) or `## 场景终帧` sections. Animated WebP companions belong under the public asset contract, not in carrier prose.
+- Confirm AVIF publication has not changed the original full-length video composition, video encoding/publication path, total duration, or the existing scene pagination and semantic deep-link format. Do not accept per-scene video output as a substitute for the original video.
+- Confirm the MDX carrier contains only the animation component import and frontmatter. It must not contain `## 动态...` description titles (such as `## 动态判断路径` or `## 动态选择路径`) or `## 场景终帧` sections. Animated AVIF companions belong under the public asset contract, not in carrier prose.
 - Confirm `$remotion-best-practices` was read before the Remotion edit and that the React Markup, Rendering, Multimedia, or other routed reference was loaded when that task required it.
 - Confirm moving a note would require changing only the relevant `sourceReference` metadata field, not the animation ID or published MDX carrier route.
 - When an existing SiYuan note was explicitly requested as an embed target, confirm `$siyuan-cli` inserted one new sibling iframe block after every requested source-point block, in source-note order. Verify the explicit mapping from source block to animation route, scene key, and scene title; do not assume only two embeds or one embed per animation.
@@ -42,17 +43,17 @@ Run the smallest relevant checks after an edit, then run the full build when cha
   19. For a scene with a long stable phase, verify its primary focal rule either retains one restrained semantic attention cue or uses deliberate stillness for a documented climax. Reject motion applied to the text baseline, more than two competing persistent cues, continuous scale/opacity breathing, or movement that has no legal meaning.
   20. Run `pnpm animation:pages <animation-id> --motion` whenever persistent emphasis is added or changed. Inspect the three checkpoint frames for every scene: the teaching layout must remain stable and readable, while at least one authored focal cue changes phase, position, or progress where sustained emphasis is intended.
 - Do not proceed to publishing or report the animation complete while any captured page is uninspected, defective, or unverified.
-- After the page-still loop passes, verify the animated WebP set before building:
-  1. Follow [animated-webp.md](animated-webp.md) and run `pnpm animation:publish-webp <animation-id>` after inspection of the PNG QA captures. Do not hand-build the public directory or manifest.
-  2. Confirm `public/animation-webp/<animation-id>/` contains one q45 animated WebP named `<scene-id>.webp` for every semantic scene plus `manifest.json`; no numeric-only or title-derived filename is allowed.
-  3. Confirm the manifest records animation and composition IDs, generation time, `format: "animated-webp"`, `quality: 45`, 1280x720 dimensions, source/target fps, `loopCount: 1`, and exact scene ID/title/frame range/frame count/duration/file-size mappings.
-  4. Re-open every file as an animated image. Verify page count, page height, delays, and loop count, then inspect first/middle/final coalesced frames at original resolution. Reject blank frames, smeared text, broken connectors, color hierarchy changes, or an exit-tail final frame.
-  5. Confirm the shared player maps the same semantic ID to video and WebP, remembers the media tab, and exposes working replay, infinite loop, copy Markdown, copy image, and SiYuan script actions. A missing asset, stale manifest, static WebP, native `<img>` pause claim, or restored final-frame carrier block is a failure.
+- After the page-still loop passes, verify the animated AVIF set before building:
+  1. Follow [animated-avif.md](animated-avif.md) and run `pnpm animation:publish-avif <animation-id>` after inspection of the PNG QA captures. Do not hand-build the public directory or manifest.
+  2. Confirm `public/animation-avif/<animation-id>/` contains one q45/CRF35 animated AVIF named `<scene-id>.avif` for every existing semantic scene plus `manifest.json`; no numeric-only or title-derived filename is allowed, and no per-scene video is generated by this step.
+  3. Confirm the manifest records animation and composition IDs, generation time, `format: "animated-avif"`, `quality: 45`, `crf: 35`, 2560x1440 dimensions, source/target fps, `loopCount: 1`, and exact scene ID/title/frame range/frame count/duration/file-size mappings.
+  4. Re-open every file with FFprobe and an AVIF-capable animated-image reader. Verify frame count, dimensions, frame timing, and loop count, then inspect first/middle/final frames at original resolution. Reject blank frames, smeared text, broken connectors, color hierarchy changes, or an exit-tail final frame.
+  5. Confirm the shared player maps each unchanged semantic scene ID and page number to its original video range and matching AVIF, remembers the media tab, and exposes working replay, infinite loop, copy Markdown, copy image, and SiYuan script actions. A changed page order/range, split replacement video, missing asset, stale manifest, static AVIF, native `<img>` pause claim, or restored final-frame carrier block is a failure.
 - Inspect the page at narrow and wide widths.
 - Verify tables do not overflow unexpectedly and flow diagrams remain legible.
 - Test memory challenge: toggle the checkbox, confirm `.answer-node` blur, and confirm hover reveal.
 - Test `trigger-link-1` and `trigger-link-2` hover emphasis when the page uses `VisualFlow`.
-- Test the embedded Remotion player and animated WebP surface at narrow and wide widths; verify scene navigation, playback, mode persistence, replay/loop behavior, copy actions, image loading, aspect ratio, and reduced-size readability.
+- Test the embedded Remotion player and animated AVIF surface at narrow and wide widths; verify scene navigation, playback, mode persistence, replay/loop behavior, copy actions, image loading, aspect ratio, and reduced-size readability.
 - Open every scene-specific iframe URL and verify `?scene=<key>` selects the expected visible page number and title. Test repeated uses of the same route with different scene keys independently; an invalid key silently falling back to page 01 is a failure.
 - Check PageTitle quick actions, floating TOC, and any widescreen layout override touched by the change.
 
@@ -65,7 +66,7 @@ Run the smallest relevant checks after an edit, then run the full build when cha
 
 ## Deployment handoff
 
-- After the production build passes, commit and push the changed page, player, Remotion source, animated WebPs/manifests, and SiYuan controller together. The `main` branch deploys to GitHub Pages.
+- After the production build passes, commit and push the changed page, player, Remotion source, animated AVIFs/manifests, and SiYuan controller together. The `main` branch deploys to GitHub Pages.
 - Confirm the deployed page at `https://inkloomer.github.io/inkloom/<page-route>/` before reporting it as uploaded. The page itself is the embed target; do not hand the user iframe markup to paste manually.
 
 ## Commands
@@ -78,8 +79,8 @@ astro dev stop
 pnpm animation:pages <animation-id>
 pnpm animation:pages <animation-id> --motion
 pnpm animation:pages
-pnpm animation:publish-webp <animation-id>
-pnpm animation:publish-webp
+pnpm animation:publish-avif <animation-id>
+pnpm animation:publish-avif
 pnpm build
 ```
 
