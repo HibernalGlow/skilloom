@@ -23,10 +23,11 @@ Before writing or changing any Remotion composition, scene, player, or render co
 2. Make the visual relationship carry the explanation. Use text only for short concept labels, keywords, conditions, outcomes, values, and one brief subordinate caption when unavoidable.
 3. Build a reusable visual vocabulary for concrete legal concepts. Pair people and roles, groups, institutions, documents or decisions, remedies or measures, procedural actions, and legal outcomes with semantically recognizable icons or compact pictograms. Prefer the project's existing icon library, keep stroke weight and color roles consistent, and retain a short adjacent label when the symbol is not universally clear.
 4. Make icons perform within the explanation. Let a person token move into a branch, a document receive a decision mark, a measure act on its target, or an outcome token emerge from the causing step. Do not scatter unrelated icons beside sentences or use icons merely to fill empty space.
-5. Reject text-only teaching surfaces. A heading such as “核心原理” followed by a sentence or paragraph is not an animation scene; decorative icons, borders, or highlighted words do not turn prose into a diagram.
+5. Reject text-only teaching surfaces. A heading such as "核心原理" followed by a sentence or paragraph is not an animation scene; decorative icons, borders, or highlighted words do not turn prose into a diagram.
 6. Reject plain tables and table-like grids. Do not reproduce the source table, even with animated rows, colored cells, rounded borders, or icon headers. Recompose comparisons into lanes, paired or grouped modules, axes, relationship maps, or progressive state changes whose motion exposes the differences.
 7. Use the 16:9 canvas deliberately. Let the main teaching structure occupy and balance most of the usable frame instead of forming a small island in one corner or half. Retain whitespace only when it creates hierarchy, focus, movement space, or a planned reveal.
 8. Do not simulate canvas usage by stretching cards, enlarging paragraphs, or adding unrelated decoration. Improve utilization by showing the actual branch, containment, sequence, comparison, or causal structure more clearly.
+9. Measure every connector precisely. When drawing directional arrows between nodes with the shared `FlowArrow` component, size the arrow length to the actual gap (`width ≈ targetLeft - sourceLeft - 2`). Reusing a hardcoded default such as `340` px across scenes with different node spacing will either pierce the target node or leave an unsightly gap. Always recalculate `width` from the concrete layout coordinates and verify the result in the page-still QA.
 
 ## Emphasize focal rules
 
@@ -62,19 +63,18 @@ Treat `SCENES` as the shared timing contract for the composition, the embedded P
 5. Create a thin, dedicated MDX carrier under `src/content/docs/` for each animation. Import that Astro wrapper directly; never paste the source note into the carrier or leave the user to copy iframe markup.
 6. Keep each player scene addressable through the shared `scene` query. Every new `RemotionScene` entry must define a stable, descriptive, kebab-case `id` such as `first-instance`, `emergency-measures`, or `review-remedy`; never derive that ID from the page number or mutable display title. Preserve IDs across page insertion, reordering, and title edits. Use numeric keys only as backward-compatible aliases for legacy animations, and record which source-note concept maps to which semantic ID.
 
-## Publish final-frame stills with the carrier
+## Publish animated WebP companions
 
-1. Run `pnpm animation:publish-stills <animation-id>` after the page-still QA loop passes. This is the only publish path: it renders every scene at `previewEndTrimFrames`, encodes one full-resolution WebP at quality 60, creates a sortable timestamped version directory, writes `manifest.json`, and replaces only the carrier's marked final-frame image block.
-2. The command resolves the carrier from `animation.meta.ts` and publishes to `<md-dir>/animation/<md-basename>/<version>/<scene-id>.webp`. It obtains the stable kebab-case scene ID, number, and title from the corresponding player component, so each player scene must explicitly declare all three before spreading `SCENES.<key>`.
-3. Use `pnpm animation:publish-stills <animation-id> --dry-run` to render, encode, and validate a preview under `.artifacts` without modifying the carrier or final asset directory. Use `--version <sortable-utc-timestamp>` only when a reproducible version identifier is required; otherwise let the command generate it.
-4. Treat published version directories as immutable. The command refuses to overwrite an existing version and updates the MD/MDX image block only after the new WebP files and manifest have been written. Retain prior versions unless the user explicitly requests cleanup.
-5. Keep the interactive player as the primary motion surface and the generated final-frame images as inspectable static states. Do not replace the player unless the user explicitly requests a static-only carrier.
+1. Follow [animated-webp.md](animated-webp.md) after the page-still QA loop passes. Run `pnpm animation:publish-webp <animation-id>` to render every semantic scene through its stable preview end and encode one once-playing WebP q45 companion.
+2. Publish stable assets to `public/animation-webp/<animation-id>/<scene-id>.webp` with a sibling manifest. Every player scene must explicitly declare its stable kebab-case ID, number, and title before spreading `SCENES.<key>`, and the deck must provide `animationId`.
+3. The website keeps the Remotion Player and adds a WebP tab; it does not add final-frame sections to the MDX carrier. The selected media tab persists in localStorage, and scene navigation chooses the corresponding semantic WebP.
+4. Keep the file once-playing. Replay and infinite loop belong to the website or SiYuan controller, not the encoded loop count. Real pause/resume requires the published ImageDecoder/Canvas SiYuan controller because native animated `<img>` has no pause API.
 
 ## Publish as one finished flow
 
 1. Run the blocking iterative Remotion page-still QA in [validation.md](validation.md). Fix and recapture every defective page until all full-resolution stills pass; run the all-animation command after a batch is complete.
-2. Run `pnpm animation:publish-stills <animation-id>` to promote the approved scene final frames, write its manifest, and render all of them directly in the carrier.
-3. Build the site and verify the responsive player and every rendered final-frame image in the target page.
-4. Commit both Remotion explainers, their metadata, player components, versioned final-frame assets, and thin MDX carriers as one feature, then push them to the InkLoom repository. Do not include source-note rewrites or relocations unless separately requested.
+2. Run `pnpm animation:publish-webp <animation-id>` for changed animations and `pnpm animation:publish-webp` after the batch to publish every semantic scene and manifest.
+3. Build the site and verify the responsive video/WebP switcher, semantic scene selection, mode persistence, replay/loop controls, copy actions, and direct animated asset URLs.
+4. Commit both Remotion explainers, their metadata, player components, thin MDX carriers, public animated WebPs/manifests, and the SiYuan controller as one feature, then push them to the InkLoom repository. Do not include source-note rewrites or relocations unless separately requested.
 5. Push to the branch that deploys the website. Once GitHub Pages finishes, verify `https://inkloomer.github.io/inkloom/<page-route>/`.
 6. When the user explicitly requests an existing SiYuan-note embed, use [siyuan-embed.md](siyuan-embed.md) after the production URL is verified. Do not return an iframe snippet as a manual follow-up task.
