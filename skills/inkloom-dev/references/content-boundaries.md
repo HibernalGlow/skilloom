@@ -7,7 +7,7 @@ Use this reference whenever a completed Markdown note supplies the legal content
 1. Keep the completed Markdown note at the user-supplied original path, with its existing local assets. `legal-marknote` may organize this file in place. It is the legal source of truth and must not be converted to, copied into, or moved by the website work.
 2. Keep each Remotion explainer in `src/animations/<subject>/<chapter>/<animation-id>/remotion/`. Place `animation.meta.ts` next to `remotion/`; it records the stable animation ID, portable source reference, title, and website route.
 3. Keep the corresponding thin website carrier in `src/content/docs/<site-section>/<chapter>/<animation-id>.mdx`. It contains only frontmatter and the animation-component import needed to supply the route; do not add explanatory prose, headings, tables, callouts, images, or converted Markdown.
-4. Keep the original full-length video output and existing pagination contract unchanged. Keep additive animated AVIF companions under `public/animation-avif/<animation-id>/`, with one stable semantic scene file and a manifest. The MDX carrier must not contain hand-authored image blocks; the shared player renders the original video and AVIF tabs.
+4. Keep any existing full-length video output and pagination contract unchanged. Publish animated AVIF files under `public/animation-avif/<animation-id>/`, with one stable semantic scene file and a manifest; do not generate per-scene video. The MDX carrier must not contain hand-authored image blocks; the shared player renders the existing video and AVIF tabs.
 
 ## Move-safe identity
 

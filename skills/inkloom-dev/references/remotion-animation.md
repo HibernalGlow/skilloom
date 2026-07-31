@@ -65,7 +65,7 @@ Treat `SCENES` as the shared timing contract for the composition, the embedded P
 
 ## Publish animated AVIF companions
 
-1. Preserve the original full-length composition/video output and the established `SCENES` pagination format. AVIF publication is an additive export step, not a video replacement or a reason to split the original video.
+1. Preserve any existing full-length composition/video output and the established `SCENES` pagination format. Publish the required per-scene AVIF files without splitting or re-encoding video.
 2. Follow [animated-avif.md](animated-avif.md) after the page-still QA loop passes. Run `pnpm animation:publish-avif <animation-id>` to render every existing semantic scene through its stable preview end and encode one once-playing AVIF at the default q45/CRF35, 2560x1440, 15 fps contract.
 3. Publish stable assets to `public/animation-avif/<animation-id>/<scene-id>.avif` with a sibling manifest. Every player scene must explicitly declare its stable kebab-case ID, number, and title before spreading `SCENES.<key>`, and the deck must provide `animationId`.
 4. The website keeps the existing full-video Remotion Player and its pagination unchanged, then adds an AVIF tab; it does not add final-frame sections to the MDX carrier. The selected media tab persists in localStorage, and scene navigation chooses the corresponding semantic AVIF.
