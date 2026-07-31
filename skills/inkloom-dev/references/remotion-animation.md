@@ -16,6 +16,7 @@ Before writing or changing any Remotion composition, scene, player, or render co
 1. Create exactly two focused explainers from the completed note's important and difficult points. Cover two distinct points where possible; for one especially complex point, use two complementary explainers only when each has a separate learning objective.
 2. Select a rule definition, decision branch, procedural order, relationship, exception, or recurring misconception. Keep each animation faithful to the completed note; do not introduce legal rules, facts, or conclusions that are not supported by that source.
 3. Prefer a short sequence of readable scenes over a decorative summary. Make every scene answer one learning question and expose the resulting rule, branch, or relationship.
+4. Keep the complete composition at or below 20 seconds by default, measured as `DURATION_FRAMES / FPS`. Re-stage the scene, use simultaneous but logically compatible regions, and make better use of the canvas when more time seems necessary. Preserve wording that carries legal conditions, exceptions, roles, or relationships; shorten only redundant phrasing and non-semantic metadata. Do not satisfy the limit by raising playback speed until entries, relationships, or conclusions become hard to follow.
 
 ## Choose a node-level visual direction
 
@@ -36,6 +37,8 @@ Before writing or changing any Remotion composition, scene, player, or render co
 7. Use the 16:9 canvas deliberately. Let the main teaching structure occupy and balance most of the usable frame instead of forming a small island in one corner or half. Retain whitespace only when it creates hierarchy, focus, movement space, or a planned reveal.
 8. Do not simulate canvas usage by stretching cards, enlarging paragraphs, or adding unrelated decoration. Improve utilization by showing the actual branch, containment, sequence, comparison, or causal structure more clearly.
 9. Measure every connector precisely. When drawing directional arrows between nodes with the shared `FlowArrow` component, size the arrow length to the actual gap (`width ≈ targetLeft - sourceLeft - 2`). Reusing a hardcoded default such as `340` px across scenes with different node spacing will either pierce the target node or leave an unsightly gap. Always recalculate `width` from the concrete layout coordinates and verify the result in the page-still QA.
+10. Author type for the reduced website player, not only for a full-screen render. At a 1920x1080 canvas, use at least 30 px for focal legal concepts and primary node labels, and at least 22 px for knowledge-bearing conditions, explanations, axis labels, and branch labels. Only non-semantic metadata such as numbers, English eyebrows, coordinates, and `STATION 01` labels may use 15-18 px.
+11. Treat those sizes as readability floors, not a request to inflate every label. Preserve visual hierarchy and craft by wrapping deliberately, expanding or relocating the relevant teaching region, moving headings out of the way, and removing low-value metadata. Do not rewrite or remove wording that carries legal structure merely to make the layout easier. Never trade the minimum size for overflow, crowding, clipped text, weak alignment, or a visually top-heavy scene.
 
 ## Emphasize focal rules
 
