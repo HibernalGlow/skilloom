@@ -63,18 +63,19 @@ Treat `SCENES` as the shared timing contract for the composition, the embedded P
 5. Create a thin, dedicated MDX carrier under `src/content/docs/` for each animation. Import that Astro wrapper directly; never paste the source note into the carrier or leave the user to copy iframe markup.
 6. Keep each player scene addressable through the shared `scene` query. Every new `RemotionScene` entry must define a stable, descriptive, kebab-case `id` such as `first-instance`, `emergency-measures`, or `review-remedy`; never derive that ID from the page number or mutable display title. Preserve IDs across page insertion, reordering, and title edits. Use numeric keys only as backward-compatible aliases for legacy animations, and record which source-note concept maps to which semantic ID.
 
-## Publish animated WebP companions
+## Publish animated AVIF companions
 
-1. Follow [animated-webp.md](animated-webp.md) after the page-still QA loop passes. Run `pnpm animation:publish-webp <animation-id>` to render every semantic scene through its stable preview end and encode one once-playing WebP q45 companion.
-2. Publish stable assets to `public/animation-webp/<animation-id>/<scene-id>.webp` with a sibling manifest. Every player scene must explicitly declare its stable kebab-case ID, number, and title before spreading `SCENES.<key>`, and the deck must provide `animationId`.
-3. The website keeps the Remotion Player and adds a WebP tab; it does not add final-frame sections to the MDX carrier. The selected media tab persists in localStorage, and scene navigation chooses the corresponding semantic WebP.
-4. Keep the file once-playing. Replay and infinite loop belong to the website or SiYuan controller, not the encoded loop count. Real pause/resume requires the published ImageDecoder/Canvas SiYuan controller because native animated `<img>` has no pause API.
+1. Preserve the original full-length composition/video output and the established `SCENES` pagination format. AVIF publication is an additive export step, not a video replacement or a reason to split the original video.
+2. Follow [animated-avif.md](animated-avif.md) after the page-still QA loop passes. Run `pnpm animation:publish-avif <animation-id>` to render every existing semantic scene through its stable preview end and encode one once-playing AVIF at the default q45/CRF35, 2560x1440, 15 fps contract.
+3. Publish stable assets to `public/animation-avif/<animation-id>/<scene-id>.avif` with a sibling manifest. Every player scene must explicitly declare its stable kebab-case ID, number, and title before spreading `SCENES.<key>`, and the deck must provide `animationId`.
+4. The website keeps the existing full-video Remotion Player and its pagination unchanged, then adds an AVIF tab; it does not add final-frame sections to the MDX carrier. The selected media tab persists in localStorage, and scene navigation chooses the corresponding semantic AVIF.
+5. Keep the file once-playing. Replay and infinite loop belong to the website or SiYuan controller, not the encoded loop count. Do not offer pause/resume in SiYuan: keep the native `<img>` untouched and implement replay or manifest-timed looping by reloading it.
 
 ## Publish as one finished flow
 
 1. Run the blocking iterative Remotion page-still QA in [validation.md](validation.md). Fix and recapture every defective page until all full-resolution stills pass; run the all-animation command after a batch is complete.
-2. Run `pnpm animation:publish-webp <animation-id>` for changed animations and `pnpm animation:publish-webp` after the batch to publish every semantic scene and manifest.
-3. Build the site and verify the responsive video/WebP switcher, semantic scene selection, mode persistence, replay/loop controls, copy actions, and direct animated asset URLs.
-4. Commit both Remotion explainers, their metadata, player components, thin MDX carriers, public animated WebPs/manifests, and the SiYuan controller as one feature, then push them to the InkLoom repository. Do not include source-note rewrites or relocations unless separately requested.
+2. Run `pnpm animation:publish-avif <animation-id>` for changed animations and `pnpm animation:publish-avif` after the batch to publish every semantic scene and manifest.
+3. Build the site and verify the responsive video/AVIF switcher, semantic scene selection, mode persistence, replay/loop controls, copy actions, and direct animated asset URLs.
+4. Commit both Remotion explainers, their metadata, player components, thin MDX carriers, public animated AVIFs/manifests, and the SiYuan controller as one feature, then push them to the InkLoom repository. Do not include source-note rewrites or relocations unless separately requested.
 5. Push to the branch that deploys the website. Once GitHub Pages finishes, verify `https://inkloomer.github.io/inkloom/<page-route>/`.
 6. When the user explicitly requests an existing SiYuan-note embed, use [siyuan-embed.md](siyuan-embed.md) after the production URL is verified. Do not return an iframe snippet as a manual follow-up task.
