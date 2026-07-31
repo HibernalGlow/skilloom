@@ -17,6 +17,14 @@ Use the installed Remotion skills as the default implementation toolkit for InkL
 - Strongly prefer `$remotion-bits` for reusable motion patterns, especially its **Text Animations**. Use its example-first discovery flow before writing custom frame math, then adapt `AnimatedText` for short headings, legal terms, section labels, and key callouts; use `TypeWriter` for terminal-like sequences and `StaggeredMotion` for repeated labels, cards, or nodes. Keep text concise and readable, and do not animate every paragraph merely because a text primitive is available.
 - Use `@remotion/transitions` and `@remotion/effects` when the scene needs their specific capabilities, while keeping the semantic diagram and legal meaning primary. Do not add custom equivalents when an installed package or Remotion Bits primitive already covers the behavior.
 
+## Visual direction and node boundaries
+
+- Treat one MDX carrier and its Remotion directory as one visual node. Keep one coherent visual language across that node's scenes; choose a materially different visual fingerprint for each new neighboring node.
+- Read [visual-direction.md](references/visual-direction.md) before authoring a new node. Choose a direction because it makes the legal relationship easier to understand, then record the choice in `visual-direction.json` beside `remotion/`.
+- Share only frame conversion, scene timing, `Sequence` plumbing, render registration, and optional style-neutral motion primitives. Keep background, fonts, palette, surfaces, cards, headings, composition grammar, transitions, and art direction inside the node.
+- Use `src/animations/shared/remotion-runtime.tsx` for new neutral runtime mechanics. Treat `src/animations/shared/legal-visual.tsx` as legacy compatibility and do not import it for a new node.
+- Run `pnpm animation:styles` before page QA. Exact visual fingerprints must be unique; a repeated family requires an explicit visual distinction review.
+
 ## Working sequence
 
 1. Locate the user-supplied Markdown source file at its existing path and the intended independent animation and website areas. The note may live outside InkLoom; it is source evidence, not InkLoom MDX input.
@@ -26,7 +34,7 @@ Use the installed Remotion skills as the default implementation toolkit for InkL
 3. Preserve the site's base route: `base: '/inkloom'`. Every absolute MDX or Astro link must begin with `/inkloom/`; use relative asset paths such as `./assets/cover.png` for page-local images.
 4. Read the source note, the target website page, its nearest `_meta.yml`, imported components, and relevant styles before editing. Choose two important or difficult points without copying the note into the site.
 5. Before creating or modifying any Remotion file, read and follow `$remotion-best-practices`. Then load its relevant reference: React Markup for compositions or player components, Rendering for output or publishing, and Multimedia for image, audio, or video work. Do not write Remotion source before completing this step.
-6. Follow [content-boundaries.md](references/content-boundaries.md). Keep the Markdown note and its assets in place, then create two independent Remotion explainers using [remotion-animation.md](references/remotion-animation.md).
+6. Follow [content-boundaries.md](references/content-boundaries.md) and [visual-direction.md](references/visual-direction.md). Keep the Markdown note and its assets in place, then create two independent Remotion explainers using [remotion-animation.md](references/remotion-animation.md). Give each animation node its own `visual-direction.json`.
 7. Give each explainer a stable ID, a separate `src/animations/` directory, and its own thin MDX carrier page. The MDX exists only to route and embed the animation on InkLoom; it must not reproduce, convert, or relocate the note.
 8. Complete the mandatory iterative page-still QA in [validation.md](references/validation.md) before calling any animation finished. Capture each changed animation with `pnpm animation:pages <animation-id>` and run `pnpm animation:pages <animation-id> --motion` whenever sustained emphasis is present or changed; after a batch or all animations are complete, run `pnpm animation:pages`. Inspect every contact sheet and full-resolution page, fix the animation source, and repeat until every page is visually correct.
 9. Preserve any existing full-length video composition and the `SCENES` pagination contract. Do not generate per-scene video as part of animated-image publication, and do not change scene order, IDs, ranges, or deep-link format merely to produce AVIF files.
@@ -45,6 +53,7 @@ Use the installed Remotion skills as the default implementation toolkit for InkL
 - Layout overrides: `src/components/overrides/PageTitle.astro` and `src/styles/custom.css`.
 - Local development: `astro dev --background`.
 - Animation page QA: `pnpm animation:pages <animation-id>` for changed animations and `pnpm animation:pages` for a completed batch.
+- Animation style audit: `pnpm animation:styles` before page-still QA; this checks node-level visual fingerprints and legacy exceptions.
 - Animated AVIF publication: `pnpm animation:publish-avif <animation-id>` for changed animations and `pnpm animation:publish-avif` for a completed batch; the default contract is q45/CRF35, 2560x1440, 15 fps, and one encoded play.
 - Build verification: `pnpm build`.
 
@@ -67,6 +76,7 @@ Use the installed Remotion skills as the default implementation toolkit for InkL
 - Do not use bare absolute paths such as `/objective/...`; they produce GitHub Pages 404s.
 - Do not convert, copy, or relocate a Markdown note, its tables, or its assets into MDX. The note and the website animation are separate deliverables.
 - Do not duplicate an existing component's CSS or silently change its props; inspect the component contract first.
+- Do not copy a shared legal visual theme into a new node. Reuse neutral runtime mechanics only, and keep one node's chosen visual language stable across its scenes.
 - Do not move source-note images into `src/content/docs/` or a shared global folder. Animation-specific media belongs with its own animation source.
 - Do not put animation sources or player components in a generic scratch folder. Use stable animation IDs and the independent directory contract in [content-boundaries.md](references/content-boundaries.md).
 - Do not generate a generic video merely because an animation was requested. The animation must teach a specific completed legal note's key point or difficult point and must not add unsupported legal conclusions.
@@ -99,3 +109,4 @@ Use the installed Remotion skills as the default implementation toolkit for InkL
 - [remotion-animation.md](references/remotion-animation.md): legal-note-to-Remotion workflow, independent source placement, page embedding, and deployment handoff.
 - [siyuan-embed.md](references/siyuan-embed.md): explicit note-edit authorization, knowledge-point-to-scene mapping, semantic iframe deep links, and SiYuan/Markdown verification.
 - [validation.md](references/validation.md): mandatory iterative page-still QA, responsive player, build, route, and compatibility checks.
+- [visual-direction.md](references/visual-direction.md): node-level visual ownership, direction catalog, manifest contract, and diversity audit.

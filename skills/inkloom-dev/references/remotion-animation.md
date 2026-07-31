@@ -17,6 +17,13 @@ Before writing or changing any Remotion composition, scene, player, or render co
 2. Select a rule definition, decision branch, procedural order, relationship, exception, or recurring misconception. Keep each animation faithful to the completed note; do not introduce legal rules, facts, or conclusions that are not supported by that source.
 3. Prefer a short sequence of readable scenes over a decorative summary. Make every scene answer one learning question and expose the resulting rule, branch, or relationship.
 
+## Choose a node-level visual direction
+
+1. Treat the MDX carrier as the public node boundary: scenes inside that node should share typography, palette roles, surface language, and one restrained transition vocabulary.
+2. Before coding, choose a direction from [visual-direction.md](visual-direction.md), compare it with nearby node manifests, and write a unique `visual-direction.json` beside `remotion/`.
+3. Keep the visual direction local. Use only neutral runtime helpers for timing and registration; do not import the legacy `createLegalVisualSystem()` factory in new work.
+4. Prefer a materially different palette, headline placement, surface grammar, and motion vocabulary for the next node. Do not create variety by randomizing direction or by adding decorative effects that weaken legal meaning.
+
 ## Convert rules into visual grammar
 
 1. Express the legal structure spatially and through motion. Use nodes and connectors for relationships, forks for alternative conditions, nested regions for inclusion, timelines for procedure, aligned lanes for comparison, and transformation or causal motion for changes and effects.
