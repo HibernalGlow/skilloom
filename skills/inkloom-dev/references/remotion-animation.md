@@ -16,7 +16,9 @@ Before writing or changing any Remotion composition, scene, player, or render co
 1. Create exactly two focused explainers from the completed note's important and difficult points. Cover two distinct points where possible; for one especially complex point, use two complementary explainers only when each has a separate learning objective.
 2. Select a rule definition, decision branch, procedural order, relationship, exception, or recurring misconception. Keep each animation faithful to the completed note; do not introduce legal rules, facts, or conclusions that are not supported by that source.
 3. Prefer a short sequence of readable scenes over a decorative summary. Make every scene answer one learning question and expose the resulting rule, branch, or relationship.
-4. Keep the complete composition at or below 20 seconds by default, measured as `DURATION_FRAMES / FPS`. Re-stage the scene, use simultaneous but logically compatible regions, and make better use of the canvas when more time seems necessary. Preserve wording that carries legal conditions, exceptions, roles, or relationships; shorten only redundant phrasing and non-semantic metadata. Do not satisfy the limit by raising playback speed until entries, relationships, or conclusions become hard to follow.
+4. Set duration per semantic scene from content density, not from a fixed 15-second target and not from a 20-second cap on the complete composition. Count `sequentialBeats` as concepts, relations, or actions that must be understood in order; `denseReadingGroups` as compact knowledge-bearing text groups that need a separate read; and `branchHandoffs` as attention transfers between branches or teaching regions. Use this starting estimate in seconds: `1.2 + 0.9 * sequentialBeats + 0.35 * denseReadingGroups + 0.5 * branchHandoffs`. The base allowance includes entrance and a readable final hold.
+5. Calibrate the estimate against `/objective/civil-procedure/04/legal-jurisdiction/?scene=mediation-confirmation`: its 330 frames at 60 fps, about 5.5 seconds, comfortably stage roughly four ordered reasoning beats and leave about one second for the stable result. This is a density reference, not a template or required duration.
+6. Inspect the actual motion and adjust: shorten idle lead-in, decorative travel, repeated emphasis, or an unnecessarily long final hold; lengthen only when a knowledge-bearing label, causal handoff, branch comparison, or conclusion is rushed. A single semantic scene must not exceed 20 seconds without explicit approval. The complete composition is the natural sum of its scenes and may exceed 20 seconds. Preserve wording that carries legal conditions, exceptions, roles, or relationships; do not satisfy a number by deleting structure or raising playback speed past comfortable reading.
 
 ## Choose a node-level visual direction
 
@@ -25,6 +27,7 @@ Before writing or changing any Remotion composition, scene, player, or render co
 3. Keep the visual direction local. Use only neutral runtime helpers for timing and registration; do not import the legacy `createLegalVisualSystem()` factory in new work.
 4. Prefer a materially different palette, headline placement, surface grammar, and motion vocabulary for the next node. Do not create variety by randomizing direction or by adding decorative effects that weaken legal meaning.
 5. Use a catalog direction as a theme-like design brief when appropriate. Keep its implementation node-local, record `derivedFrom` and `variation`, and never import a shared visual theme object merely to reproduce its look.
+6. Give every featured direction its own style name. The Demo label and `catalog.title` describe the visual language, such as `法庭蓝图` or `套色印版`; they must not repeat the legal topic, node title, chapter title, or a scene heading.
 
 ## Convert rules into visual grammar
 
@@ -73,7 +76,7 @@ Treat `SCENES` as the shared timing contract for the composition, the embedded P
 4. Add a focused React player component under `src/components/` that passes the composition and scene metadata to the shared `RemotionDeck` pattern. Add an Astro wrapper when the page needs the existing `AnimationSource` presentation.
 5. Create a thin, dedicated MDX carrier under `src/content/docs/` for each animation. Import that Astro wrapper directly; never paste the source note into the carrier or leave the user to copy iframe markup.
 6. Keep each player scene addressable through the shared `scene` query. Every new `RemotionScene` entry must define a stable, descriptive, kebab-case `id` such as `first-instance`, `emergency-measures`, or `review-remedy`; never derive that ID from the page number or mutable display title. Preserve IDs across page insertion, reordering, and title edits. Use numeric keys only as backward-compatible aliases for legacy animations, and record which source-note concept maps to which semantic ID.
-7. When the node introduces a new direction, add the original composition and existing MDX route to the `/demo/` catalog. Mark the manifest as `catalog.status: "featured"` and `catalog.source: "original-node"`; do not create a demo-only Remotion directory or MDX carrier.
+7. When the node introduces a new direction, add the original composition and existing MDX route to the `/demo/` catalog. Mark the manifest as `catalog.status: "featured"` and `catalog.source: "original-node"`, and use the same visual-style name for the Demo entry and `catalog.title`; do not use the legal node title or create a demo-only Remotion directory or MDX carrier.
 
 ## Publish animated AVIF companions
 
