@@ -1,6 +1,6 @@
 interface:
   display_name: "InkLoom Developer"
   short_description: "Build and visually validate InkLoom explainers"
-  default_prompt: "Use $inkloom-dev to publish Remotion explainers from a completed legal note, require diagrammatic visual explanation and full page-still QA, run pnpm animation:publish-stills to render versioned WebP quality 60 final frames beside each MDX carrier, and, when explicitly requested, map each SiYuan or Markdown knowledge point to its matching semantic scene iframe URL."
+  default_prompt: "Use $inkloom-dev to publish Remotion explainers from a completed legal note, require diagrammatic visual explanation and full page-still QA, run pnpm animation:publish-webp to publish one once-playing q45 animated WebP per semantic scene with website copy controls and SiYuan playback support, and, when explicitly requested, map each SiYuan or Markdown knowledge point to its matching semantic scene URL."
 policy:
   allow_implicit_invocation: true

@@ -9,6 +9,7 @@ Run the smallest relevant checks after an edit, then run the full build when cha
 - Confirm local images exist and use the intended relative `./assets/...` path.
 - Confirm raw legal material was first processed with `legal-marknote` in its user-supplied original file, while an already structured Markdown note was not processed again. Confirm the note and its assets remain at that original location and are absent from the website carrier.
 - Confirm there are exactly two Remotion explainers, each with a focused legal learning objective, a stable `animation.meta.ts`, a source under `src/animations/<subject>/<chapter>/<animation-id>/remotion/`, and a direct Astro/React player embed in its own thin MDX carrier.
+- Confirm the MDX carrier contains only the animation component import and frontmatter. It must not contain `## 动态...` description titles (such as `## 动态判断路径` or `## 动态选择路径`) or `## 场景终帧` sections. Animated WebP companions belong under the public asset contract, not in carrier prose.
 - Confirm `$remotion-best-practices` was read before the Remotion edit and that the React Markup, Rendering, Multimedia, or other routed reference was loaded when that task required it.
 - Confirm moving a note would require changing only the relevant `sourceReference` metadata field, not the animation ID or published MDX carrier route.
 - When an existing SiYuan note was explicitly requested as an embed target, confirm `$siyuan-cli` inserted one new sibling iframe block after every requested source-point block, in source-note order. Verify the explicit mapping from source block to animation route, scene key, and scene title; do not assume only two embeds or one embed per animation.
@@ -41,18 +42,17 @@ Run the smallest relevant checks after an edit, then run the full build when cha
   19. For a scene with a long stable phase, verify its primary focal rule either retains one restrained semantic attention cue or uses deliberate stillness for a documented climax. Reject motion applied to the text baseline, more than two competing persistent cues, continuous scale/opacity breathing, or movement that has no legal meaning.
   20. Run `pnpm animation:pages <animation-id> --motion` whenever persistent emphasis is added or changed. Inspect the three checkpoint frames for every scene: the teaching layout must remain stable and readable, while at least one authored focal cue changes phase, position, or progress where sustained emphasis is intended.
 - Do not proceed to publishing or report the animation complete while any captured page is uninspected, defective, or unverified.
-- After the page-still loop passes, verify the published still set before building:
-  1. Run `pnpm animation:publish-stills <animation-id>` after inspection of the PNG QA captures. Use `--dry-run` before a sensitive first publication; do not hand-build the version directory, manifest, or MDX image block.
-  2. Confirm the command created `<md-dir>/animation/<md-basename>/<version>/`, where `<version>` is a sortable UTC timestamp, and one full-resolution WebP quality 60 file named `<scene-id>.webp` exists for every semantic scene.
-  3. Confirm `manifest.json` records the animation ID, dimensions, generation time, `format: "webp"`, `quality: 60`, and exact scene ID, title, frame, and filename mapping.
-  4. Open each published WebP at original resolution beside its approved lossless capture. Confirm it was encoded once without resizing or cropping and reject smeared small text, ringing around glyphs or icons, broken thin connectors, color banding that changes hierarchy, or any other q60 artifact that reduces comprehension.
-  5. Confirm the command updated only its paired carrier markers and the MD/MDX renders every WebP directly in scene order with meaningful alt text and relative paths. A PNG carrier asset, filename link, hidden disclosure, `.artifacts` reference, broken image, stale version reference, or missing scene is a failure.
-  6. When updating an animation, confirm the carrier references only the new fully validated version and that the prior version remains available unless cleanup was explicitly requested.
+- After the page-still loop passes, verify the animated WebP set before building:
+  1. Follow [animated-webp.md](animated-webp.md) and run `pnpm animation:publish-webp <animation-id>` after inspection of the PNG QA captures. Do not hand-build the public directory or manifest.
+  2. Confirm `public/animation-webp/<animation-id>/` contains one q45 animated WebP named `<scene-id>.webp` for every semantic scene plus `manifest.json`; no numeric-only or title-derived filename is allowed.
+  3. Confirm the manifest records animation and composition IDs, generation time, `format: "animated-webp"`, `quality: 45`, 1280x720 dimensions, source/target fps, `loopCount: 1`, and exact scene ID/title/frame range/frame count/duration/file-size mappings.
+  4. Re-open every file as an animated image. Verify page count, page height, delays, and loop count, then inspect first/middle/final coalesced frames at original resolution. Reject blank frames, smeared text, broken connectors, color hierarchy changes, or an exit-tail final frame.
+  5. Confirm the shared player maps the same semantic ID to video and WebP, remembers the media tab, and exposes working replay, infinite loop, copy Markdown, copy image, and SiYuan script actions. A missing asset, stale manifest, static WebP, native `<img>` pause claim, or restored final-frame carrier block is a failure.
 - Inspect the page at narrow and wide widths.
 - Verify tables do not overflow unexpectedly and flow diagrams remain legible.
 - Test memory challenge: toggle the checkbox, confirm `.answer-node` blur, and confirm hover reveal.
 - Test `trigger-link-1` and `trigger-link-2` hover emphasis when the page uses `VisualFlow`.
-- Test the embedded Remotion player and rendered final-frame images at narrow and wide widths; verify scene navigation, playback, reduced-size layout, image loading, aspect ratio, and readable static-state sizing without a copied iframe.
+- Test the embedded Remotion player and animated WebP surface at narrow and wide widths; verify scene navigation, playback, mode persistence, replay/loop behavior, copy actions, image loading, aspect ratio, and reduced-size readability.
 - Open every scene-specific iframe URL and verify `?scene=<key>` selects the expected visible page number and title. Test repeated uses of the same route with different scene keys independently; an invalid key silently falling back to page 01 is a failure.
 - Check PageTitle quick actions, floating TOC, and any widescreen layout override touched by the change.
 
@@ -65,7 +65,7 @@ Run the smallest relevant checks after an edit, then run the full build when cha
 
 ## Deployment handoff
 
-- After the production build passes, commit and push the changed page, player, Remotion source, and carrier-local versioned final-frame assets together. The `main` branch deploys to GitHub Pages.
+- After the production build passes, commit and push the changed page, player, Remotion source, animated WebPs/manifests, and SiYuan controller together. The `main` branch deploys to GitHub Pages.
 - Confirm the deployed page at `https://inkloomer.github.io/inkloom/<page-route>/` before reporting it as uploaded. The page itself is the embed target; do not hand the user iframe markup to paste manually.
 
 ## Commands
@@ -78,8 +78,8 @@ astro dev stop
 pnpm animation:pages <animation-id>
 pnpm animation:pages <animation-id> --motion
 pnpm animation:pages
-pnpm animation:publish-stills <animation-id>
-pnpm animation:publish-stills <animation-id> --dry-run
+pnpm animation:publish-webp <animation-id>
+pnpm animation:publish-webp
 pnpm build
 ```
 
