@@ -66,12 +66,12 @@ Every new node must add `visual-direction.json` beside `remotion/`:
     "status": "featured",
     "source": "original-node",
     "route": "/inkloom/objective/civil-procedure/04/territorial-jurisdiction/",
-    "title": "地域管辖"
+    "title": "法庭蓝图"
   }
 }
 ```
 
-Use `catalog.status: "featured"` only for the original node selected to demonstrate a direction. The `/demo/` gallery must preview that node's existing composition and link to `catalog.route`; it must not create a duplicate demo composition or carrier. For a later node that derives from a catalog direction, use fields such as:
+Use `catalog.status: "featured"` only for the original node selected to demonstrate a direction. `catalog.title` is the localized name of the visual style, not the legal subject demonstrated by the node. The `/demo/` gallery must use the same style name, preview that node's existing composition, and link to `catalog.route`; it must not create a duplicate demo composition or carrier. For a later node that derives from a catalog direction, use fields such as:
 
 ```json
 {
@@ -87,8 +87,8 @@ Use `catalog.status: "featured"` only for the original node selected to demonstr
 
 When a genuinely new direction is authored, complete these steps in the same change:
 
-1. Set its manifest to `catalog.status: "featured"`, `catalog.source: "original-node"`, and its existing `/inkloom/.../` MDX route.
-2. Add it to the existing `/demo/` registry or discovery mechanism using the original composition and player metadata.
+1. Set its manifest to `catalog.status: "featured"`, `catalog.source: "original-node"`, its existing `/inkloom/.../` MDX route, and a `catalog.title` that names the visual style independently from the legal node.
+2. Add it to the existing `/demo/` registry or discovery mechanism using the original composition and player metadata. Use the same visual-style name as the card title; keep the node's legal title on its original MDX page.
 3. Make the gallery card open the original MDX route. Do not add a new route under `/demo/<direction>/` unless the user explicitly requests a separate curated page.
 4. Verify the root gallery preview and the original route at narrow and wide widths.
 
