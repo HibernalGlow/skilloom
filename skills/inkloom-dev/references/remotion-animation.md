@@ -23,6 +23,7 @@ Before writing or changing any Remotion composition, scene, player, or render co
 2. Before coding, choose a direction from [visual-direction.md](visual-direction.md), compare it with nearby node manifests, and write a unique `visual-direction.json` beside `remotion/`.
 3. Keep the visual direction local. Use only neutral runtime helpers for timing and registration; do not import the legacy `createLegalVisualSystem()` factory in new work.
 4. Prefer a materially different palette, headline placement, surface grammar, and motion vocabulary for the next node. Do not create variety by randomizing direction or by adding decorative effects that weaken legal meaning.
+5. Use a catalog direction as a theme-like design brief when appropriate. Keep its implementation node-local, record `derivedFrom` and `variation`, and never import a shared visual theme object merely to reproduce its look.
 
 ## Convert rules into visual grammar
 
@@ -69,6 +70,7 @@ Treat `SCENES` as the shared timing contract for the composition, the embedded P
 4. Add a focused React player component under `src/components/` that passes the composition and scene metadata to the shared `RemotionDeck` pattern. Add an Astro wrapper when the page needs the existing `AnimationSource` presentation.
 5. Create a thin, dedicated MDX carrier under `src/content/docs/` for each animation. Import that Astro wrapper directly; never paste the source note into the carrier or leave the user to copy iframe markup.
 6. Keep each player scene addressable through the shared `scene` query. Every new `RemotionScene` entry must define a stable, descriptive, kebab-case `id` such as `first-instance`, `emergency-measures`, or `review-remedy`; never derive that ID from the page number or mutable display title. Preserve IDs across page insertion, reordering, and title edits. Use numeric keys only as backward-compatible aliases for legacy animations, and record which source-note concept maps to which semantic ID.
+7. When the node introduces a new direction, add the original composition and existing MDX route to the `/demo/` catalog. Mark the manifest as `catalog.status: "featured"` and `catalog.source: "original-node"`; do not create a demo-only Remotion directory or MDX carrier.
 
 ## Publish animated AVIF companions
 

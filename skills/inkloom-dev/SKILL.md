@@ -21,6 +21,7 @@ Use the installed Remotion skills as the default implementation toolkit for InkL
 
 - Treat one MDX carrier and its Remotion directory as one visual node. Keep one coherent visual language across that node's scenes; choose a materially different visual fingerprint for each new neighboring node.
 - Read [visual-direction.md](references/visual-direction.md) before authoring a new node. Choose a direction because it makes the legal relationship easier to understand, then record the choice in `visual-direction.json` beside `remotion/`.
+- When a node introduces a direction that is not yet represented in `/demo/`, add the original node to the demo catalog. Reuse its existing composition for the preview and link to its existing MDX route; do not create a second demo-only composition or MDX page. Record this relationship in the manifest's `catalog` field.
 - Share only frame conversion, scene timing, `Sequence` plumbing, render registration, and optional style-neutral motion primitives. Keep background, fonts, palette, surfaces, cards, headings, composition grammar, transitions, and art direction inside the node.
 - Use `src/animations/shared/remotion-runtime.tsx` for new neutral runtime mechanics. Treat `src/animations/shared/legal-visual.tsx` as legacy compatibility and do not import it for a new node.
 - Run `pnpm animation:styles` before page QA. Exact visual fingerprints must be unique; a repeated family requires an explicit visual distinction review.
@@ -35,7 +36,7 @@ Use the installed Remotion skills as the default implementation toolkit for InkL
 4. Read the source note, the target website page, its nearest `_meta.yml`, imported components, and relevant styles before editing. Choose two important or difficult points without copying the note into the site.
 5. Before creating or modifying any Remotion file, read and follow `$remotion-best-practices`. Then load its relevant reference: React Markup for compositions or player components, Rendering for output or publishing, and Multimedia for image, audio, or video work. Do not write Remotion source before completing this step.
 6. Follow [content-boundaries.md](references/content-boundaries.md) and [visual-direction.md](references/visual-direction.md). Keep the Markdown note and its assets in place, then create two independent Remotion explainers using [remotion-animation.md](references/remotion-animation.md). Give each animation node its own `visual-direction.json`.
-7. Give each explainer a stable ID, a separate `src/animations/` directory, and its own thin MDX carrier page. The MDX exists only to route and embed the animation on InkLoom; it must not reproduce, convert, or relocate the note.
+7. Give each explainer a stable ID, a separate `src/animations/` directory, and its own thin MDX carrier page. The MDX exists only to route and embed the animation on InkLoom; it must not reproduce, convert, or relocate the note. If this node adds a new visual direction, register that original player and MDX route in the `/demo/` catalog instead of building a parallel demo node.
 8. Complete the mandatory iterative page-still QA in [validation.md](references/validation.md) before calling any animation finished. Capture each changed animation with `pnpm animation:pages <animation-id>` and run `pnpm animation:pages <animation-id> --motion` whenever sustained emphasis is present or changed; after a batch or all animations are complete, run `pnpm animation:pages`. Inspect every contact sheet and full-resolution page, fix the animation source, and repeat until every page is visually correct.
 9. Preserve any existing full-length video composition and the `SCENES` pagination contract. Do not generate per-scene video as part of animated-image publication, and do not change scene order, IDs, ranges, or deep-link format merely to produce AVIF files.
 10. After page-still QA passes, follow [animated-avif.md](references/animated-avif.md) and run `pnpm animation:publish-avif <animation-id>`. Publish one q45 (AV1 CRF 35), 2560x1440, once-playing animated AVIF per existing semantic scene under `public/animation-avif/<animation-id>/`; never restore the retired static final-frame publishing flow.
@@ -54,6 +55,7 @@ Use the installed Remotion skills as the default implementation toolkit for InkL
 - Local development: `astro dev --background`.
 - Animation page QA: `pnpm animation:pages <animation-id>` for changed animations and `pnpm animation:pages` for a completed batch.
 - Animation style audit: `pnpm animation:styles` before page-still QA; this checks node-level visual fingerprints and legacy exceptions.
+- Visual catalog: `/demo/` is an index of real animation nodes. A featured entry previews the original composition and opens the original MDX carrier; it does not own a duplicate Remotion source or route.
 - Animated AVIF publication: `pnpm animation:publish-avif <animation-id>` for changed animations and `pnpm animation:publish-avif` for a completed batch; the default contract is q45/CRF35, 2560x1440, 15 fps, and one encoded play.
 - Build verification: `pnpm build`.
 
@@ -77,6 +79,7 @@ Use the installed Remotion skills as the default implementation toolkit for InkL
 - Do not convert, copy, or relocate a Markdown note, its tables, or its assets into MDX. The note and the website animation are separate deliverables.
 - Do not duplicate an existing component's CSS or silently change its props; inspect the component contract first.
 - Do not copy a shared legal visual theme into a new node. Reuse neutral runtime mechanics only, and keep one node's chosen visual language stable across its scenes.
+- Do not create a demo-only clone when a real node introduces a new direction. Add the original node to the catalog and mark `catalog.source` as `original-node` in `visual-direction.json`.
 - Do not move source-note images into `src/content/docs/` or a shared global folder. Animation-specific media belongs with its own animation source.
 - Do not put animation sources or player components in a generic scratch folder. Use stable animation IDs and the independent directory contract in [content-boundaries.md](references/content-boundaries.md).
 - Do not generate a generic video merely because an animation was requested. The animation must teach a specific completed legal note's key point or difficult point and must not add unsupported legal conclusions.
