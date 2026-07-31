@@ -4,6 +4,8 @@ Run the smallest relevant checks after an edit, then run the full build when cha
 
 ## Structural checks
 
+- Run `pnpm animation:styles`. Every new animation node must have a `visual-direction.json` beside `remotion/`; exact fingerprints must not duplicate another node. A repeated family is allowed only when the palette, typography, composition, surface, motion, or transition is visibly and materially different.
+- Confirm new nodes import neutral runtime helpers rather than `src/animations/shared/legal-visual.tsx`; the latter is a legacy compatibility layer.
 - Confirm changed files are under the intended InkLoom area.
 - Confirm every imported component exists and its props match the implementation.
 - Confirm local images exist and use the intended relative `./assets/...` path.
@@ -42,6 +44,7 @@ Run the smallest relevant checks after an edit, then run the full build when cha
   18. Mark the stable or final frame as failed when an authored summary bar, subtitle, conclusion card, badge, or other overlay covers, intersects, crowds, or visually suppresses any teaching node. Verify the authored composition with player controls visible and keep essential content outside the bottom control-safe zone.
   19. For a scene with a long stable phase, verify its primary focal rule either retains one restrained semantic attention cue or uses deliberate stillness for a documented climax. Reject motion applied to the text baseline, more than two competing persistent cues, continuous scale/opacity breathing, or movement that has no legal meaning.
   20. Run `pnpm animation:pages <animation-id> --motion` whenever persistent emphasis is added or changed. Inspect the three checkpoint frames for every scene: the teaching layout must remain stable and readable, while at least one authored focal cue changes phase, position, or progress where sustained emphasis is intended.
+  21. Check the rendered node against its `visual-direction.json`: one MDX node should read as one coherent visual language, while a neighboring node should visibly avoid the same background, typography, palette, headline placement, surface, and primary motion fingerprint.
 - Do not proceed to publishing or report the animation complete while any captured page is uninspected, defective, or unverified.
 - After the page-still loop passes, verify the animated AVIF set before building:
   1. Follow [animated-avif.md](animated-avif.md) and run `pnpm animation:publish-avif <animation-id>` after inspection of the PNG QA captures. Do not hand-build the public directory or manifest.
