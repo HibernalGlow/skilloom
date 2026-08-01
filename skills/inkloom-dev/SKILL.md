@@ -38,7 +38,7 @@ Treat a bare SiYuan block ID such as `20260729232455-l0z16r1` as authorization t
 3. If a matching animation exists, add or improve the semantic scene that explains this block. If none exists, create the required animation node, thin MDX carrier, and semantic scene under the established subject/chapter hierarchy. Author the legal visualization and choose the scene manually; do not delegate those judgments to an insertion script.
 4. Complete visual QA, publish the scene AVIF, commit and push the InkLoom work, and verify its production URL before changing SiYuan. Use the durable image URL `https://inkloomer.github.io/inkloom/animation-avif/<animation-id>/<scene-id>.avif`.
 5. Follow the direct-ID procedure in [siyuan-embed.md](references/siyuan-embed.md). Insert one Markdown image block as the immediate next sibling of the supplied block ID, then verify actual sibling order with `siyuan block children`.
-6. Use `pnpm siyuan:embed-scene -- --target-id <block-id> --animation-id <animation-id> --scene-id <scene-id>` for block lookup, parent-ID extraction, duplicate detection, CLI dry-run, insertion, and final order verification. Add `--apply` only after the production AVIF is deployed. Keep animation creation and the choice of semantic scene outside the script.
+6. After deployment, run `pnpm siyuan:embed-scene -- --target-id <block-id> --animation-id <animation-id> --scene-id <scene-id> --apply`. This single agent-run command performs block lookup, parent-ID extraction, duplicate detection, CLI dry-run, production URL verification, insertion, and final order verification. Never ask the user to run or repeat it. Keep animation creation and the choice of semantic scene outside the script.
 
 ## Working sequence
 
