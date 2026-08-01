@@ -19,6 +19,13 @@ class SkillContract:
     requires_color_table: bool = False
 
 
+# Keep independently installed skills self-contained while preventing shared formatting rules from drifting.
+SHARED_TABLE_RULES = (
+    ("枚举项强制软换行", "表格绝对保留"),
+    ("表格单元格排版", "表格绝对保留"),
+)
+
+
 CONTRACTS = (
     SkillContract(
         "legal-marknote",
@@ -27,8 +34,7 @@ CONTRACTS = (
             ("先做颜色计划，再输出正文", "9.  🎨 思源笔记行内文本颜色语法"),
             ("主动覆盖规则", "9.  🎨 思源笔记行内文本颜色语法"),
             ("密度与边界", "9.  🎨 思源笔记行内文本颜色语法"),
-            ("枚举项强制软换行", "表格绝对保留"),
-            ("表格单元格排版", "表格绝对保留"),
+            *SHARED_TABLE_RULES,
         ),
         True,
     ),
@@ -41,6 +47,7 @@ CONTRACTS = (
             ("颜色是必做的阅读索引", "7. 🎨 思源笔记行内文本颜色语法"),
             ("题面边界", "7. 🎨 思源笔记行内文本颜色语法"),
             ("主动使用检查", "7. 🎨 思源笔记行内文本颜色语法"),
+            *SHARED_TABLE_RULES,
         ),
         True,
     ),
