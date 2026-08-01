@@ -25,6 +25,12 @@ SHARED_TABLE_RULES = (
     ("表格单元格排版", "表格绝对保留"),
 )
 
+SHARED_OUTPUT_GATE_RULES = (
+    ("scripts/validate_output.py", "输出前"),
+    ("--strict", "输出前"),
+    ("--require-source", "输出前"),
+)
+
 
 CONTRACTS = (
     SkillContract(
@@ -35,6 +41,7 @@ CONTRACTS = (
             ("主动覆盖规则", "9.  🎨 思源笔记行内文本颜色语法"),
             ("密度与边界", "9.  🎨 思源笔记行内文本颜色语法"),
             *SHARED_TABLE_RULES,
+            *SHARED_OUTPUT_GATE_RULES,
         ),
         True,
     ),
@@ -48,6 +55,7 @@ CONTRACTS = (
             ("题面边界", "7. 🎨 思源笔记行内文本颜色语法"),
             ("主动使用检查", "7. 🎨 思源笔记行内文本颜色语法"),
             *SHARED_TABLE_RULES,
+            *SHARED_OUTPUT_GATE_RULES,
         ),
         True,
     ),
