@@ -14,7 +14,7 @@ Use this reference whenever a completed Markdown note supplies the legal content
 - Treat `animation-id` as stable after publication. Use a descriptive concept ID such as `jurisdiction-scope` or `arbitration-prerequisite`, not a note filename.
 - When a note moves, update only `sourceReference` in `animation.meta.ts`; do not move the animation directory or change its public MDX route just to mirror note filing. Use a repository-relative path or source key; never commit an absolute Windows path for a file outside InkLoom.
 - When an animation must change subjects or be retired, perform an intentional animation migration: update metadata, player imports, MDX route, and any backlinks together. Do not leave duplicate sources behind.
-- Keep both animations for one note in separate animation directories and separate MDX carrier pages. This gives each published explanation an independent URL and makes later reordering or replacement local.
+- When multiple explainers come from one note, keep every explainer in its own animation directory and thin MDX carrier page. This gives each published explanation an independent URL and makes later reordering or replacement local; do not create extra carriers merely to satisfy a numeric quota.
 - Treat every semantic scene ID as a durable public filename contract. Keep `public/animation-avif/<animation-id>/<scene-id>.avif` stable across title edits and page reordering, and atomically replace a complete animation directory only after every new file and its manifest pass QA.
 
 ## Site routing
