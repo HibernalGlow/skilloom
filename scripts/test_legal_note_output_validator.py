@@ -54,7 +54,7 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
     def test_rejects_goldquest_answer_leak_and_checked_option(self) -> None:
         text = """##### 1题
 * 题干含==正确答案==
-[tab]- [x] A. 选项
+    - [x] A. 选项
 **成立**{: style=\"color: var(--b3-font-color8);\"}
 """
         self.assertTrue({"601", "603"} <= codes(text, "legal-goldquest"))
@@ -62,8 +62,8 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
     def test_accepts_goldquest_question_answer_boundary(self) -> None:
         text = """##### 1题
 * **甲**{: style=\"color: var(--b3-font-color10);\"}实施某行为，如何判断？
-[tab]- [ ] A. 选项甲
-[tab]- [ ] B. 选项乙
+    - [ ] A. 选项甲
+    - [ ] B. 选项乙
 
 ###### 答案与解析
 
@@ -74,7 +74,7 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
     def test_rejects_goldquest_highlight_and_status_color_before_answer(self) -> None:
         text = """##### 1题
 * 题干提前标出==正确项==
-[tab]- [ ] A. **成立**{: style=\"color: var(--b3-font-color8);\"}
+    - [ ] A. **成立**{: style=\"color: var(--b3-font-color8);\"}
 
 ###### 答案与解析
 
