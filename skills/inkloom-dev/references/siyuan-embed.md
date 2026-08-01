@@ -29,7 +29,14 @@ A bare block ID matching `^[0-9]{14}-[a-z0-9]{7}$`, for example `20260729232455-
 
 5. Read `siyuan block children --id <parent-id> -f json` and require the inserted block to immediately follow `<target-id>`. Confirm the image URL occurs exactly once in the document and the original target block is unchanged.
 6. Make the operation idempotent. If the exact URL already occupies the next sibling, report success without inserting another block. If an existing generated InkLoom image with that URL is elsewhere, move only that generated block after a dry-run instead of duplicating it; never move or rewrite the user's legal-content blocks.
-7. Automate steps 1 and 3-6 with a maintained InkLoom script when possible. The script may accept `--target-id`, `--animation-id`, and `--scene-id`, but it must not decide what the legal animation should teach or which scene is the semantic match.
+7. Run the maintained InkLoom helper after selecting the semantic scene. It defaults to a real SiYuan CLI dry-run; add `--apply` only after the production AVIF is deployed and reachable:
+
+   ```bash
+   pnpm siyuan:embed-scene -- --target-id <block-id> --animation-id <animation-id> --scene-id <scene-id>
+   pnpm siyuan:embed-scene -- --target-id <block-id> --animation-id <animation-id> --scene-id <scene-id> --apply
+   ```
+
+   The helper validates the local manifest and AVIF, extracts `parentID`, detects duplicate URLs, inserts or moves only a generated InkLoom image, verifies the original source block stayed unchanged, and confirms actual sibling order with `block children`. It must not decide what the legal animation should teach or which scene is the semantic match.
 
 ## Preconditions
 
