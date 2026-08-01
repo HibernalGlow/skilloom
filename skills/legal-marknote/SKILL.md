@@ -13,7 +13,8 @@ Use this skill when法考教材、题目、解析或笔记需要整理成可复�
 2. Separate source content from added summaries or study prompts.
 3. Plan semantic colors before writing the final Markdown.
 4. Apply the active-coverage, density, boundary, and callout rules in [the detailed guide](references/note-guide-original.md).
-5. Check that the result remains valid Markdown and that no source evidence was silently dropped.
+5. Make long table cells scannable with short cue text and varied inline emphasis; put every numbered item on its own line with `<br />`.
+6. Check that the result remains valid Markdown and that no source evidence was silently dropped.
 
 ## Accuracy
 
