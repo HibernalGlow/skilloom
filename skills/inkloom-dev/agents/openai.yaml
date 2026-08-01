@@ -1,6 +1,6 @@
 interface:
   display_name: "InkLoom Developer"
   short_description: "Build, publish, and place InkLoom explainers"
-  default_prompt: "Use $inkloom-dev to build and validate a node-local Remotion explainer, publish its scene media, and, when given a SiYuan block ID, insert the matching animated image immediately after that exact block without rewriting the source content."
+  default_prompt: "Use $inkloom-dev to build and validate a node-local Remotion explainer with structure-matched visual anchors, semantic text treatments, deliberate content density, and stable published references; publish its scene media and place a requested SiYuan block-ID image without rewriting source content."
 policy:
   allow_implicit_invocation: true

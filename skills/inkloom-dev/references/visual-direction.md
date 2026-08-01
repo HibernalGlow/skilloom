@@ -2,6 +2,12 @@
 
 Treat one MDX carrier and its Remotion directory as one visual node. A node should have one coherent visual language across its scenes, while each new node should deliberately choose a different visual fingerprint from nearby nodes.
 
+## Contents
+
+- Shared/runtime boundary and direction catalog
+- Structural anchors, semantic text treatments, and theme rewrites
+- Theme-like reuse and manifest contract
+
 ## Shared/runtime boundary
 
 Share only frame conversion, scene timing, `Sequence` plumbing, render registration, and optional motion primitives whose appearance is supplied by the node. Keep these decisions local to the node:
@@ -33,6 +39,39 @@ Choose a direction because it clarifies the legal structure, not because it is d
 | Split-screen comparison | neutral canvas with two clear role colors | aligned lanes and a shared axis | synchronized comparison, divergence, convergence | similar legal concepts |
 
 Avoid repeating the same direction, palette signature, headline placement, and entrance choreography merely because the legal subject is related. Reuse a direction only when the new node's fingerprint is materially different and the semantic benefit is documented.
+
+## Choose the structural anchor before the theme
+
+Start with the legal relationship and choose the scene's visual anchor from that structure. Do not begin with a favorite icon, card layout, or visual effect and force the content into it.
+
+- Use a **concept icon** when one concrete role, document, institution, or legal object genuinely organizes the scene.
+- Use a **path or fork** for ordered decisions and alternative conditions.
+- Use a **role pair or comparison axis** for identity, attribution, and opposing outcomes.
+- Use a **boundary or gate** for authority limits, exclusions, and stage changes.
+- Use a **timeline** for procedural order and temporal consequences.
+- Use a **typographic sequence** when a short verbal test, rejection, or list of expressly named acts is itself the knowledge structure.
+
+The anchor must make the rule more direct. Reject a scanner, lock, track, machine, or other novel metaphor when the viewer must first decode the metaphor before understanding the legal relationship. A scene may have no dominant icon when its path, boundary, comparison, or typography already provides the correct anchor.
+
+## Give text treatments semantic jobs
+
+Color and bold weight are supporting channels, not a complete typography system. Plan a small node-level vocabulary and assign every treatment a stable job:
+
+- **soft highlight**: core term or accepted proposition;
+- **thin underline**: decisive condition, action, or phrase to retrieve;
+- **label block**: role, category, stage, or status;
+- **stamp**: formal authorization, judgment, rejection, or operative result;
+- **external negation**: invalid inference or prohibited route, placed beside the text rather than through it.
+
+For a multi-scene node, normally use at least three appropriate treatment families across the node so every emphasis does not collapse into the same colored highlight. This is a node-level diversity check, not a demand that every scene or phrase use three styles. Keep repeated legal meanings consistent, and omit a treatment when it has no semantic job.
+
+Never draw a thick circle, cross, or strike-through over readable glyphs. Keep underlines thin, backgrounds translucent, and negation marks outside the text bounds. Text must remain fully readable at every motion checkpoint. When the repository's structure descriptor is present, declare the chosen scene anchor and treatments there and keep its `data-visual-anchor` and `data-text-treatments` hooks aligned with the rendered source.
+
+## Make a theme more than a recolor
+
+A new theme or a complete visual rewrite must change the visible design system, not merely palette values. Establish a coherent combination of typography, composition grammar, surfaces, spatial rhythm, icon treatment, motion vocabulary, and transition behavior. Preserve the node's legal content and public identity while replacing its internal art direction.
+
+Neighboring nodes in one topic should not become light and dark skins of the same template. Give each node a theme suited to its own knowledge structure, while keeping all scenes inside one node recognizably related.
 
 ## Theme-like reuse without a shared visual factory
 
