@@ -1,6 +1,6 @@
 ---
 name: inkloom-dev
-description: "Develop and maintain the InkLoom Astro Starlight legal-learning site: create and publish independent Remotion explainers from completed Markdown notes, embed published explainers into explicitly requested existing SiYuan notes, and maintain the site MDX carriers, components, routes, and responsive styles. Use when working inside the InkLoom repository or its src/content/docs, src/animations, src/components, notes, SiYuan notes, and .agents/skills areas."
+description: "Develop and maintain the InkLoom Astro Starlight legal-learning site: create and publish independent Remotion explainers from completed Markdown notes or a supplied SiYuan block ID, insert a published animated image immediately after that exact SiYuan block, and maintain the site MDX carriers, components, routes, and responsive styles. Use when working inside the InkLoom repository or its src/content/docs, src/animations, src/components, notes, SiYuan notes, and .agents/skills areas."
 ---
 
 # InkLoom development
@@ -26,6 +26,17 @@ Use the installed Remotion skills as the default implementation toolkit for InkL
 - Use `src/animations/shared/remotion-runtime.tsx` for new neutral runtime mechanics. Treat `src/animations/shared/legal-visual.tsx` as legacy compatibility and do not import it for a new node.
 - Run `pnpm animation:styles` before page QA. Exact visual fingerprints must be unique; a repeated family requires an explicit visual distinction review.
 
+## Direct SiYuan block ID workflow
+
+Treat a bare SiYuan block ID such as `20260729232455-l0z16r1` as authorization to complete the matching animation and insert its published animated image immediately after that exact block.
+
+1. Load `$siyuan-cli`. Read the block with `siyuan block get` and `siyuan block kramdown`, then use its legal content to identify the matching InkLoom animation and semantic scene. Nearby content may be read only when the block itself is insufficient to understand the rule.
+2. Do not expand the insertion anchor into a heading section, quote container, list, or descendant range. The supplied ID is always the source anchor, regardless of block type.
+3. If a matching animation exists, add or improve the semantic scene that explains this block. If none exists, create the required animation node, thin MDX carrier, and semantic scene under the established subject/chapter hierarchy. Author the legal visualization and choose the scene manually; do not delegate those judgments to an insertion script.
+4. Complete visual QA, publish the scene AVIF, commit and push the InkLoom work, and verify its production URL before changing SiYuan. Use the durable image URL `https://inkloomer.github.io/inkloom/animation-avif/<animation-id>/<scene-id>.avif`.
+5. Follow the direct-ID procedure in [siyuan-embed.md](references/siyuan-embed.md). Insert one Markdown image block as the immediate next sibling of the supplied block ID, then verify actual sibling order with `siyuan block children`.
+6. Prefer a reusable script for block lookup, parent-ID extraction, duplicate detection, CLI dry-run, insertion, and final order verification. Keep animation creation and the choice of semantic scene outside the script.
+
 ## Working sequence
 
 1. Locate the user-supplied Markdown source file at its existing path and the intended independent animation and website areas. The note may live outside InkLoom; it is source evidence, not InkLoom MDX input.
@@ -41,7 +52,7 @@ Use the installed Remotion skills as the default implementation toolkit for InkL
 9. Preserve any existing full-length video composition and the `SCENES` pagination contract. Do not generate per-scene video as part of animated-image publication, and do not change scene order, IDs, ranges, or deep-link format merely to produce AVIF files.
 10. After page-still QA passes, follow [animated-avif.md](references/animated-avif.md) and run `pnpm animation:publish-avif <animation-id>`. Publish one q45 (AV1 CRF 35), 2560x1440, once-playing animated AVIF per existing semantic scene under `public/animation-avif/<animation-id>/`; never restore the retired static final-frame publishing flow.
 11. Validate the responsive video/AVIF switcher, replay and loop behavior, copy actions, persisted media preference, public assets, and production build only after page-still QA and animated-AVIF publication pass. Commit and push the animation sources, player components, metadata, MDX carriers, animated AVIFs, manifests, and SiYuan controller script to InkLoom. Verify the production page and direct AVIF URLs before reporting them as published.
-12. When the user explicitly asks to embed animations in an existing SiYuan note or Markdown file, map each knowledge-point anchor to its matching animation scene and use its semantic deep link, such as `?scene=first-instance`; do not insert only one generic first-page player when several distinct points are explained. For SiYuan, follow [siyuan-embed.md](references/siyuan-embed.md), use `$siyuan-cli`, and do not edit unrelated note content.
+12. For interactive iframe embedding requests that are not the bare block-ID animated-image workflow, map each knowledge-point anchor to its matching animation scene and use its semantic deep link, such as `?scene=first-instance`; do not insert only one generic first-page player when several distinct points are explained. For SiYuan, follow [siyuan-embed.md](references/siyuan-embed.md), use `$siyuan-cli`, and do not edit unrelated note content.
 13. Validate the changed pages and any SiYuan embeds with [validation.md](references/validation.md). Report any unverified route, animation page, animated-AVIF asset, deployment URL, or SiYuan block insertion.
 
 ## Repository conventions
