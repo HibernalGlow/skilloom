@@ -92,7 +92,7 @@ Treat `SCENES` as the shared timing contract for the composition, the embedded P
 
 ## Publish as one finished flow
 
-1. Run the blocking iterative Remotion page-still QA in [validation.md](validation.md). Fix and recapture every defective page until all full-resolution stills pass; run the all-animation command after a batch is complete.
+1. Run the blocking iterative Remotion page-still QA in [validation.md](validation.md). Inspect exactly one all-scenes contact sheet per animation, fix every defective tile, and recapture until that sheet passes. Never open all full-resolution stills; crop and enlarge only a specific questionable region. Run the all-animation command only when a shared change requires recapturing every animation, and treat each newest sheet as the sole review artifact.
 2. Run `pnpm animation:publish-avif <animation-id>` for changed animations and `pnpm animation:publish-avif` after the batch to publish every semantic scene and manifest.
 3. Build the site and verify the responsive video/AVIF switcher, semantic scene selection, mode persistence, replay/loop controls, copy actions, and direct animated asset URLs.
 4. Commit both Remotion explainers, their metadata, player components, thin MDX carriers, public animated AVIFs/manifests, and the SiYuan controller as one feature, then push them to the InkLoom repository. Do not include source-note rewrites or relocations unless separately requested.
