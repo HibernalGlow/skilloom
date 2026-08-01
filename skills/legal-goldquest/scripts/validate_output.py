@@ -170,7 +170,7 @@ def validate_general_density(text: str) -> list[Finding]:
     findings: list[Finding] = []
     for number, line in enumerate(text.splitlines(), start=1):
         stripped = line.strip()
-        if not stripped or stripped.startswith(("#", ">", "|", "- ", "* ", "[tab]", "```")):
+        if not stripped or stripped.startswith(("#", ">", "|", "- ", "* ", "```")):
             continue
         if visible_length(stripped) > 240:
             findings.append(Finding("W", "501", number, "Long prose line should be physically split into semantic list items."))
@@ -185,9 +185,6 @@ def validate_goldquest(text: str) -> list[Finding]:
     for number, line in enumerate(lines, start=1):
         if re.search(r"-\s*\[[xX]\]", line):
             findings.append(Finding("E", "601", number, "Question options must remain unchecked."))
-        if line.startswith("[tab]") and not re.match(r"^(?:\[tab\])+(?:- |\d+\. )", line):
-            findings.append(Finding("E", "602", number, "Each [tab] indentation marker must be followed by a Markdown list marker."))
-
     task_options = [number for number, line in enumerate(lines, start=1) if re.search(r"-\s*\[[ xX]\]", line)]
     answer_headings = [number for number, line in enumerate(lines, start=1) if re.match(r"^######\s+答案与解析\s*$", line)]
     if task_options and not answer_headings:
