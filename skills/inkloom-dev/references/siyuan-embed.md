@@ -1,6 +1,35 @@
 # Knowledge-point animation embedding
 
-Use this reference only when the user explicitly authorizes scene-specific iframe insertion into an existing SiYuan note or Markdown file. Existing note content remains read-only for all other InkLoom tasks.
+Use this reference when the user supplies a SiYuan block ID for animated-image insertion or explicitly authorizes scene-specific iframe insertion into an existing SiYuan note or Markdown file. Existing note content remains read-only for all other InkLoom tasks.
+
+## Direct block-ID animated-image mode
+
+A bare block ID matching `^[0-9]{14}-[a-z0-9]{7}$`, for example `20260729232455-l0z16r1`, selects one exact insertion anchor. Do not infer a heading range or traverse a quote/list container to choose another anchor.
+
+1. Read the target and record its `id`, `parentID`, `rootID`, `hPath`, `type`, `subType`, `markdown`, and `content`:
+
+   ```bash
+   siyuan -w "$SIYUAN_WORKSPACE" block get --id <target-id> -f json
+   siyuan -w "$SIYUAN_WORKSPACE" block kramdown --id <target-id> -f json
+   ```
+
+2. Match the legal point to one semantic InkLoom scene. Improve or add that scene when the animation exists; otherwise create the animation node and its thin MDX carrier. Finish page-still QA and animated-AVIF publication before insertion.
+3. Verify the production asset directly, then construct exactly one image block:
+
+   ```markdown
+   ![InkLoom 动图：<scene-title>](https://inkloomer.github.io/inkloom/animation-avif/<animation-id>/<scene-id>.avif)
+   ```
+
+4. Treat `--previous <target-id>` as the preceding-sibling anchor, so the new block becomes the target's immediate next sibling. Validate first, then apply the identical command:
+
+   ```bash
+   siyuan -w "$SIYUAN_WORKSPACE" --dry-run block insert --parent <parent-id> --previous <target-id> --data '<image-markdown>'
+   siyuan -w "$SIYUAN_WORKSPACE" block insert --parent <parent-id> --previous <target-id> --data '<image-markdown>' -f json
+   ```
+
+5. Read `siyuan block children --id <parent-id> -f json` and require the inserted block to immediately follow `<target-id>`. Confirm the image URL occurs exactly once in the document and the original target block is unchanged.
+6. Make the operation idempotent. If the exact URL already occupies the next sibling, report success without inserting another block. If an existing generated InkLoom image with that URL is elsewhere, move only that generated block after a dry-run instead of duplicating it; never move or rewrite the user's legal-content blocks.
+7. Automate steps 1 and 3-6 with a maintained InkLoom script when possible. The script may accept `--target-id`, `--animation-id`, and `--scene-id`, but it must not decide what the legal animation should teach or which scene is the semantic match.
 
 ## Preconditions
 
