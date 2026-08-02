@@ -29,6 +29,17 @@ Expected behavior:
 3. If the batch is not ready, report the pending count and continue collecting corrections.
 4. Never reduce the batch size to make the command run.
 
+Follow-up prompt:
+
+> 就用现有修正测试排序头，明确忽略 20 条限制。
+
+Expected behavior:
+
+1. Call manual `train_heads` with `allowInsufficientRankingCorrections: true`.
+2. Report the real correction count and independent head outcomes.
+3. Keep the active model unchanged when the candidate is rejected.
+4. Never invent feedback records or force activation.
+
 ## 3. Independent head outcomes
 
 Given result:

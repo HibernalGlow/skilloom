@@ -24,7 +24,7 @@ Use MCP when the `xiranite-clipm` server is connected. Field names below match i
 | `resolve_review_item` | The user explicitly chose `use_filename`, `use_json`, `link_existing`, or `new_work`. |
 | `perceptual_recovery_status` | Inspecting page-evidence coverage and conservative recovery candidates. |
 | `calibrate_perceptual_recovery` | The user requests maintenance now, or unattended maintenance is unavailable and at least 12 eligible works exist. |
-| `train_heads` | The user explicitly requests a manual snapshot/training attempt; normal operation should use automatic training. |
+| `train_heads` | The user explicitly requests a manual snapshot/training attempt. Set `allowInsufficientRankingCorrections: true` only when the user also explicitly asks to test below the normal 20-correction ranking minimum. |
 | `activate_model` | Activating a validated historical/candidate bundle requested by the user. Never set `force: true` without explicit authorization. |
 | `rollback_model` | The user selects a known non-failed historical bundle. |
 | `remove_work_metadata` | The user explicitly wants ClipM identity and metadata removed from a work. |
@@ -56,6 +56,14 @@ Attempt the normal automatic batch:
 {"batchSize":20}
 ```
 
+Explicitly test the ranking head below its normal minimum:
+
+```json
+{"allowInsufficientRankingCorrections":true}
+```
+
+This still runs the normal candidate validation and never force-activates a rejected result.
+
 ## CLI fallback
 
 Run from the Xiranite repository root. Add `--json` for machine-readable results.
@@ -66,6 +74,7 @@ bun packages/nodes/clipm/src/cli.ts feedback history --active-only --limit 100 -
 bun packages/nodes/clipm/src/cli.ts feedback apply <work-id> --classification P --ranking 920 --source gui --json
 bun packages/nodes/clipm/src/cli.ts feedback undo <event-id> --source gui --json
 bun packages/nodes/clipm/src/cli.ts train auto --batch-size 20 --json
+bun packages/nodes/clipm/src/cli.ts train --allow-insufficient-ranking-corrections --json
 bun packages/nodes/clipm/src/cli.ts model list --json
 ```
 
