@@ -42,6 +42,14 @@ Read [MCP and CLI reference](references/mcp-cli-reference.md) before issuing cal
 6. Confirm the final `activeBundleVersion` with `list_models`.
 7. Report exact status/reasons and the remaining correction requirement. Do not claim that a model trained when both heads skipped.
 
+## Large library scoring
+
+- Directory scoring is recursive and persists each completed GPU work batch before preparing the next batch. Monitor the progress stream; do not start a duplicate scorer because preparation appears quiet.
+- Respect the user's `[nodes.clipm]` performance limits in `xiranite.config.toml`. The three controls are `scoring_work_batch_size`, `scoring_page_batch_size`, and `scoring_batch_pause_ms`.
+- Use `2 / 8 / 250` for ordinary desktop use. Use `8 / 32 / 0` only when the user explicitly wants full-speed unattended scoring, such as overnight.
+- Reducing the work batch lowers sustained archive/image preparation pressure. Reducing the page batch lowers the GPU inference peak. A pause yields CPU/GPU time between already-persisted batches. Even a single work can briefly use substantial compute.
+- Changing the TOML affects newly started workers. Do not interrupt an active scoring task merely to apply a different limit unless the user explicitly requests it.
+
 ## Recovery and mistakes
 
 - Undo a mistaken correction with `undo_feedback(eventId, source: "gui")`; do not apply a guessed inverse value.
