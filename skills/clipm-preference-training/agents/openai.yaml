@@ -1,0 +1,6 @@
+interface:
+  display_name: "ClipM Preference Training"
+  short_description: "Correct preferences and safely train ClipM"
+  default_prompt: "Use $clipm-preference-training to record my explicit P/N and 0-1000 comic preference corrections through ClipM, audit the resulting feedback, and safely assess or trigger validated automatic training without guessing preferences or forcing rejected models."
+policy:
+  allow_implicit_invocation: true
