@@ -34,12 +34,13 @@ Read [MCP and CLI reference](references/mcp-cli-reference.md) before issuing cal
 1. Inspect active feedback with `list_feedback_events(includeUndone: false)` and current bundles with `list_models`.
 2. Prefer unattended maintenance. When the user asks to train now, call `run_auto_training` with its normal `batchSize: 20`.
 3. Do not lower the batch size merely to force a test. A claimed undersized diagnostic batch can be consumed even when a head correctly skips training.
-4. Interpret classification and ranking independently:
+4. Only when the user explicitly asks to test below the ranking minimum, call `train_heads` with `allowInsufficientRankingCorrections: true`. This does not weaken validation or permit forced activation.
+5. Interpret classification and ranking independently:
    - `skipped`: prerequisites are missing; keep collecting the named correction type.
    - `rejected`: validation protected the active model; do not force activation.
    - `accepted`: ClipM persists and activates that head automatically.
-5. Confirm the final `activeBundleVersion` with `list_models`.
-6. Report exact status/reasons and the remaining correction requirement. Do not claim that a model trained when both heads skipped.
+6. Confirm the final `activeBundleVersion` with `list_models`.
+7. Report exact status/reasons and the remaining correction requirement. Do not claim that a model trained when both heads skipped.
 
 ## Recovery and mistakes
 
