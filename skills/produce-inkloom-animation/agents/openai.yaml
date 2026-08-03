@@ -1,0 +1,6 @@
+interface:
+  display_name: "Produce InkLoom Animation"
+  short_description: "Coordinate Luna-led InkLoom animation production"
+  default_prompt: "Use $produce-inkloom-animation to have the current Luna thread prepare and audit an InkLoom animation while one Sol worker owns every quality-affecting implementation and revision."
+policy:
+  allow_implicit_invocation: true
