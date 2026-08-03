@@ -7,6 +7,8 @@ description: "Develop and maintain the InkLoom Astro Starlight legal-learning si
 
 Use this skill before editing InkLoom animation pages, Remotion sources, Astro components, layout overrides, or custom CSS. Treat the repository's existing components and content conventions as the source of truth; do not replace them with generic Starlight patterns without checking the surrounding implementation.
 
+When the user asks the current Luna thread to delegate InkLoom animation creation, supplementation, rewrite, or repair to Sol, also load $produce-inkloom-animation and let it own the agent topology, quality-write ownership, persistence, and independent-audit handoff. Do not create a Luna or other coordinator subagent from this skill.
+
 ## Remotion skill routing
 
 Use the installed Remotion skills as the default implementation toolkit for InkLoom animations. Do not hand-roll a familiar animation pattern before checking whether the relevant skill or Remotion Bits example already provides it.
