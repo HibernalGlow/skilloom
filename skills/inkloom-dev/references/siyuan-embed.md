@@ -13,23 +13,35 @@ A bare block ID matching `^[0-9]{14}-[a-z0-9]{7}$`, for example `20260729232455-
    siyuan -w "$SIYUAN_WORKSPACE" block kramdown --id <target-id> -f json
    ```
 
-2. Match the legal point to one semantic InkLoom scene. Improve or add that scene when the animation exists; otherwise create the animation node and its thin MDX carrier. Finish page-still QA and animated-AVIF publication before insertion.
-3. Verify the production asset directly, then construct exactly one image block:
+2. Match the legal point to one semantic InkLoom scene, then run a fast placement preflight before any animation render, page capture, publication, build, or broad repository scan:
+
+   - Read the matching local manifest and confirm the semantic scene and production URL.
+   - Search the target document for that exact URL.
+   - Read `siyuan block children --id <target-parent-id> -f json`; if the URL already exists, also read the generated image block and its reported parent.
+   - If the same generated InkLoom image exists but is not the target's immediate next sibling, immediately send a commentary update stating that the animation already exists and is merely misplaced. Say that it will be moved, not rebuilt. Do not postpone this user-visible diagnosis until after visual QA, rendering, build, or deployment checks.
+
+3. Take the shortest valid path after the preflight:
+
+   - **Existing adequate scene, correct position:** report success without writes.
+   - **Existing adequate scene, wrong position:** skip Remotion regeneration. Use the maintained helper to verify the production asset, move only the generated image block, and verify final order.
+   - **Missing or inadequate scene:** improve or add the scene, or create the animation node and thin MDX carrier when none exists. Finish page-still QA and animated-AVIF publication before insertion.
+
+4. Verify the production asset directly, then construct exactly one image block:
 
    ```markdown
    ![InkLoom 动图：<scene-title>](https://inkloomer.github.io/inkloom/animation-avif/<animation-id>/<scene-id>.avif)
    ```
 
-4. Treat `--previous <target-id>` as the preceding-sibling anchor, so the new block becomes the target's immediate next sibling. Validate first, then apply the identical command:
+5. Treat `--previous <target-id>` as the preceding-sibling anchor, so the new block becomes the target's immediate next sibling. Validate first, then apply the identical command:
 
    ```bash
    siyuan -w "$SIYUAN_WORKSPACE" --dry-run block insert --parent <parent-id> --previous <target-id> --data '<image-markdown>'
    siyuan -w "$SIYUAN_WORKSPACE" block insert --parent <parent-id> --previous <target-id> --data '<image-markdown>' -f json
    ```
 
-5. Read `siyuan block children --id <parent-id> -f json` and require the inserted block to immediately follow `<target-id>`. Confirm the image URL occurs exactly once in the document and the original target block is unchanged.
-6. Make the operation idempotent. If the exact URL already occupies the next sibling, report success without inserting another block. If an existing generated InkLoom image with that URL is elsewhere, move only that generated block after a dry-run instead of duplicating it; never move or rewrite the user's legal-content blocks.
-7. Run the maintained InkLoom helper yourself after the production AVIF is deployed and reachable. Do not ask the user to execute either phase. A single `--apply` call internally performs the CLI dry-run, production check, write, and final verification:
+6. Read `siyuan block children --id <parent-id> -f json` and require the inserted block to immediately follow `<target-id>`. Confirm the image URL occurs exactly once in the document and the original target block is unchanged.
+7. Make the operation idempotent. If the exact URL already occupies the next sibling, report success without inserting another block. If an existing generated InkLoom image with that URL is elsewhere, move only that generated block after a dry-run instead of duplicating it; never move or rewrite the user's legal-content blocks.
+8. Run the maintained InkLoom helper yourself after the production AVIF is deployed and reachable. Do not ask the user to execute either phase. A single `--apply` call internally performs the CLI dry-run, production check, write, and final verification:
 
    ```bash
    pnpm siyuan:embed-scene -- --target-id <block-id> --animation-id <animation-id> --scene-id <scene-id> --apply
