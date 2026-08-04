@@ -60,6 +60,17 @@ CONTRACTS = (
         True,
     ),
     SkillContract(
+        "legal-question-bank",
+        (
+            ("custom-qb-role=\"topic\"", "## Topic"),
+            ("custom-qb-topic-id", "custom-qb-role=\"topic\""),
+            ("custom-qb-id", "## Questions"),
+            ("custom-qb-type", "custom-qb-id"),
+            ("custom-qb-section=\"solution\"", "## Solution Boundary"),
+            ("validate_question_bank.py", "## Workflow"),
+        ),
+    ),
+    SkillContract(
         "legal-imagen",
         (
             ("标准输出格式", "五、输出格式规范"),
