@@ -64,6 +64,47 @@ def split_table_cells(line: str) -> list[str]:
     return cells
 
 
+def is_table_divider(line: str) -> bool:
+    return all(
+        not cell or bool(re.fullmatch(r":?-{3,}:?", cell.replace(" ", "")))
+        for cell in split_table_cells(line)
+    )
+
+
+def table_blocks(text: str) -> list[list[str]]:
+    blocks: list[list[str]] = []
+    current: list[str] = []
+    for line in text.splitlines():
+        if re.match(r"^\s*\|.*\|\s*$", line):
+            current.append(line)
+        elif current:
+            blocks.append(current)
+            current = []
+    if current:
+        blocks.append(current)
+    return blocks
+
+
+def normalized_table_content(value: str) -> str:
+    value = re.sub(r"\{:\s*[^}]+\}", "", value)
+    value = re.sub(r"<br\s*/?>", " ", value, flags=re.IGNORECASE)
+    value = re.sub(r"[`*_~=]", "", value)
+    return re.sub(r"\s+", "", value)
+
+
+def table_cell_content_is_preserved(source_blocks: list[list[str]], output_text: str) -> bool:
+    normalized_output = normalized_table_content(output_text)
+    for block in source_blocks:
+        for line in block:
+            if is_table_divider(line):
+                continue
+            for cell in split_table_cells(line):
+                fragment = normalized_table_content(cell)
+                if len(fragment) >= 2 and fragment not in normalized_output:
+                    return False
+    return True
+
+
 def style_families(value: str) -> set[str]:
     families: set[str] = set()
     if re.search(r"\*\*.+?\*\*", value):
@@ -225,12 +266,18 @@ def validate_source_preservation(text: str, source_text: str, profile: str) -> l
     for image in IMAGE_PATTERN.findall(source_text):
         if image not in IMAGE_PATTERN.findall(text):
             findings.append(Finding("E", "701", 1, f"Source image link was not preserved: {image}"))
-    source_tables = sum(1 for line in source_text.splitlines() if re.match(r"^\s*\|.*\|\s*$", line))
-    output_tables = sum(1 for line in text.splitlines() if re.match(r"^\s*\|.*\|\s*$", line))
+    source_table_blocks = table_blocks(source_text)
+    output_table_blocks = table_blocks(text)
+    source_tables = sum(len(block) for block in source_table_blocks)
+    output_tables = sum(len(block) for block in output_table_blocks)
     if output_tables < source_tables:
         findings.append(Finding("E", "702", 1, f"Output has fewer Markdown table rows than source ({output_tables} < {source_tables})."))
+    allows_structural_table_split = (
+        len(output_table_blocks) > len(source_table_blocks)
+        and table_cell_content_is_preserved(source_table_blocks, text)
+    )
     for token in MERGE_TOKEN_PATTERN.findall(source_text):
-        if text.count(token) < source_text.count(token):
+        if text.count(token) < source_text.count(token) and not allows_structural_table_split:
             findings.append(Finding("E", "703", 1, f"Source SiYuan table merge token was not preserved: {token}"))
     if profile == "legal-marknote":
         for heading in re.findall(r"^#{1,6}\s+(.+?)\s*$", source_text, re.MULTILINE):
