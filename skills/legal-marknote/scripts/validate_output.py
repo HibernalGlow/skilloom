@@ -192,21 +192,34 @@ def validate_callouts_and_fences(text: str) -> list[Finding]:
     return findings
 
 
+def validate_table_cell(cell: str, number: int) -> list[Finding]:
+    findings: list[Finding] = []
+    if re.fullmatch(r":?-{3,}:?", cell.replace(" ", "")):
+        return findings
+    segments = re.split(r"<br\s*/>", cell)
+    marker_counts = [len(ENUMERATION_PATTERN.findall(segment)) for segment in segments]
+    if sum(marker_counts) >= 2 and any(count > 1 for count in marker_counts):
+        findings.append(Finding("E", "401", number, "Numbered table-cell items must be separated with <br />."))
+    sentence_count = len(re.findall(r"[。！？；]", cell))
+    has_multiple_branches = (
+        sum(marker_counts) >= 2
+        or sentence_count >= 2
+        or (sentence_count >= 1 and visible_length(cell) >= 50)
+    )
+    if (visible_length(cell) >= 70 or has_multiple_branches) and not re.search(r"<br\s*/?>", cell, re.IGNORECASE):
+        findings.append(Finding("E", "403", number, "Dense table cell must use <br /> to separate semantic rule branches."))
+    if (visible_length(cell) >= 80 or sentence_count >= 2) and len(style_families(cell)) < 2:
+        findings.append(Finding("E", "402", number, "Long table cell needs at least two semantic inline style families."))
+    return findings
+
+
 def validate_tables(text: str) -> list[Finding]:
     findings: list[Finding] = []
     for number, line in enumerate(text.splitlines(), start=1):
         if not re.match(r"^\s*\|.*\|\s*$", line):
             continue
         for cell in split_table_cells(line):
-            if re.fullmatch(r":?-{3,}:?", cell.replace(" ", "")):
-                continue
-            segments = re.split(r"<br\s*/>", cell)
-            marker_counts = [len(ENUMERATION_PATTERN.findall(segment)) for segment in segments]
-            if sum(marker_counts) >= 2 and any(count > 1 for count in marker_counts):
-                findings.append(Finding("E", "401", number, "Numbered table-cell items must be separated with <br />."))
-            sentence_count = len(re.findall(r"[。！？；]", cell))
-            if (visible_length(cell) >= 80 or sentence_count >= 2) and len(style_families(cell)) < 2:
-                findings.append(Finding("E", "402", number, "Long table cell needs at least two semantic inline style families."))
+            findings.extend(validate_table_cell(cell, number))
     return findings
 
 

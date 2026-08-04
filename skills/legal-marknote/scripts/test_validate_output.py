@@ -57,6 +57,19 @@ class TableSplitValidationTests(unittest.TestCase):
 
         self.assertIn("703", codes(incomplete))
 
+    def test_rejects_dense_unbroken_table_cell(self) -> None:
+        text = "| 保全措施 | 一般财产 | 查封、扣押、冻结；查封已登记的不动产时，应通知登记机关办理登记手续，未办理的不得对抗已登记的保全行为。 |\n"
+        findings = MODULE.validate_tables(text)
+
+        self.assertIn("403", {finding.code for finding in findings})
+
+    def test_accepts_dense_table_cell_after_semantic_breaks(self) -> None:
+        text = "| 保全措施 | 一般财产 | **措施**：查封、扣押、冻结。<br />**登记**：应通知登记机关办理登记手续。<br />**后果**：未办理的不得对抗已登记的保全行为。 |\n"
+        findings = MODULE.validate_tables(text)
+
+        self.assertNotIn("403", {finding.code for finding in findings})
+
+
 
 if __name__ == "__main__":
     unittest.main()
