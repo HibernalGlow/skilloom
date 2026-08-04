@@ -26,6 +26,7 @@ CONTRAST_PAIRS = (("有效", "无效"), ("成立", "不成立"), ("原则", "例
 ANSWER_MASK_PATTERN = re.compile(
     r"<div><style>b\{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px\}b:hover\{background:#fff2c2;color:#c0392b\}</style>答案：<b>[^<]+</b></div>",
 )
+PSEUDO_CALLOUT_PATTERN = re.compile(r"📌\s*[\[【](?:总结与归纳|总结|归纳|提示|注意|重点|易错)[\]】]?")
 
 
 @dataclass(frozen=True)
@@ -217,6 +218,48 @@ def validate_goldquest(text: str) -> list[Finding]:
             findings.append(Finding("E", "606", answer + 1, "Answer section must start with the answer mask HTML block."))
         if any(ANSWER_MASK_PATTERN.search(line) for line in question_text.splitlines()):
             findings.append(Finding("E", "607", index + 1, "Answer mask HTML block is not allowed in the question area."))
+    for number, line in enumerate(lines, start=1):
+        if PSEUDO_CALLOUT_PATTERN.search(line):
+            findings.append(Finding("E", "608", number, "Use a semantic standard Callout instead of a plain-text pseudo-callout marker."))
+
+    analysis_ranges = []
+    for index in h5_indices:
+        end = next((candidate for candidate in range(index + 1, len(lines)) if re.match(r"^#{1,5}\s+", lines[candidate])), len(lines))
+        answer = next((candidate for candidate in range(index + 1, end) if re.match(r"^######\s+答案与解析\s*$", lines[candidate])), None)
+        if answer is not None:
+            analysis_ranges.append((answer + 1, end))
+    if not analysis_ranges:
+        analysis_ranges = [(0, len(lines))]
+
+    for start, end in analysis_ranges:
+        uncolored_run = 0
+        in_fence = False
+        for number in range(start, end):
+            line = lines[number]
+            if ANSWER_MASK_PATTERN.search(line):
+                continue
+            content = re.sub(r"^\s*>\s?", "", line).strip()
+            if re.match(r"^```", content):
+                in_fence = not in_fence
+                continue
+            if in_fence or content.startswith("#"):
+                continue
+            content = re.sub(r"^(?:[-*+]\s+|\d+\.\s+|\[[ xX]\]\s+)", "", content)
+            content = re.sub(r"^\[![A-Z]+\]\s*", "", content)
+            if not content or re.fullmatch(r"\|?\s*:?-{3,}:?(?:\s*\|\s*:?-{3,}:?)*\s*\|?", content):
+                continue
+            for sentence in re.findall(r"[^。！？；]+[。！？；]?", content):
+                visible_sentence = re.sub(r"\{:\s*[^}]+\}", "", sentence)
+                visible_sentence = re.sub(r"<[^>]+>", "", visible_sentence)
+                if visible_length(visible_sentence) < 10:
+                    continue
+                if COLOR_ATTRIBUTE_PATTERN.search(sentence):
+                    uncolored_run = 0
+                    continue
+                uncolored_run += 1
+                if uncolored_run == 3:
+                    findings.append(Finding("E", "609", number + 1, "Answer analysis has three consecutive sentences without a semantic color anchor."))
+                    uncolored_run = 0
     return findings
 
 
