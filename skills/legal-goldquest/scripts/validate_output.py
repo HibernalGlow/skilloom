@@ -23,6 +23,9 @@ ENUMERATION_PATTERN = re.compile(r"(?<![\w])(?:\d{1,2}[、.]|[（(]\d{1,2}[）)]
 IMAGE_PATTERN = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 MERGE_TOKEN_PATTERN = re.compile(r"\{:\s*(?:colspan='\d+'|rowspan='\d+'|class='fn__none')\}")
 CONTRAST_PAIRS = (("有效", "无效"), ("成立", "不成立"), ("原则", "例外"), ("允许", "禁止"))
+ANSWER_MASK_PATTERN = re.compile(
+    r"<div><style>b\{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px\}b:hover\{background:#fff2c2;color:#c0392b\}</style>答案：<b>[^<]+</b></div>",
+)
 
 
 @dataclass(frozen=True)
@@ -207,6 +210,13 @@ def validate_goldquest(text: str) -> list[Finding]:
         ]
         if leaking_terms:
             findings.append(Finding("E", "605", index + 1, f"Question area uses status color on answer-bearing text: {leaking_terms}."))
+
+        answer_lines = lines[answer + 1:end]
+        first_content = next((line for line in answer_lines if line.strip()), None)
+        if first_content is None or not ANSWER_MASK_PATTERN.search(first_content):
+            findings.append(Finding("E", "606", answer + 1, "Answer section must start with the answer mask HTML block."))
+        if any(ANSWER_MASK_PATTERN.search(line) for line in question_text.splitlines()):
+            findings.append(Finding("E", "607", index + 1, "Answer mask HTML block is not allowed in the question area."))
     return findings
 
 
