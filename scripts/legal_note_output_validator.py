@@ -22,6 +22,10 @@ COLORED_TERM_PATTERN = re.compile(
 ENUMERATION_PATTERN = re.compile(r"(?<![\w])(?:\d{1,2}[、.]|[（(]\d{1,2}[）)]|[①-⑳])")
 IMAGE_PATTERN = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 MERGE_TOKEN_PATTERN = re.compile(r"\{:\s*(?:colspan='\d+'|rowspan='\d+'|class='fn__none')\}")
+TABLE_ROW_PATTERN = re.compile(r"^\s*\|.*\|\s*$")
+TABLE_SEPARATOR_PATTERN = re.compile(r"^:?-{3,}:?$")
+MERGE_SPAN_PATTERN = re.compile(r"\b(?P<name>colspan|rowspan)=['\"](?P<value>\d+)['\"]")
+MERGE_PLACEHOLDER_PATTERN = re.compile(r"\bclass=['\"]fn__none['\"]")
 CONTRAST_PAIRS = (("有效", "无效"), ("成立", "不成立"), ("原则", "例外"), ("允许", "禁止"))
 ANSWER_MASK_PATTERN = re.compile(
     r"<div><style>b\{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px\}b:hover\{background:#fff2c2;color:#c0392b\}</style>答案：<b>[^<]+</b></div>",
@@ -151,21 +155,134 @@ def validate_callouts_and_fences(text: str) -> list[Finding]:
     return findings
 
 
+def is_table_separator(cells: list[str]) -> bool:
+    return bool(cells) and all(TABLE_SEPARATOR_PATTERN.fullmatch(cell.replace(" ", "")) for cell in cells)
+
+
+def merge_span(cell: str, name: str) -> int | None:
+    match = next((item for item in MERGE_SPAN_PATTERN.finditer(cell) if item.group("name") == name), None)
+    return int(match.group("value")) if match else None
+
+
+def is_merge_placeholder(cell: str) -> bool:
+    return bool(MERGE_PLACEHOLDER_PATTERN.search(cell))
+
+
+def table_blocks(text: str) -> list[list[tuple[int, list[str]]]]:
+    blocks: list[list[tuple[int, list[str]]]] = []
+    current: list[tuple[int, list[str]]] = []
+    for number, line in enumerate(text.splitlines(), start=1):
+        if TABLE_ROW_PATTERN.match(line):
+            current.append((number, split_table_cells(line)))
+        elif current:
+            blocks.append(current)
+            current = []
+    if current:
+        blocks.append(current)
+    return blocks
+
+
+def normalized_table_content(value: str) -> str:
+    value = re.sub(r"\{:\s*[^}]+\}", "", value)
+    value = re.sub(r"<br\s*/?>", " ", value, flags=re.IGNORECASE)
+    value = re.sub(r"[`*_~=]", "", value)
+    return re.sub(r"\s+", "", value)
+
+
+def table_cell_content_is_preserved(source_blocks: list[list[tuple[int, list[str]]]], output_text: str) -> bool:
+    normalized_output = normalized_table_content(output_text)
+    for block in source_blocks:
+        for _, cells in block:
+            if is_table_separator(cells):
+                continue
+            for cell in cells:
+                fragment = normalized_table_content(cell)
+                if len(fragment) >= 2 and fragment not in normalized_output:
+                    return False
+    return True
+
+
+def validate_table_cell(cell: str, number: int) -> list[Finding]:
+    findings: list[Finding] = []
+    if TABLE_SEPARATOR_PATTERN.fullmatch(cell.replace(" ", "")):
+        return findings
+    segments = re.split(r"<br\s*/>", cell)
+    marker_counts = [len(ENUMERATION_PATTERN.findall(segment)) for segment in segments]
+    if sum(marker_counts) >= 2 and any(count > 1 for count in marker_counts):
+        findings.append(Finding("E", "401", number, "Numbered table-cell items must be separated with <br />."))
+    sentence_count = len(re.findall(r"[。！？；]", cell))
+    has_multiple_branches = (
+        sum(marker_counts) >= 2
+        or sentence_count >= 2
+        or (sentence_count >= 1 and visible_length(cell) >= 50)
+    )
+    if (visible_length(cell) >= 70 or has_multiple_branches) and not re.search(r"<br\s*/?>", cell, re.IGNORECASE):
+        findings.append(Finding("E", "403", number, "Dense table cell must use <br /> to separate semantic rule branches."))
+    if (visible_length(cell) >= 80 or sentence_count >= 2) and len(style_families(cell)) < 2:
+        findings.append(Finding("E", "402", number, "Long table cell needs at least two semantic inline style families."))
+    return findings
+
+
+def validate_merge_grid(rows: list[tuple[int, list[str]]]) -> list[Finding]:
+    findings: list[Finding] = []
+    content_rows = [(number, cells) for number, cells in rows if not is_table_separator(cells)]
+    if not content_rows:
+        return findings
+
+    width = max(len(cells) for _, cells in rows)
+    active_rows: dict[int, int] = {}
+    for number, cells in content_rows:
+        if len(cells) != width:
+            findings.append(Finding("E", "404", number, f"Table row has {len(cells)} physical cells; expected {width}."))
+            continue
+
+        horizontal_coverage: set[int] = set()
+        next_active = {column: remaining - 1 for column, remaining in active_rows.items() if remaining > 1}
+        for column, cell in enumerate(cells):
+            placeholder = is_merge_placeholder(cell)
+            vertically_covered = column in active_rows
+            horizontally_covered = column in horizontal_coverage
+            if placeholder:
+                if not vertically_covered and not horizontally_covered:
+                    findings.append(Finding("E", "406", number, "fn__none has no matching rowspan or colspan source."))
+                continue
+            if vertically_covered or horizontally_covered:
+                findings.append(Finding("E", "407", number, "A merged table slot must be represented by fn__none."))
+                continue
+
+            colspan_value = merge_span(cell, "colspan")
+            rowspan_value = merge_span(cell, "rowspan")
+            colspan = colspan_value or 1
+            rowspan = rowspan_value or 1
+            if colspan_value == 1 or rowspan_value == 1:
+                findings.append(Finding("E", "408", number, "Do not emit redundant colspan='1' or rowspan='1' attributes."))
+            if column + colspan > width:
+                findings.append(Finding("E", "409", number, "colspan extends beyond the table's physical column count."))
+                continue
+            if any(target in active_rows for target in range(column, column + colspan)):
+                findings.append(Finding("E", "410", number, "A new merged cell overlaps an active rowspan."))
+                continue
+            horizontal_coverage.update(range(column + 1, column + colspan))
+            if rowspan > 1:
+                for target in range(column, column + colspan):
+                    next_active[target] = max(next_active.get(target, 0), rowspan - 1)
+
+        for column in set(active_rows) | horizontal_coverage:
+            if not is_merge_placeholder(cells[column]):
+                findings.append(Finding("E", "407", number, "A merged table slot must be represented by fn__none."))
+        active_rows = next_active
+    return findings
+
+
 def validate_tables(text: str) -> list[Finding]:
     findings: list[Finding] = []
     for number, line in enumerate(text.splitlines(), start=1):
-        if not re.match(r"^\s*\|.*\|\s*$", line):
+        if not TABLE_ROW_PATTERN.match(line):
             continue
         for cell in split_table_cells(line):
-            if re.fullmatch(r":?-{3,}:?", cell.replace(" ", "")):
-                continue
-            segments = re.split(r"<br\s*/>", cell)
-            marker_counts = [len(ENUMERATION_PATTERN.findall(segment)) for segment in segments]
-            if sum(marker_counts) >= 2 and any(count > 1 for count in marker_counts):
-                findings.append(Finding("E", "401", number, "Numbered table-cell items must be separated with <br />."))
-            sentence_count = len(re.findall(r"[。！？；]", cell))
-            if (visible_length(cell) >= 80 or sentence_count >= 2) and len(style_families(cell)) < 2:
-                findings.append(Finding("E", "402", number, "Long table cell needs at least two semantic inline style families."))
+            findings.extend(validate_table_cell(cell, number))
+    for block in table_blocks(text):
+        findings.extend(validate_merge_grid(block))
     return findings
 
 
@@ -225,12 +342,18 @@ def validate_source_preservation(text: str, source_text: str, profile: str) -> l
     for image in IMAGE_PATTERN.findall(source_text):
         if image not in IMAGE_PATTERN.findall(text):
             findings.append(Finding("E", "701", 1, f"Source image link was not preserved: {image}"))
-    source_tables = sum(1 for line in source_text.splitlines() if re.match(r"^\s*\|.*\|\s*$", line))
-    output_tables = sum(1 for line in text.splitlines() if re.match(r"^\s*\|.*\|\s*$", line))
+    source_table_blocks = table_blocks(source_text)
+    output_table_blocks = table_blocks(text)
+    source_tables = sum(len(block) for block in source_table_blocks)
+    output_tables = sum(len(block) for block in output_table_blocks)
     if output_tables < source_tables:
         findings.append(Finding("E", "702", 1, f"Output has fewer Markdown table rows than source ({output_tables} < {source_tables})."))
+    allows_structural_table_split = (
+        len(output_table_blocks) > len(source_table_blocks)
+        and table_cell_content_is_preserved(source_table_blocks, text)
+    )
     for token in MERGE_TOKEN_PATTERN.findall(source_text):
-        if text.count(token) < source_text.count(token):
+        if text.count(token) < source_text.count(token) and not allows_structural_table_split:
             findings.append(Finding("E", "703", 1, f"Source SiYuan table merge token was not preserved: {token}"))
     if profile == "legal-marknote":
         for heading in re.findall(r"^#{1,6}\s+(.+?)\s*$", source_text, re.MULTILINE):

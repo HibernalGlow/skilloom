@@ -69,6 +69,17 @@ class TableSplitValidationTests(unittest.TestCase):
 
         self.assertNotIn("403", {finding.code for finding in findings})
 
+    def test_rejects_unbacked_merge_placeholder(self) -> None:
+        text = """| 分类 | 期间 | 依据 | 细分 | 规则 |
+| --- | --- | --- | --- | --- |
+| {: rowspan='2'}分类 | 法定期间 | 法律明文规定的期间 | 绝对不可变期 | 不得变更 |
+| {: class='fn__none'} | 指定期间 | {: class='fn__none'} | 相对不可变期 | 可以依法变更 |
+"""
+
+        findings = MODULE.validate_tables(text)
+
+        self.assertIn("406", {finding.code for finding in findings})
+
 
 
 if __name__ == "__main__":
