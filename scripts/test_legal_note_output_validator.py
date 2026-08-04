@@ -46,6 +46,23 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
         text = "| 项目 | 1. 要件一 2. 要件二 |\n| 长文 | " + "普通说明。" * 24 + " |"
         self.assertTrue({"401", "402"} <= codes(text))
 
+    def test_rejects_unbacked_merge_placeholder(self) -> None:
+        text = """| 分类 | 期间 | 依据 | 细分 | 规则 |
+| --- | --- | --- | --- | --- |
+| {: rowspan='3'}分类 | {: rowspan='2'}法定期间 | 法律明文规定的期间 | 绝对不可变期 | 不得变更 |
+| {: class='fn__none'} | {: class='fn__none'} | {: class='fn__none'} | 相对不可变期 | 可以依法变更 |
+"""
+        self.assertIn("406", codes(text))
+
+    def test_accepts_complete_merge_grid(self) -> None:
+        text = """| 分类 | 期间 | 依据 | 细分 | 规则 |
+| --- | --- | --- | --- | --- |
+| {: rowspan='3'}分类 | {: rowspan='2'}法定期间 | {: rowspan='2'}法律明文规定的期间 | 绝对不可变期 | 不得变更 |
+| {: class='fn__none'} | {: class='fn__none'} | {: class='fn__none'} | 相对不可变期 | 可以依法变更 |
+| {: class='fn__none'} | 指定期间 | {: colspan='3'}法院依职权指定期间 | {: class='fn__none'} | {: class='fn__none'} |
+"""
+        self.assertFalse({"404", "406", "407", "408", "409", "410"} & codes(text))
+
     def test_compares_source_images_tables_merge_tokens_and_headings(self) -> None:
         source = "# 原标题\n![](assets/a.png)\n| {: colspan='2'}内容 | 空格 |"
         output = "# 新标题\n普通正文"
@@ -66,6 +83,8 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
     - [ ] B. 选项乙
 
 ###### 答案与解析
+
+<div><style>b{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px}b:hover{background:#fff2c2;color:#c0392b}</style>答案：<b>A</b></div>
 
 **答案**为==选项甲==。
 """
