@@ -1,0 +1,4 @@
+interface:
+  display_name: "Legal Question Bank"
+  short_description: "Create portable SiYuan question-bank Markdown."
+  default_prompt: "Create or normalize legal question-bank Markdown with stable custom-qb metadata and validate it."
