@@ -62,6 +62,8 @@ Treat a bare SiYuan block ID such as `20260729232455-l0z16r1` as authorization t
 11. Validate the responsive video/AVIF switcher, replay and loop behavior, copy actions, persisted media preference, public assets, and production build only after page-still QA and animated-AVIF publication pass. Commit and push the animation sources, player components, metadata, MDX carriers, animated AVIFs, manifests, and SiYuan controller script to InkLoom. Verify the production page and direct AVIF URLs before reporting them as published.
 12. For interactive iframe embedding requests that are not the bare block-ID animated-image workflow, map each knowledge-point anchor to its matching animation scene and use its semantic deep link, such as `?scene=first-instance`; do not insert only one generic first-page player when several distinct points are explained. For SiYuan, follow [siyuan-embed.md](references/siyuan-embed.md), use `$siyuan-cli`, and do not edit unrelated note content.
 13. Validate the changed pages and any SiYuan embeds with [validation.md](references/validation.md). Report any unverified route, animation page, animated-AVIF asset, deployment URL, or SiYuan block insertion.
+14. If the user explicitly asks to insert the animation into the original Markdown/source note, this is a required source-note integration phase even when no SiYuan block ID is supplied. After the animation and production AVIFs are ready, map every semantic scene to its matching section of the original Markdown, insert one production AVIF image immediately after that section, and preserve all surrounding legal text. Use stable URLs in the form `https://inkloomer.github.io/inkloom/animation-avif/<animation-id>/<scene-id>.avif`; do not use a generic first scene when the animation has multiple scene-specific teaching points.
+15. Before reporting completion for an original-Markdown insertion, verify that every expected scene URL occurs exactly once, in legal narrative order, and adjacent to the section it explains. Re-read the surrounding headings and inspect the diff to prove that only the requested image blocks were added. If the source note is ambiguous, ask for the exact note rather than appending images at the end. Record the source path, scene-to-section mapping, URL count, and verification result in the handoff.
 
 ## Repository conventions
 
@@ -95,6 +97,8 @@ Treat a bare SiYuan block ID such as `20260729232455-l0z16r1` as authorization t
 - When copying content for Obsidian or Notion, keep required styles inline or in the page's established compatibility path; do not assume runtime JavaScript is available.
 
 ## Guardrails
+
+- When the user explicitly requests original-Markdown image insertion, add the requested production image blocks to that source note as a separate, narrow edit. This is distinct from the default read-only source-note rule. Validate one image per mapped scene, exact URL uniqueness, section adjacency, narrative order, and an unchanged surrounding diff before calling the animation complete.
 
 - Do not use bare absolute paths such as `/objective/...`; they produce GitHub Pages 404s.
 - Do not convert, copy, or relocate a Markdown note, its tables, or its assets into MDX. The note and the website animation are separate deliverables.

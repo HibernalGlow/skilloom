@@ -38,6 +38,8 @@ Give Luna ownership of preparation, independent audit, and operational work:
 
 Thin MDX carriers, routing metadata, publication commands, SiYuan operations, and other visually neutral integration work belong to Luna unless changing them would affect the animation's rendered quality.
 
+When the user explicitly requests insertion into the original Markdown/source note, Luna must also own that source-note integration. Treat it as a required completion phase after AVIF publication: map every semantic scene to its matching source section, insert the verified production AVIF image immediately after that section, preserve legal text, and independently verify exact URL counts, order, and adjacency. Do not report the animation complete while this requested source-note insertion is pending.
+
 ## Workflow
 
 1. Load $inkloom-dev and every task-relevant skill it requires before editing or delegation.
