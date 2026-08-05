@@ -73,19 +73,22 @@ def audit(path: Path) -> tuple[list[AuditError], list[str]]:
         while index < len(lines) and lines[index].strip() in {">", ""}:
             index += 1
 
-        if index >= len(lines) or not ANSWER_HEADING.match(lines[index]):
+        has_answer_heading = index < len(lines) and ANSWER_HEADING.match(lines[index])
+        has_direct_answer = index < len(lines) and ANSWER_ITEM.match(lines[index])
+        if not has_answer_heading and not has_direct_answer:
             errors.append(
                 AuditError(
                     path,
                     closing_index + 1,
-                    "question block is not immediately followed by **回答与解析：**",
+                    "question block is not immediately followed by an answer list or **回答与解析：**",
                 )
             )
             question_context = False
             continue
 
         answer_line = index + 1
-        index += 1
+        if has_answer_heading:
+            index += 1
         answer_numbers: list[int] = []
         has_nested_list = False
         while index < len(lines):
