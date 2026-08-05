@@ -30,6 +30,7 @@ Do not let Luna directly repair these files or choices after delegation. Luna ma
 Give Luna ownership of preparation, independent audit, and operational work:
 
 - read the exact source block or note, nearby context only when needed, existing node, stable IDs, manifests, routes, repository rules, and concurrent Git state;
+- resolve a Markdown insertion target before editing: prefer the matching organized note under `20-整理`; use the matching MinerU note under `10-mineru/content` only when the organized note does not exist. An explicit request for the "original" or "source" note does not override this order. Verify the selected path exists, contains the expected topic, and record the selected path plus whether fallback was used;
 - determine whether the request is creation, supplementation, rewrite, placement-only repair, or publication-only work;
 - prepare a source-grounded brief containing required legal points, stable public identities, hard constraints, relevant files, and completion evidence without dictating a generic visual solution;
 - run style checks, page capture, contact-sheet generation, builds, AVIF publication, production verification, SiYuan insertion or movement, deployment checks, and scoped Git operations;
@@ -38,7 +39,7 @@ Give Luna ownership of preparation, independent audit, and operational work:
 
 Thin MDX carriers, routing metadata, publication commands, SiYuan operations, and other visually neutral integration work belong to Luna unless changing them would affect the animation's rendered quality.
 
-When the user explicitly requests insertion into the original Markdown/source note, Luna must also own that source-note integration. Treat it as a required completion phase after AVIF publication: map every semantic scene to its matching source section, insert the verified production AVIF image immediately after that section, preserve legal text, and independently verify exact URL counts, order, and adjacency. Do not report the animation complete while this requested source-note insertion is pending.
+When the user explicitly requests insertion into a Markdown/source note, Luna must also own that source-note integration. Treat it as a required completion phase after AVIF publication: select the existing organized `20-整理` note first and fall back to the MinerU `10-mineru/content` note only when no organized note exists; verify the selected path before editing; map every semantic scene to its matching section; insert exactly one verified production AVIF image immediately after that section; preserve legal text; and independently verify exact URL counts, legal order, adjacency, and a narrow diff. Report the selected note path and fallback decision. Do not report the animation complete while this requested source-note insertion is pending.
 
 ## Workflow
 
