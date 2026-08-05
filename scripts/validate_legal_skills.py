@@ -17,6 +17,7 @@ class SkillContract:
     directory: str
     required_rules: tuple[tuple[str, str], ...]
     requires_color_table: bool = False
+    forbidden_phrases: tuple[str, ...] = ()
 
 
 # Keep independently installed skills self-contained while preventing shared formatting rules from drifting.
@@ -57,10 +58,16 @@ CONTRACTS = (
             ("题面边界", "7. 🎨 思源笔记行内文本颜色语法"),
             ("主动使用检查", "7. 🎨 思源笔记行内文本颜色语法"),
             ("主动替换伪提示标记", "4. Callout 提示块的高阶使用"),
+            ("解析结构必须因题制宜", "习题格式规范"),
+            ("不得把 `争点`、`规则与法源`、`事实涵摄`、`选项辨析`、`命题思路` 作为每题固定模板", "习题格式规范"),
             *SHARED_TABLE_RULES,
             *SHARED_OUTPUT_GATE_RULES,
         ),
         True,
+        (
+            "答案（即上面的遮罩块） → 争点 → 规则与法源 → 事实涵摄 → 选项辨析 → 易错边界",
+            "将“答案、争点、规则与法源、事实涵摄、选项辨析、易错边界”放在独立行",
+        ),
     ),
     SkillContract(
         "legal-question-bank",
@@ -163,6 +170,18 @@ def validate_contract(path: Path, contract: SkillContract) -> list[Finding]:
                     line_number(searchable_text, anchor_offset),
                     "E101",
                     f"Missing required contract near this section: {phrase}",
+                ),
+            )
+
+    for phrase in contract.forbidden_phrases:
+        offset = searchable_text.find(phrase)
+        if offset >= 0:
+            findings.append(
+                Finding(
+                    path,
+                    line_number(searchable_text, offset),
+                    "E104",
+                    f"Forbidden fixed-template instruction remains: {phrase}",
                 ),
             )
 
