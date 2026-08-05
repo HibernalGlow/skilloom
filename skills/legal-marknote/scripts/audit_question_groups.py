@@ -59,12 +59,12 @@ def audit(path: Path) -> tuple[list[AuditError], list[str]]:
             errors.append(AuditError(path, opening_line, "question fence is not closed"))
             break
 
-        if not 1 <= len(question_numbers) <= 3:
+        if len(question_numbers) > 1:
             errors.append(
                 AuditError(
                     path,
                     opening_line,
-                    f"question block contains {len(question_numbers)} numbered questions; expected 1-3",
+                    f"question block contains {len(question_numbers)} top-level numbered questions; expected one main question (subquestions are allowed)",
                 )
             )
 
