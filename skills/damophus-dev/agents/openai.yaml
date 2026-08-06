@@ -1,0 +1,4 @@
+interface:
+  display_name: "Damophus Development"
+  short_description: "Develop the Damophus SiYuan question-bank plugin."
+  default_prompt: "Use $damophus-dev to inspect, implement, test, review, and commit a Damophus plugin change."
