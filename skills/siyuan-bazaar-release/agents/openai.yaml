@@ -1,0 +1,4 @@
+interface:
+  display_name: "SiYuan Bazaar Release"
+  short_description: "Release a SiYuan plugin and verify Bazaar availability."
+  default_prompt: "Use $siyuan-bazaar-release to build, publish, onboard, deploy, and verify a SiYuan community plugin release."
