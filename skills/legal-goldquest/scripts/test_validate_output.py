@@ -72,5 +72,52 @@ class GoldquestDensityValidationTests(unittest.TestCase):
         self.assertIn("306", {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")})
 
 
+class QuestionTopicIalValidationTests(unittest.TestCase):
+    def test_accepts_multiple_question_topic_references(self) -> None:
+        text = """##### 108.
+{: custom-qb-id="civil-gold-2020-108" custom-qb-question-topic-ids="civil-property-good-faith-acquisition,civil-property-registration"}
+* 题干。
+"""
+
+        findings = MODULE.validate_topic_ials(text, "legal-goldquest")
+
+        self.assertEqual([], findings)
+
+    def test_rejects_missing_question_topic_references(self) -> None:
+        text = """##### 108.
+{: custom-qb-id="civil-gold-2020-108"}
+* 题干。
+"""
+
+        findings = MODULE.validate_topic_ials(text, "legal-goldquest")
+
+        self.assertIn("811", {finding.code for finding in findings})
+
+    def test_rejects_duplicate_and_malformed_topic_ids(self) -> None:
+        text = """##### 108.
+{: custom-qb-id="civil-gold-2020-108" custom-qb-question-topic-ids="valid-topic,Invalid Topic,valid-topic"}
+* 题干。
+"""
+
+        findings = MODULE.validate_topic_ials(text, "legal-goldquest")
+        codes = {finding.code for finding in findings}
+
+        self.assertIn("806", codes)
+        self.assertIn("807", codes)
+
+    def test_rejects_note_provider_and_legacy_topic_attributes_on_question(self) -> None:
+        text = """##### 108.
+{: custom-qb-id="civil-gold-2020-108" custom-qb-question-topic-ids="valid-topic" custom-qb-note-topic-id="valid-topic" custom-qb-topic-ids="valid-topic"}
+* 题干。
+"""
+
+        findings = MODULE.validate_topic_ials(text, "legal-goldquest")
+        codes = {finding.code for finding in findings}
+
+        self.assertIn("805", codes)
+        self.assertIn("809", codes)
+        self.assertIn("812", codes)
+
+
 if __name__ == "__main__":
     unittest.main()

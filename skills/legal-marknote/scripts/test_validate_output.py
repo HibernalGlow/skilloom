@@ -81,6 +81,46 @@ class TableSplitValidationTests(unittest.TestCase):
         self.assertIn("406", {finding.code for finding in findings})
 
 
+class NoteTopicIalValidationTests(unittest.TestCase):
+    def test_accepts_heading_provider_and_explicit_anchor(self) -> None:
+        text = """### 善意取得
+{: custom-qb-note-topic-id="civil-property-good-faith-acquisition"}
+
+**考点：登记对抗**
+{: custom-qb-note-topic-id="civil-property-registration"}
+"""
+
+        findings = MODULE.validate_topic_ials(text, "legal-marknote", require_note_topic=True)
+
+        self.assertEqual([], findings)
+
+    def test_requires_provider_in_normal_marknote_gate(self) -> None:
+        findings = MODULE.validate_topic_ials("### 善意取得\n正文。\n", "legal-marknote", require_note_topic=True)
+
+        self.assertIn("804", {finding.code for finding in findings})
+
+    def test_rejects_multiple_ids_and_question_identity_on_provider(self) -> None:
+        text = """### 善意取得
+{: custom-qb-note-topic-id="civil-property-good-faith-acquisition,civil-property-registration" custom-qb-id="question-1"}
+"""
+
+        findings = MODULE.validate_topic_ials(text, "legal-marknote", require_note_topic=True)
+        codes = {finding.code for finding in findings}
+
+        self.assertIn("801", codes)
+        self.assertIn("803", codes)
+
+    def test_rejects_provider_ial_detached_from_topic_block(self) -> None:
+        text = """### 善意取得
+正文。
+{: custom-qb-note-topic-id="civil-property-good-faith-acquisition"}
+"""
+
+        findings = MODULE.validate_topic_ials(text, "legal-marknote", require_note_topic=True)
+
+        self.assertIn("802", {finding.code for finding in findings})
+
+
 
 if __name__ == "__main__":
     unittest.main()

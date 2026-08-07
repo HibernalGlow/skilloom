@@ -30,6 +30,11 @@ CONTRAST_PAIRS = (("有效", "无效"), ("成立", "不成立"), ("原则", "例
 ANSWER_MASK_PATTERN = re.compile(
     r"<div><style>b\{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px\}b:hover\{background:#fff2c2;color:#c0392b\}</style>答案：<b>[^<]+</b></div>",
 )
+IAL_PATTERN = re.compile(r'^\{:\s*(?P<attrs>.+?)\s*\}$')
+IAL_ATTRIBUTE_PATTERN = re.compile(r'(?P<key>[\w-]+)="(?P<value>[^"]*)"')
+STABLE_TOPIC_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+QUESTION_HEADING_PATTERN = re.compile(r"^#####\s+(?!#).+\S\s*$")
+NOTE_TOPIC_ANCHOR_PATTERN = re.compile(r"^\*\*考点[：:]\s*.+?\*\*\s*$")
 
 
 @dataclass(frozen=True)
@@ -130,14 +135,38 @@ def validate_callouts_and_fences(text: str) -> list[Finding]:
     findings: list[Finding] = []
     lines = text.splitlines()
     in_fence = False
+    fence_language = ""
+    fence_body: list[str] = []
+    fence_start = 0
+
+    def finish_fence(number: int) -> None:
+        nonlocal fence_body, fence_language, fence_start
+        if fence_language == "html":
+            body = "\n".join(re.sub(r"^\s*>\s?", "", item) for item in fence_body).strip()
+            if not re.fullmatch(r"<div(?:\s[^>]*)?>[\s\S]*</div>", body, re.IGNORECASE):
+                findings.append(Finding("E", "306", fence_start or number, "HTML code blocks must contain one outer <div>...</div> wrapper."))
+        fence_body = []
+        fence_language = ""
+        fence_start = 0
     for number, line in enumerate(lines, start=1):
         fence = re.match(r"^(?P<quote>\s*>\s*)?```(?P<lang>[A-Za-z0-9_-]*)", line)
         if fence:
             if not fence.group("quote"):
                 findings.append(Finding("E", "301", number, "Code fences must be inside a blockquote."))
-            if not in_fence and fence.group("lang") != "md":
-                findings.append(Finding("E", "302", number, "Opening code fence must use the md language."))
-            in_fence = not in_fence
+            if not in_fence:
+                fence_language = fence.group("lang")
+                fence_start = number
+                if fence_language not in {"md", "html"}:
+                    findings.append(Finding("E", "302", number, "Opening code fence must use the md or html language."))
+                in_fence = True
+            else:
+                finish_fence(number)
+                in_fence = False
+            continue
+
+        if in_fence:
+            fence_body.append(line)
+            continue
 
         callout = re.match(r"^\s*>\s*\[!([^\]]+)\]", line)
         if callout:
@@ -286,6 +315,115 @@ def validate_tables(text: str) -> list[Finding]:
     return findings
 
 
+def validate_goldquest_table_size(text: str) -> list[Finding]:
+    findings: list[Finding] = []
+    for block in table_blocks(text):
+        content_rows = [row for row in block if not is_table_separator(row[1])]
+        if not content_rows:
+            continue
+        width = max(len(cells) for _, cells in block)
+        if width > 3 or len(content_rows) > 3:
+            findings.append(Finding("E", "411", content_rows[0][0], "GoldQuest tables must be at most 3 columns by 3 data rows; split larger comparisons semantically."))
+    return findings
+
+
+def validate_list_density(text: str) -> list[Finding]:
+    findings: list[Finding] = []
+    run_start = None
+    run_indent = None
+    run_count = 0
+
+    def flush() -> None:
+        nonlocal run_start, run_indent, run_count
+        if run_start is not None and run_count > 5:
+            findings.append(Finding("W", "610", run_start, "同级列表超过 5 项；请按主体、阶段、条件或后果改成语义子列表。"))
+        run_start = None
+        run_indent = None
+        run_count = 0
+
+    for number, line in enumerate(text.splitlines() + [""], start=1):
+        match = re.match(r"^(?P<indent>\s*)(?:[-*]|\d+\.)\s+", line)
+        if not match or re.search(r"[-*]\s+\[[ xX]\]", line):
+            flush()
+            continue
+        indent = len(match.group("indent").replace("\t", "    "))
+        if run_indent == indent:
+            run_count += 1
+        else:
+            flush()
+            run_start = number
+            run_indent = indent
+            run_count = 1
+    return findings
+
+
+def ial_attributes(line: str) -> dict[str, str]:
+    match = IAL_PATTERN.fullmatch(line.strip())
+    if not match:
+        return {}
+    return {item.group("key"): item.group("value") for item in IAL_ATTRIBUTE_PATTERN.finditer(match.group("attrs"))}
+
+
+def parse_topic_ids(value: str) -> tuple[list[str], list[str]]:
+    values = [item.strip() for item in value.split(",")]
+    invalid = [item for item in values if not STABLE_TOPIC_ID_PATTERN.fullmatch(item)]
+    return values, invalid
+
+
+def validate_topic_ials(text: str, profile: str, require_note_topic: bool = False) -> list[Finding]:
+    findings: list[Finding] = []
+    lines = text.splitlines()
+    note_topic_count = 0
+
+    for index, line in enumerate(lines):
+        attrs = ial_attributes(line)
+        if not attrs:
+            continue
+        line_no = index + 1
+        note_topic_id = attrs.get("custom-qb-note-topic-id")
+        question_topic_ids = attrs.get("custom-qb-question-topic-ids")
+
+        if "custom-qb-role" in attrs or "custom-qb-topic-id" in attrs or "custom-qb-topic-ids" in attrs:
+            findings.append(Finding("E", "805", line_no, "Legacy topic attributes are not valid new output; use custom-qb-note-topic-id or custom-qb-question-topic-ids."))
+
+        if note_topic_id is not None:
+            note_topic_count += 1
+            previous = lines[index - 1].strip() if index > 0 else ""
+            if not STABLE_TOPIC_ID_PATTERN.fullmatch(note_topic_id):
+                findings.append(Finding("E", "801", line_no, "custom-qb-note-topic-id must contain exactly one lowercase ASCII kebab-case ID."))
+            if not (re.match(r"^#{1,6}\s+\S", previous) or NOTE_TOPIC_ANCHOR_PATTERN.fullmatch(previous)):
+                findings.append(Finding("E", "802", line_no, "custom-qb-note-topic-id must attach directly to a heading or **考点：显示名** anchor."))
+            if "custom-qb-id" in attrs or question_topic_ids is not None:
+                findings.append(Finding("E", "803", line_no, "A note-topic provider IAL cannot also identify or classify a question."))
+
+        if question_topic_ids is not None:
+            values, invalid = parse_topic_ids(question_topic_ids)
+            if not values or invalid:
+                findings.append(Finding("E", "806", line_no, "custom-qb-question-topic-ids must be a comma-separated list of lowercase ASCII kebab-case IDs."))
+            if len(values) != len(set(values)):
+                findings.append(Finding("E", "807", line_no, "custom-qb-question-topic-ids must not contain duplicate IDs."))
+            if "custom-qb-id" not in attrs:
+                findings.append(Finding("E", "808", line_no, "custom-qb-question-topic-ids must coexist with custom-qb-id."))
+            if note_topic_id is not None:
+                findings.append(Finding("E", "809", line_no, "A question-topic reference IAL cannot also provide note-topic material."))
+
+    if profile == "legal-goldquest":
+        for index, line in enumerate(lines):
+            if not QUESTION_HEADING_PATTERN.fullmatch(line):
+                continue
+            attrs = ial_attributes(lines[index + 1]) if index + 1 < len(lines) else {}
+            if "custom-qb-id" not in attrs:
+                findings.append(Finding("E", "810", index + 1, "Every GoldQuest question heading requires an immediate IAL with custom-qb-id."))
+            if "custom-qb-question-topic-ids" not in attrs:
+                findings.append(Finding("E", "811", index + 1, "Every GoldQuest question IAL requires custom-qb-question-topic-ids."))
+            if "custom-qb-note-topic-id" in attrs:
+                findings.append(Finding("E", "812", index + 2, "GoldQuest question IAL must not use custom-qb-note-topic-id."))
+
+    if profile == "legal-marknote" and require_note_topic and note_topic_count == 0:
+        findings.append(Finding("E", "804", 1, "Normal MarkNote output requires at least one custom-qb-note-topic-id provider declaration."))
+    return findings
+
+
 def validate_general_density(text: str) -> list[Finding]:
     findings: list[Finding] = []
     for number, line in enumerate(text.splitlines(), start=1):
@@ -302,6 +440,8 @@ def validate_general_density(text: str) -> list[Finding]:
 def validate_goldquest(text: str) -> list[Finding]:
     findings: list[Finding] = []
     lines = text.splitlines()
+    if re.search(r"📌\s*\[|\[(?:总结与归纳|提示|易错|重点)\]", text):
+        findings.append(Finding("E", "608", 1, "Use a semantic Callout instead of a pseudo-callout marker."))
     for number, line in enumerate(lines, start=1):
         if re.search(r"-\s*\[[xX]\]", line):
             findings.append(Finding("E", "601", number, "Question options must remain unchecked."))
@@ -334,6 +474,22 @@ def validate_goldquest(text: str) -> list[Finding]:
             findings.append(Finding("E", "606", answer + 1, "Answer section must start with the answer mask HTML block."))
         if any(ANSWER_MASK_PATTERN.search(line) for line in question_text.splitlines()):
             findings.append(Finding("E", "607", index + 1, "Answer mask HTML block is not allowed in the question area."))
+
+        uncolored_sentences = 0
+        for number, line in enumerate(answer_lines, start=answer + 2):
+            stripped = line.strip()
+            if not stripped or ANSWER_MASK_PATTERN.search(line) or stripped.startswith(("```", "> ```", "|")):
+                continue
+            sentence_count = len(re.findall(r"[。！？；]", stripped))
+            if sentence_count == 0:
+                continue
+            if COLOR_ATTRIBUTE_PATTERN.search(stripped):
+                uncolored_sentences = 0
+            else:
+                uncolored_sentences += sentence_count
+            if uncolored_sentences >= 3:
+                findings.append(Finding("E", "609", number, "答案与解析连续三句没有语义颜色锚点。"))
+                break
     return findings
 
 
@@ -362,14 +518,17 @@ def validate_source_preservation(text: str, source_text: str, profile: str) -> l
     return findings
 
 
-def validate_text(text: str, profile: str, source_text: str | None = None) -> list[Finding]:
+def validate_text(text: str, profile: str, source_text: str | None = None, require_note_topic: bool = False) -> list[Finding]:
     findings = []
     findings.extend(validate_highlights(text))
     findings.extend(validate_colors(text))
     findings.extend(validate_callouts_and_fences(text))
     findings.extend(validate_tables(text))
+    findings.extend(validate_list_density(text))
     findings.extend(validate_general_density(text))
+    findings.extend(validate_topic_ials(text, profile, require_note_topic))
     if profile == "legal-goldquest":
+        findings.extend(validate_goldquest_table_size(text))
         findings.extend(validate_goldquest(text))
     if source_text is not None:
         findings.extend(validate_source_preservation(text, source_text, profile))
@@ -390,6 +549,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source", type=Path, help="Original source file for preservation checks.")
     parser.add_argument("--require-source", action="store_true", help="Fail when --source is omitted.")
     parser.add_argument("--strict", action="store_true", help="Treat advisory warnings as gate failures.")
+    parser.add_argument("--require-topic-ial", action="store_true", help="Require at least one MarkNote note-topic provider declaration.")
     parser.add_argument("--format", choices=("text", "json"), default="text")
     return parser.parse_args()
 
@@ -404,7 +564,7 @@ def main() -> int:
         return 1
     text = args.output.read_text(encoding="utf-8")
     source_text = args.source.read_text(encoding="utf-8") if args.source else None
-    findings = validate_text(text, args.profile, source_text)
+    findings = validate_text(text, args.profile, source_text, args.require_topic_ial)
     if args.format == "json":
         print(json.dumps([asdict(finding) for finding in findings], ensure_ascii=False, indent=2))
     elif findings:
