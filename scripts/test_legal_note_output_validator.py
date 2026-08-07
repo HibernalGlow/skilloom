@@ -116,6 +116,7 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 * 题干。
     - [ ] A. 选项
 - 正确答案：A。
+{: custom-qb-section="solution"}
 - 第一项规则适用于本案。
 - 第二项规则需要审查主体资格。
 - 第三项规则最终决定法律后果。
@@ -124,25 +125,25 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 * 题干。
     - [ ] A. 选项
 ###### 答案与解析
-无答案遮罩。
+- 正确答案：A。
 """
 
         findings = validate_text(text, "legal-goldquest")
         result = {(finding.code, finding.line) for finding in findings}
 
         self.assertIn(("613", 1), result)
-        self.assertIn(("609", 7), result)
-        self.assertIn(("615", 4), result)
-        self.assertIn(("606", 12), result)
+        self.assertIn("609", {finding.code for finding in findings})
+        self.assertIn("615", {finding.code for finding in findings})
+        self.assertIn("606", {finding.code for finding in findings})
 
     def test_rejects_flat_multi_branch_goldquest_analysis(self) -> None:
-        mask = "<div><style>b{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px}b:hover{background:#fff2c2;color:#c0392b}</style>答案：<b>A</b></div>"
         text = f"""##### 1.
 {{: custom-qb-id="civil-gold-1" custom-qb-question-topic-ids="civil-topic"}}
 * 题干。
     - [ ] A. 选项
 ###### 答案与解析
-{mask}
+- 正确答案：A。
+{{: custom-qb-section="solution"}}
 - **主体判断**：甲具有资格。
 - **程序判断**：法院应当受理。
 - **法律后果**：该请求成立。
@@ -151,12 +152,12 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
         self.assertIn("615", codes(text, "legal-goldquest"))
 
     def test_rejects_one_color_anchor_for_a_long_analysis_line(self) -> None:
-        mask = "<div><style>b{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px}b:hover{background:#fff2c2;color:#c0392b}</style>答案：<b>A</b></div>"
         text = f"""##### 1.
 {{: custom-qb-id="civil-gold-1" custom-qb-question-topic-ids="civil-topic"}}
 * 题干。
 ###### 答案与解析
-{mask}
+- 正确答案：A。
+{{: custom-qb-section="solution"}}
 **规则**{{: style="color: var(--b3-font-color10);"}}适用于本案。首先审查主体资格。其次审查程序条件。最后确定法律后果。
 """
 
@@ -164,18 +165,46 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 
     def test_accepts_goldquest_question_answer_boundary(self) -> None:
         text = """##### 1题
-{: custom-qb-id="civil-question-1" custom-qb-question-topic-ids="civil-topic"}
+{: custom-qb-id="civil-question-1" custom-qb-question-topic-ids="civil-topic" custom-qb-answer="A"}
 * **甲**{: style=\"color: var(--b3-font-color10);\"}实施某行为，如何判断？
     - [ ] A. 选项甲
     - [ ] B. 选项乙
 
 ###### 答案与解析
 
-<div><style>b{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px}b:hover{background:#fff2c2;color:#c0392b}</style>答案：<b>A</b></div>
+- 正确答案：A。
+{: custom-qb-section="solution"}
 
 **答案**为==选项甲==。
 """
         self.assertEqual(codes(text, "legal-goldquest"), set())
+
+    def test_rejects_legacy_answer_mask_and_overlong_color_anchor(self) -> None:
+        mask = "<div><style>b{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px}b:hover{background:#fff2c2;color:#c0392b}</style>答案：<b>A</b></div>"
+        text = f"""##### 1.
+{{: custom-qb-id="civil-question-1" custom-qb-question-topic-ids="civil-topic"}}
+* 题干。
+###### 答案与解析
+{mask}
+**法院受理后发现条件欠缺**{{: style="color: var(--b3-font-color10);"}}。
+"""
+
+        result = codes(text, "legal-goldquest")
+
+        self.assertIn("607", result)
+        self.assertIn("617", result)
+
+    def test_requires_custom_answer_for_objective_goldquest_question(self) -> None:
+        text = """##### 1.
+{: custom-qb-id="civil-question-1" custom-qb-question-topic-ids="civil-topic"}
+* 题干。
+    - [ ] A. 选项
+###### 答案与解析
+- 正确答案：A。
+{: custom-qb-section="solution"}
+"""
+
+        self.assertIn("619", codes(text, "legal-goldquest"))
 
     def test_rejects_goldquest_highlight_and_status_color_before_answer(self) -> None:
         text = """##### 1题

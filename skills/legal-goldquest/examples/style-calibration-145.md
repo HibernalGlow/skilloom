@@ -8,13 +8,14 @@
 
 ###### 答案与解析
 
-<div><style>b{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px}b:hover{background:#fff2c2;color:#c0392b}</style>答案：<b>B</b></div>
+- 正确答案：B。
+{: custom-qb-section="solution"}
 
 *解题结论*：本题选择 ==B==。
 
 - **判断起点**{: style="color: var(--b3-font-color10);"}：题目明确交代，**王旭**{: style="color: var(--b3-font-color4);"}在**张丽**{: style="color: var(--b3-font-color4);"}起诉前已经死亡。
-    - 起诉时，被告的**主体资格已经消灭**{: style="color: var(--b3-font-color13);"}。
-    - 因而本案不满足“有**明确被告**{: style="color: var(--b3-font-color10);"}”这一起诉条件。
+    - 起诉时，被告已无**主体资格**{: style="color: var(--b3-font-color13);"}。
+    - 因而本案不满足`有明确的被告`这一起诉条件。
 
 - **程序定位**{: style="color: var(--b3-font-color10);"}：法院已经受理案件，之后才发现起诉条件欠缺。
     - **受理前**发现 → 裁定不予受理。
@@ -30,20 +31,21 @@
 
 ###### 答案与解析
 
-<div><style>b{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px}b:hover{background:#fff2c2;color:#c0392b}</style>答案：<b>B</b></div>
+- 正确答案：B。
+{: custom-qb-section="solution"}
 
 > [!IMPORTANT] ❗ 一句话定案
-> **王旭**{: style="color: var(--b3-font-color4);"}在起诉前死亡 → 起诉时没有明确被告 → **法院受理后**才发现 → 裁定==驳回起诉==。
+> **王旭**{: style="color: var(--b3-font-color4);"}在起诉前死亡 → 起诉时没有明确被告 → 法院在**受理后**{: style="color: var(--b3-font-color12);"}才发现 → 裁定==驳回起诉==。
 
 ###### 判断链
 
-1. **先看死亡时间**{: style="color: var(--b3-font-color10);"}
-    - **起诉前死亡**{: style="color: var(--b3-font-color12);"}，说明被告在起诉时已经没有诉讼权利能力。
+1. **死亡时间**{: style="color: var(--b3-font-color10);"}
+    - **起诉前**{: style="color: var(--b3-font-color12);"}已经死亡，说明被告在起诉时已经没有诉讼权利能力。
     - 所以本案欠缺“有明确被告”的起诉条件。
-2. **再看法院所处阶段**{: style="color: var(--b3-font-color10);"}
+2. **程序阶段**{: style="color: var(--b3-font-color10);"}
     - 题干写明法院已经向王旭送达应诉通知书，说明案件已经受理。
     - 受理后发现不符合起诉条件，应当裁定**驳回起诉**{: style="color: var(--b3-font-color8);"}。
-3. **最后排除相邻制度**{: style="color: var(--b3-font-color10);"}
+3. **排除项**{: style="color: var(--b3-font-color10);"}
     - A 项“诉讼终结”针对诉讼中出现的死亡。
     - C 项“不予受理”针对法院受理前发现起诉条件欠缺。
     - D 项“驳回诉讼请求”针对实体审理后请求不能获得支持。
@@ -61,14 +63,14 @@
 
 ###### 当事人死亡的后续分流
 
-- **起诉前被告死亡**{: style="color: var(--b3-font-color13);"}
+- **起诉前**{: style="color: var(--b3-font-color13);"}被告死亡
     - 受理前发现：裁定不予受理。
     - 受理后发现：裁定驳回起诉。
-- **诉讼中一方死亡**{: style="color: var(--b3-font-color10);"}
+- **诉讼中**{: style="color: var(--b3-font-color10);"}一方死亡
     - 一般案件：先中止，等待继承人表态；无人继承或继承人放弃权利时终结。
     - 离婚、解除收养关系、追索赡养费/扶养费/抚养费案件：身份关系不能继承，直接终结。
 
-*复习抓手*：先找**时间点**，再找**程序阶段**，最后判断**裁判形式**。
+*复习抓手*：先找**时间点**{: style="text-decoration: underline;"}，再找**程序阶段**，最后判断==裁判形式==。
 
 ---
 
@@ -76,7 +78,8 @@
 
 ###### 答案与解析
 
-<div><style>b{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px}b:hover{background:#fff2c2;color:#c0392b}</style>答案：<b>B</b></div>
+- 正确答案：B。
+{: custom-qb-section="solution"}
 
 *解题结论*：法院应当裁定 ==驳回起诉==。
 
