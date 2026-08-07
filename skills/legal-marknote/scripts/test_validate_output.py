@@ -121,6 +121,29 @@ class NoteTopicIalValidationTests(unittest.TestCase):
         self.assertIn("802", {finding.code for finding in findings})
 
 
+class ConceptHeadingValidationTests(unittest.TestCase):
+    def test_rejects_numeric_only_heading_before_short_concept_definition(self) -> None:
+        text = """### 1.
+{: custom-qb-note-topic-id="criminal-property-six-illegal-gains"}
+
+**六赃**{: style="color: var(--b3-font-color10);"}：六种非法获取公私财物的犯罪。
+"""
+
+        findings = MODULE.validate_text(text, "legal-marknote")
+
+        self.assertIn("705", {finding.code for finding in findings})
+
+    def test_accepts_promoted_concept_and_exercise_counter(self) -> None:
+        promoted = "### 1. 六赃\n\n六种非法获取公私财物的犯罪。\n"
+        exercise = """###### 习题
+### 1.
+合同效力：甲与乙签订合同，该合同是否有效？
+"""
+
+        self.assertNotIn("705", {finding.code for finding in MODULE.validate_text(promoted, "legal-marknote")})
+        self.assertNotIn("705", {finding.code for finding in MODULE.validate_text(exercise, "legal-marknote")})
+
+
 
 if __name__ == "__main__":
     unittest.main()

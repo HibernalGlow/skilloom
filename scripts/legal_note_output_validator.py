@@ -35,6 +35,14 @@ IAL_ATTRIBUTE_PATTERN = re.compile(r'(?P<key>[\w-]+)="(?P<value>[^"]*)"')
 STABLE_TOPIC_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 QUESTION_HEADING_PATTERN = re.compile(r"^#####\s+(?!#).+\S\s*$")
 NOTE_TOPIC_ANCHOR_PATTERN = re.compile(r"^\*\*考点[：:]\s*.+?\*\*\s*$")
+NUMERIC_ONLY_HEADING_PATTERN = re.compile(r"^(?:\s*>\s*)?#{1,6}\s+\d{1,3}(?:[.、．])?\s*$")
+ANY_HEADING_PATTERN = re.compile(r"^(?:\s*>\s*)?#{1,6}\s+(?P<title>.+?)\s*$")
+SHORT_CONCEPT_DEFINITION_PATTERN = re.compile(
+    r'^(?:\*\*)?(?P<term>[^：:\n]{2,24}?)(?:\*\*)?(?:\{:\s*style="[^"]*"\})?\s*[：:]\s*(?P<definition>\S.+)$'
+)
+EXERCISE_REGION_PATTERN = re.compile(r"(?:习题|试一试|练习题|真题)")
+EXERCISE_CONTINUATION_PATTERN = re.compile(r"^(?:答案与解析|回答与解析)[：:]?$")
+NON_CONCEPT_LABELS = {"答案", "回答", "解析", "问题", "题目", "示例", "例题", "注意", "提示"}
 
 
 @dataclass(frozen=True)
@@ -437,6 +445,69 @@ def validate_general_density(text: str) -> list[Finding]:
     return findings
 
 
+def validate_concept_headings(text: str, profile: str) -> list[Finding]:
+    if profile != "legal-marknote":
+        return []
+
+    findings: list[Finding] = []
+    lines = text.splitlines()
+    in_fence = False
+    in_exercise_region = False
+
+    for index, line in enumerate(lines):
+        if re.match(r"^(?:\s*>\s*)?```", line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+
+        heading = ANY_HEADING_PATTERN.fullmatch(line)
+        if heading:
+            title = heading.group("title").strip()
+            if EXERCISE_REGION_PATTERN.search(title):
+                in_exercise_region = True
+            elif (
+                in_exercise_region
+                and not NUMERIC_ONLY_HEADING_PATTERN.fullmatch(line)
+                and not EXERCISE_CONTINUATION_PATTERN.fullmatch(title)
+            ):
+                in_exercise_region = False
+
+        if in_exercise_region or not NUMERIC_ONLY_HEADING_PATTERN.fullmatch(line):
+            continue
+
+        cursor = index + 1
+        while cursor < len(lines) and (not lines[cursor].strip() or IAL_PATTERN.fullmatch(lines[cursor].strip())):
+            cursor += 1
+        if cursor >= len(lines):
+            continue
+
+        body = lines[cursor].strip()
+        if body.startswith((">", "|", "- ", "* ", "```")):
+            continue
+        definition = SHORT_CONCEPT_DEFINITION_PATTERN.fullmatch(body)
+        if not definition:
+            continue
+
+        term = re.sub(r"[`*_~=]", "", definition.group("term")).strip()
+        if (
+            term in NON_CONCEPT_LABELS
+            or visible_length(term) > 16
+            or re.search(r"[。！？；?!]", term)
+            or re.search(r"(?:下列|以下|何者|哪些|是否|如何|为什么)", term)
+        ):
+            continue
+        findings.append(
+            Finding(
+                "E",
+                "705",
+                index + 1,
+                f"Numeric-only concept heading must include the short term '{term}'; move it into the heading and remove the duplicate body prefix before the colon.",
+            )
+        )
+    return findings
+
+
 def validate_goldquest(text: str) -> list[Finding]:
     findings: list[Finding] = []
     lines = text.splitlines()
@@ -526,6 +597,7 @@ def validate_text(text: str, profile: str, source_text: str | None = None, requi
     findings.extend(validate_tables(text))
     findings.extend(validate_list_density(text))
     findings.extend(validate_general_density(text))
+    findings.extend(validate_concept_headings(text, profile))
     findings.extend(validate_topic_ials(text, profile, require_note_topic))
     if profile == "legal-goldquest":
         findings.extend(validate_goldquest_table_size(text))
