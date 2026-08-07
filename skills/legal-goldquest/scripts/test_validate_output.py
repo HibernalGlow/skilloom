@@ -51,6 +51,26 @@ class GoldquestDensityValidationTests(unittest.TestCase):
 
         self.assertIn("608", codes(text))
 
+    def test_rejects_goldquest_table_over_three_by_three(self) -> None:
+        text = (
+            "| 项目 | 规则 | 后果 | 备注 |\n"
+            "| --- | --- | --- | --- |\n"
+            "| A | 规则 | 后果 | 备注 |\n"
+        )
+        self.assertIn("411", {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")})
+
+    def test_rejects_long_semantically_ungrouped_list(self) -> None:
+        text = "\n".join(f"- 项目{i}" for i in range(1, 7))
+        self.assertIn("610", {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")})
+
+    def test_accepts_div_wrapped_html_block(self) -> None:
+        text = "> ```html\n> <div><span>说明</span></div>\n> ```\n"
+        self.assertNotIn("306", {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")})
+
+    def test_rejects_unwrapped_html_block(self) -> None:
+        text = "> ```html\n> <span>说明</span>\n> ```\n"
+        self.assertIn("306", {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")})
+
 
 if __name__ == "__main__":
     unittest.main()
