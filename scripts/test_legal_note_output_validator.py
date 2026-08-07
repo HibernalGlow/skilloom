@@ -68,6 +68,41 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
         output = "# 新标题\n普通正文"
         self.assertTrue({"701", "702", "703", "704"} <= codes(output, source=source))
 
+    def test_rejects_numeric_only_heading_before_short_concept_definition(self) -> None:
+        text = "### 1.\n\n六赃：六种非法获取公私财物的犯罪。\n"
+
+        self.assertIn("705", codes(text))
+
+    def test_rejects_styled_concept_after_heading_ial(self) -> None:
+        text = """### 1.
+{: custom-qb-note-topic-id="criminal-property-six-illegal-gains"}
+
+**六赃**{: style="color: var(--b3-font-color10);"}：六种非法获取公私财物的犯罪。
+"""
+
+        self.assertIn("705", codes(text))
+
+    def test_accepts_short_concept_promoted_into_numbered_heading(self) -> None:
+        text = "### 1. 六赃\n\n六种非法获取公私财物的犯罪。\n"
+
+        self.assertNotIn("705", codes(text))
+
+    def test_keeps_exercise_counter_heading_without_question_stem(self) -> None:
+        text = """###### 习题
+### 1.
+合同效力：甲与乙签订合同，该合同是否有效？
+
+###### 回答与解析
+1. 合同有效。
+"""
+
+        self.assertNotIn("705", codes(text))
+
+    def test_goldquest_does_not_apply_marknote_concept_heading_gate(self) -> None:
+        text = "### 1.\n六赃：六种非法获取公私财物的犯罪。\n"
+
+        self.assertNotIn("705", codes(text, "legal-goldquest"))
+
     def test_rejects_goldquest_answer_leak_and_checked_option(self) -> None:
         text = """##### 1题
 * 题干含==正确答案==
