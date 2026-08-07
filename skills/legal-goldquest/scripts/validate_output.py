@@ -525,9 +525,25 @@ def validate_goldquest(text: str) -> list[Finding]:
     for index in h5_indices:
         end = next((candidate for candidate in range(index + 1, len(lines)) if re.match(r"^#{1,5}\s+", lines[candidate])), len(lines))
         answer = next((candidate for candidate in range(index + 1, end) if re.match(r"^######\s+答案与解析\s*$", lines[candidate])), None)
+        fallback = None
         if answer is None:
-            continue
-        question_text = "\n".join(lines[index + 1:answer])
+            fallback = next(
+                (
+                    candidate
+                    for candidate in range(index + 1, end)
+                    if re.match(r"^\s*(?:[-*]\s*)?(?:正确答案|答案)[：:]", lines[candidate])
+                ),
+                None,
+            )
+            if fallback is not None:
+                findings.append(Finding("E", "613", index + 1, "Each GoldQuest question needs its own '###### 答案与解析' boundary; a plain answer line cannot replace it."))
+            else:
+                findings.append(Finding("E", "614", index + 1, "GoldQuest question is missing its own '###### 答案与解析' section."))
+                continue
+
+        boundary = answer if answer is not None else fallback
+        assert boundary is not None
+        question_text = "\n".join(lines[index + 1:boundary])
         if HIGHLIGHT_PATTERN.search(question_text):
             findings.append(Finding("E", "604", index + 1, "Question area must not reveal answers with highlights."))
         leaking_terms = [
@@ -539,28 +555,53 @@ def validate_goldquest(text: str) -> list[Finding]:
         if leaking_terms:
             findings.append(Finding("E", "605", index + 1, f"Question area uses status color on answer-bearing text: {leaking_terms}."))
 
-        answer_lines = lines[answer + 1:end]
-        first_content = next((line for line in answer_lines if line.strip()), None)
-        if first_content is None or not ANSWER_MASK_PATTERN.search(first_content):
-            findings.append(Finding("E", "606", answer + 1, "Answer section must start with the answer mask HTML block."))
-        if any(ANSWER_MASK_PATTERN.search(line) for line in question_text.splitlines()):
-            findings.append(Finding("E", "607", index + 1, "Answer mask HTML block is not allowed in the question area."))
+        answer_lines = lines[boundary + 1:end]
+        if answer is not None:
+            first_content = next((line for line in answer_lines if line.strip()), None)
+            if first_content is None or not ANSWER_MASK_PATTERN.search(first_content):
+                findings.append(Finding("E", "606", answer + 1, "Answer section must start with the answer mask HTML block."))
+            if any(ANSWER_MASK_PATTERN.search(line) for line in question_text.splitlines()):
+                findings.append(Finding("E", "607", index + 1, "Answer mask HTML block is not allowed in the question area."))
 
         uncolored_sentences = 0
-        for number, line in enumerate(answer_lines, start=answer + 2):
+        top_level_analysis_items = 0
+        nested_analysis_items = 0
+        has_analysis_callout = False
+        has_analysis_subheading = False
+        has_analysis_table = False
+        for number, line in enumerate(answer_lines, start=boundary + 2):
             stripped = line.strip()
             if not stripped or ANSWER_MASK_PATTERN.search(line) or stripped.startswith(("```", "> ```", "|")):
+                if TABLE_ROW_PATTERN.match(line):
+                    has_analysis_table = True
                 continue
+            if re.match(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING)\]", line):
+                has_analysis_callout = True
+            if re.match(r"^######\s+(?!答案与解析).+", line):
+                has_analysis_subheading = True
+            if re.match(r"^\s*-\s+", line):
+                if len(line) - len(line.lstrip()) >= 4:
+                    nested_analysis_items += 1
+                else:
+                    top_level_analysis_items += 1
             sentence_count = len(re.findall(r"[。！？；]", stripped))
+            if sentence_count == 0 and visible_length(stripped) >= 35:
+                sentence_count = 1
             if sentence_count == 0:
                 continue
-            if COLOR_ATTRIBUTE_PATTERN.search(stripped):
+            color_anchor_count = len(COLOR_ATTRIBUTE_PATTERN.findall(stripped))
+            if sentence_count >= 3 and color_anchor_count * 2 < sentence_count:
+                findings.append(Finding("E", "616", number, "A long analysis line needs at least one semantic color anchor per one or two sentences."))
+            if color_anchor_count:
                 uncolored_sentences = 0
             else:
                 uncolored_sentences += sentence_count
             if uncolored_sentences >= 3:
                 findings.append(Finding("E", "609", number, "答案与解析连续三句没有语义颜色锚点。"))
                 break
+        has_relational_structure = nested_analysis_items > 0 or has_analysis_callout or has_analysis_subheading or has_analysis_table
+        if top_level_analysis_items >= 3 and not has_relational_structure:
+            findings.append(Finding("E", "615", boundary + 1, "Multiple independent analysis branches need an indented sublist, stage heading, small table, or semantic Callout; flat peer bullets and bold-only formatting are insufficient."))
     return findings
 
 

@@ -71,6 +71,55 @@ class GoldquestDensityValidationTests(unittest.TestCase):
         text = "> ```html\n> <span>说明</span>\n> ```\n"
         self.assertIn("306", {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")})
 
+    def test_requires_a_boundary_for_each_question(self) -> None:
+        text = """##### 1.
+* 题干。
+    - [ ] A. 选项
+- 正确答案：A。
+- 第一项规则适用于本案。
+- 第二项规则需要审查主体资格。
+- 第三项规则最终决定法律后果。
+
+##### 2.
+* 题干。
+    - [ ] A. 选项
+###### 答案与解析
+无答案遮罩。
+"""
+
+        findings = MODULE.validate_text(text, "legal-goldquest")
+        result = {(finding.code, finding.line) for finding in findings}
+
+        self.assertIn(("613", 1), result)
+        self.assertIn(("609", 7), result)
+        self.assertIn(("615", 4), result)
+        self.assertIn(("606", 12), result)
+
+    def test_rejects_flat_multi_branch_analysis(self) -> None:
+        text = f"""##### 1.
+{{: custom-qb-id="civil-gold-1" custom-qb-question-topic-ids="civil-topic"}}
+* 题干。
+    - [ ] A. 选项
+###### 答案与解析
+{MASK}
+- **主体判断**：甲具有资格。
+- **程序判断**：法院应当受理。
+- **法律后果**：该请求成立。
+"""
+
+        self.assertIn("615", codes(text))
+
+    def test_rejects_sparse_color_inside_one_long_analysis_line(self) -> None:
+        text = f"""##### 1.
+{{: custom-qb-id="civil-gold-1" custom-qb-question-topic-ids="civil-topic"}}
+* 题干。
+###### 答案与解析
+{MASK}
+**规则**{{: style="color: var(--b3-font-color10);"}}适用于本案。首先审查主体资格。其次审查程序条件。最后确定法律后果。
+"""
+
+        self.assertIn("616", codes(text))
+
 
 class QuestionTopicIalValidationTests(unittest.TestCase):
     def test_accepts_multiple_question_topic_references(self) -> None:
