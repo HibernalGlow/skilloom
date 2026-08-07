@@ -170,6 +170,99 @@ class GoldquestDensityValidationTests(unittest.TestCase):
 
         self.assertNotIn("620", codes(text))
 
+    def test_rejects_long_analysis_line(self) -> None:
+        text = f"""##### 1.
+* 题干。
+{ANSWER_BLOCK}
+**规则**{{: style="color: var(--b3-font-color10);"}}要求先审查主体资格再判断程序阶段并确定裁判形式，同时排除不予受理和驳回诉讼请求这两个相邻制度。
+"""
+
+        self.assertIn("621", codes(text))
+
+    def test_requires_color_on_each_substantive_analysis_line(self) -> None:
+        text = f"""##### 1.
+* 题干。
+{ANSWER_BLOCK}
+这一行解释案件已经进入受理后的程序阶段。
+"""
+
+        self.assertIn("622", codes(text))
+
+    def test_requires_mermaid_for_medium_complexity(self) -> None:
+        text = f"""##### 1.
+* 题干。
+{ANSWER_BLOCK}
+- **条件**{{: style="color: var(--b3-font-color12);"}}
+    - **主体**{{: style="color: var(--b3-font-color10);"}}资格欠缺。
+    - **阶段**{{: style="color: var(--b3-font-color11);"}}已经受理。
+    - **后果**{{: style="color: var(--b3-font-color8);"}}驳回起诉。
+"""
+
+        self.assertIn("624", codes(text))
+
+    def test_accepts_mermaid_for_medium_complexity(self) -> None:
+        text = f"""##### 1.
+* 题干。
+{ANSWER_BLOCK}
+- **条件**{{: style="color: var(--b3-font-color12);"}}
+    - **主体**{{: style="color: var(--b3-font-color10);"}}资格欠缺。
+    - **阶段**{{: style="color: var(--b3-font-color11);"}}已经受理。
+    - **后果**{{: style="color: var(--b3-font-color8);"}}==驳回起诉==。
+```mermaid
+flowchart LR
+    A[资格欠缺] --> B[已经受理] --> C[驳回起诉]
+```
+"""
+
+        self.assertNotIn("624", codes(text))
+
+    def test_requires_colored_analysis_subject_to_stay_colored(self) -> None:
+        text = f"""##### 1.
+* 甲实施行为。
+{ANSWER_BLOCK}
+**甲**{{: style="color: var(--b3-font-color10);"}}实施行为。
+甲不具备相应资格。
+"""
+
+        self.assertIn("623", codes(text))
+
+    def test_requires_colored_person_name_to_stay_colored(self) -> None:
+        text = f"""##### 1.
+* 王旭在起诉前死亡。
+{ANSWER_BLOCK}
+**王旭**{{: style="color: var(--b3-font-color4);"}}在起诉前死亡。
+王旭不再具有诉讼权利能力。
+"""
+
+        self.assertIn("623", codes(text))
+
+    def test_does_not_treat_a_colored_concept_substring_as_a_subject(self) -> None:
+        text = f"""##### 1.
+* 题干。
+{ANSWER_BLOCK}
+**受理**{{: style="color: var(--b3-font-color10);"}}之后才发现条件欠缺，因此不适用不予受理。
+"""
+
+        self.assertNotIn("623", codes(text))
+
+    def test_requires_analysis_subject_to_have_a_color(self) -> None:
+        text = f"""##### 1.
+* 甲实施行为。
+{ANSWER_BLOCK}
+甲不具备相应资格。
+"""
+
+        self.assertIn("625", codes(text))
+
+    def test_does_not_require_question_subject_color(self) -> None:
+        text = f"""##### 1.
+* 甲实施行为。
+{ANSWER_BLOCK}
+**甲**{{: style="color: var(--b3-font-color10);"}}不具备相应资格。
+"""
+
+        self.assertNotIn("625", codes(text))
+
 
 class QuestionTopicIalValidationTests(unittest.TestCase):
     def test_accepts_multiple_question_topic_references(self) -> None:

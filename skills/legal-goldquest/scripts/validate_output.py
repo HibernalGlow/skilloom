@@ -34,6 +34,13 @@ VISIBLE_ANSWER_LINE_PATTERN = re.compile(r"^\s*(?:[-*]\s*)?(?:正确答案|答�
 IAL_PATTERN = re.compile(r'^\{:\s*(?P<attrs>.+?)\s*\}$')
 IAL_ATTRIBUTE_PATTERN = re.compile(r'(?P<key>[\w-]+)="(?P<value>[^"]*)"')
 STABLE_TOPIC_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+COMMON_SUBJECT_TERMS = (
+    "最高人民法院", "最高人民检察院", "人民法院", "人民检察院", "被申请人", "被上诉人", "被代理人", "申请人", "上诉人",
+    "债权人", "债务人", "保证人", "第三人", "行为人", "相对人", "受让人", "转让人",
+    "出租人", "承租人", "买受人", "出卖人", "委托人", "受托人", "代理人", "原告", "被告",
+    "公安机关", "行政机关", "仲裁机构", "法院", "检察院", "甲", "乙", "丙", "丁", "戊",
+)
+COMMON_SURNAME_INITIALS = set("赵钱孙李周吴郑王冯陈褚卫蒋沈韩杨朱秦许何吕张孔曹严华金魏陶姜谢邹苏潘葛范彭鲁韦马方任袁唐薛雷贺罗郝安于傅齐康伍余顾孟黄萧姚邵汪毛戴宋熊纪舒董梁杜阮江郭林徐高夏蔡田胡霍万庄柴阎廖曾白邓叶刘龙")
 QUESTION_HEADING_PATTERN = re.compile(r"^#####\s+(?!#).+\S\s*$")
 NOTE_TOPIC_ANCHOR_PATTERN = re.compile(r"^\*\*考点[：:]\s*.+?\*\*\s*$")
 NUMERIC_ONLY_HEADING_PATTERN = re.compile(r"^(?:\s*>\s*)?#{1,6}\s+\d{1,3}(?:[.、．])?\s*$")
@@ -60,6 +67,27 @@ class Finding:
 def visible_length(value: str) -> int:
     plain = re.sub(r"[`*_~\s，。；：、,.!?！？（）()《》\[\]{}]", "", value)
     return len(plain)
+
+
+def prose_visible_length(value: str) -> int:
+    plain = re.sub(r'\{:\s*[^}\n]+\}', '', value)
+    plain = re.sub(r'!\[[^\]]*\]\([^)]+\)', '', plain)
+    plain = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', plain)
+    return visible_length(plain)
+
+
+def prose_without_fenced_blocks(value: str) -> str:
+    lines: list[str] = []
+    in_fence = False
+    for line in value.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(("```", "> ```")):
+            in_fence = not in_fence
+            continue
+        if in_fence or IAL_PATTERN.match(stripped):
+            continue
+        lines.append(line)
+    return "\n".join(lines)
 
 
 def split_table_cells(line: str) -> list[str]:
@@ -605,6 +633,40 @@ def validate_goldquest(text: str) -> list[Finding]:
 
         analysis_start = solution_ial + 1 if solution_ial is not None else ((visible_answer or boundary) + 1)
         answer_lines = lines[analysis_start:end]
+        analysis_text = "\n".join(answer_lines)
+        analysis_prose = prose_without_fenced_blocks(analysis_text)
+        analysis_subject_colors = {
+            match.group("term"): int(match.group("color"))
+            for match in COLORED_TERM_PATTERN.finditer(analysis_prose)
+            if match.group("term") in COMMON_SUBJECT_TERMS
+            or (
+                2 <= len(match.group("term")) <= 3
+                and match.group("term")[0] in COMMON_SURNAME_INITIALS
+                and re.fullmatch(r"[\u4e00-\u9fff]+", match.group("term"))
+            )
+        }
+        for term, color in analysis_subject_colors.items():
+            colored_form = re.compile(
+                rf'\*\*{re.escape(term)}\*\*\{{:\s*style="[^"]*b3-font-color{color}[^\"]*"\}}'
+            )
+            remaining_prose = re.sub(r"(?:选项|第)[甲乙丙丁戊]|[甲乙丙丁戊]项", "", colored_form.sub("", analysis_prose))
+            if term in remaining_prose:
+                findings.append(Finding("E", "623", index + 1, f"Term '{term}' has uncolored occurrences in the analysis; reuse its established color every time."))
+
+        subject_pattern = re.compile("|".join(re.escape(term) for term in sorted(COMMON_SUBJECT_TERMS, key=len, reverse=True)))
+        subject_scan_text = re.sub(r"(?:选项|第)[甲乙丙丁戊]|[甲乙丙丁戊]项", "", analysis_prose)
+        subject_tokens = subject_pattern.findall(subject_scan_text)
+        for term in set(subject_tokens):
+            occurrences = subject_tokens.count(term)
+            colored_occurrences = [
+                match
+                for match in COLORED_TERM_PATTERN.finditer(analysis_prose)
+                if match.group("term") == term
+            ]
+            if not colored_occurrences:
+                findings.append(Finding("E", "625", index + 1, f"Analysis subject '{term}' needs an actively assigned semantic color."))
+            elif len(colored_occurrences) < occurrences:
+                findings.append(Finding("E", "623", index + 1, f"Analysis subject '{term}' has uncolored occurrences; reuse its established color everywhere in the analysis."))
 
         uncolored_sentences = 0
         top_level_analysis_items = 0
@@ -612,22 +674,41 @@ def validate_goldquest(text: str) -> list[Finding]:
         has_analysis_callout = False
         has_analysis_subheading = False
         has_analysis_table = False
+        has_analysis_mermaid = False
+        in_analysis_fence = False
         for number, line in enumerate(answer_lines, start=analysis_start + 1):
             stripped = line.strip()
-            if not stripped or LEGACY_ANSWER_MASK_PATTERN.search(line) or stripped.startswith(("```", "> ```", "|")):
+            if stripped.startswith(("```mermaid", "> ```mermaid")):
+                has_analysis_mermaid = True
+            if stripped.startswith(("```", "> ```")):
+                in_analysis_fence = not in_analysis_fence
+                continue
+            if in_analysis_fence:
+                continue
+            if not stripped or LEGACY_ANSWER_MASK_PATTERN.search(line) or stripped.startswith("|"):
                 if TABLE_ROW_PATTERN.match(line):
                     has_analysis_table = True
                 continue
+            if IAL_PATTERN.match(stripped) or re.match(r"^-{3,}$", stripped):
+                continue
+            if re.match(r"^#{1,6}\s+", stripped):
+                if re.match(r"^######\s+(?!答案与解析).+", stripped):
+                    has_analysis_subheading = True
+                continue
             if re.match(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING)\]", line):
                 has_analysis_callout = True
-            if re.match(r"^######\s+(?!答案与解析).+", line):
-                has_analysis_subheading = True
+                continue
             if re.match(r"^\s*-\s+", line):
                 if len(line) - len(line.lstrip()) >= 4:
                     nested_analysis_items += 1
                 else:
                     top_level_analysis_items += 1
             sentence_count = len(re.findall(r"[。！？；]", stripped))
+            prose_length = prose_visible_length(stripped)
+            if prose_length > 42:
+                findings.append(Finding("E", "621", number, "Analysis prose lines must stay within 42 visible characters; split the logic into a lead line and semantic sublist."))
+            if prose_length >= 14 and not COLOR_ATTRIBUTE_PATTERN.search(stripped):
+                findings.append(Finding("E", "622", number, "Each substantive analysis line needs at least one short semantic color anchor."))
             if sentence_count == 0 and visible_length(stripped) >= 35:
                 sentence_count = 1
             if sentence_count == 0:
@@ -645,10 +726,15 @@ def validate_goldquest(text: str) -> list[Finding]:
         has_relational_structure = nested_analysis_items > 0 or has_analysis_callout or has_analysis_subheading or has_analysis_table
         if top_level_analysis_items >= 3 and not has_relational_structure:
             findings.append(Finding("E", "615", analysis_start + 1, "Multiple independent analysis branches need an indented sublist, stage heading, small table, or semantic Callout; flat peer bullets and bold-only formatting are insufficient."))
-        analysis_text = "\n".join(answer_lines)
         auxiliary_styles = style_families(analysis_text) & {"highlight", "italic", "strike", "code", "underline"}
-        if visible_length(analysis_text) >= 160 and not auxiliary_styles:
+        analysis_length = prose_visible_length(prose_without_fenced_blocks(analysis_text))
+        analysis_sentence_count = len(re.findall(r"[。！？；]", prose_without_fenced_blocks(analysis_text)))
+        branch_count = top_level_analysis_items + nested_analysis_items
+        medium_complexity = analysis_length >= 160 or branch_count >= 3 or analysis_sentence_count >= 4
+        if medium_complexity and not auxiliary_styles:
             findings.append(Finding("E", "620", analysis_start + 1, "Long GoldQuest analysis needs at least one justified auxiliary style: highlight, italic, strikethrough, inline code, or underline."))
+        if medium_complexity and not has_analysis_mermaid:
+            findings.append(Finding("E", "624", analysis_start + 1, "Medium-or-higher complexity analysis needs a Mermaid diagram that exposes its sequence, branches, or subject relations."))
     return findings
 
 
