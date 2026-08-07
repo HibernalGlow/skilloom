@@ -675,6 +675,7 @@ def validate_goldquest(text: str) -> list[Finding]:
         has_analysis_subheading = False
         has_analysis_table = False
         has_analysis_mermaid = False
+        has_analysis_divider = False
         in_analysis_fence = False
         for number, line in enumerate(answer_lines, start=analysis_start + 1):
             stripped = line.strip()
@@ -689,7 +690,10 @@ def validate_goldquest(text: str) -> list[Finding]:
                 if TABLE_ROW_PATTERN.match(line):
                     has_analysis_table = True
                 continue
-            if IAL_PATTERN.match(stripped) or re.match(r"^-{3,}$", stripped):
+            if re.match(r"^-{3,}$", stripped):
+                has_analysis_divider = True
+                continue
+            if IAL_PATTERN.match(stripped):
                 continue
             if re.match(r"^#{1,6}\s+", stripped):
                 if re.match(r"^######\s+(?!答案与解析).+", stripped):
@@ -731,10 +735,24 @@ def validate_goldquest(text: str) -> list[Finding]:
         analysis_sentence_count = len(re.findall(r"[。！？；]", prose_without_fenced_blocks(analysis_text)))
         branch_count = top_level_analysis_items + nested_analysis_items
         medium_complexity = analysis_length >= 160 or branch_count >= 3 or analysis_sentence_count >= 4
-        if medium_complexity and not auxiliary_styles:
-            findings.append(Finding("E", "620", analysis_start + 1, "Long GoldQuest analysis needs at least one justified auxiliary style: highlight, italic, strikethrough, inline code, or underline."))
+        if medium_complexity and len(auxiliary_styles) < 4:
+            findings.append(Finding("E", "620", analysis_start + 1, "Medium-or-higher complexity analysis needs at least four auxiliary style families among highlight, italic, strikethrough, inline code, and underline."))
         if medium_complexity and not has_analysis_mermaid:
             findings.append(Finding("E", "624", analysis_start + 1, "Medium-or-higher complexity analysis needs a Mermaid diagram that exposes its sequence, branches, or subject relations."))
+        structural_styles = {
+            name
+            for name, present in (
+                ("nested-list", nested_analysis_items > 0),
+                ("callout", has_analysis_callout),
+                ("subheading", has_analysis_subheading),
+                ("table", has_analysis_table),
+                ("mermaid", has_analysis_mermaid),
+                ("divider", has_analysis_divider),
+            )
+            if present
+        }
+        if medium_complexity and len(structural_styles) < 4:
+            findings.append(Finding("E", "626", analysis_start + 1, "Medium-or-higher complexity analysis needs at least four structural families: nested list, Callout, subheading, table, Mermaid, or divider."))
     return findings
 
 

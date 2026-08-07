@@ -164,11 +164,39 @@ class GoldquestDensityValidationTests(unittest.TestCase):
 {ANSWER_BLOCK}
 **规则**{{: style="color: var(--b3-font-color10);"}}适用于本案，先审查主体资格，再判断程序阶段，最后确定裁判方式。
 **条件**{{: style="color: var(--b3-font-color12);"}}要求案件已经受理，并且法院是在受理之后才发现起诉条件欠缺。
-**后果**{{: style="color: var(--b3-font-color8);"}}是裁定==驳回起诉==，而不是不予受理，也不是实体上的驳回诉讼请求。
-为避免混淆，还需要比较死亡发生时间、法院发现问题的阶段，以及案件是否已经进入实体审理。
+**后果**{{: style="color: var(--b3-font-color8);"}}是裁定==驳回起诉==，而不是~~不予受理~~。
+*复习时*还要核对`有明确的被告`，并区分**程序轴**{{: style="text-decoration: underline;"}}。
 """
 
         self.assertNotIn("620", codes(text))
+
+    def test_requires_four_auxiliary_style_families_for_medium_complexity(self) -> None:
+        text = f"""##### 1.
+* 题干。
+{ANSWER_BLOCK}
+**规则**{{: style="color: var(--b3-font-color10);"}}用于判断==程序结果==。
+*复习时*应排除~~实体结论~~。
+**条件**{{: style="color: var(--b3-font-color12);"}}需要继续核对。
+**后果**{{: style="color: var(--b3-font-color8);"}}最终确定裁判方式。
+"""
+
+        self.assertIn("620", codes(text))
+
+    def test_requires_four_structural_families_for_medium_complexity(self) -> None:
+        text = f"""##### 1.
+* 题干。
+{ANSWER_BLOCK}
+- **条件**{{: style="color: var(--b3-font-color12);"}}
+    - *先看*`主体资格`。
+    - ~~排除实体判断~~。
+    - 最终==驳回起诉==。
+```mermaid
+flowchart LR
+    A[条件] --> B[结论]
+```
+"""
+
+        self.assertIn("626", codes(text))
 
     def test_rejects_long_analysis_line(self) -> None:
         text = f"""##### 1.
