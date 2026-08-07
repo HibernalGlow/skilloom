@@ -14,6 +14,15 @@ SCRIPTS = (
     ROOT / "scripts" / "legal_note_output_validator.py",
     ROOT / "skills" / "legal-marknote" / "scripts" / "validate_output.py",
     ROOT / "skills" / "legal-goldquest" / "scripts" / "validate_output.py",
+    ROOT / "skills" / "legal-question-bank" / "scripts" / "validate_question_bank.py",
+    ROOT / "skills" / "legal-marknote" / "scripts" / "siyuan_topic_manifest.py",
+)
+
+TEST_SCRIPTS = (
+    ROOT / "skills" / "legal-marknote" / "scripts" / "test_validate_output.py",
+    ROOT / "skills" / "legal-goldquest" / "scripts" / "test_validate_output.py",
+    ROOT / "skills" / "legal-question-bank" / "scripts" / "test_validate_question_bank.py",
+    ROOT / "skills" / "legal-marknote" / "scripts" / "test_siyuan_topic_manifest.py",
 )
 
 
@@ -41,6 +50,8 @@ def main() -> int:
             "test_legal_note_output_validator.py",
         ],
     )
+    for test_script in TEST_SCRIPTS:
+        run([sys.executable, "-X", "utf8", str(test_script)])
 
     contract_command = [sys.executable, "-X", "utf8", "scripts/validate_legal_skills.py"]
     quick_validator = Path.home() / ".codex" / "skills" / ".system" / "skill-creator" / "scripts" / "quick_validate.py"

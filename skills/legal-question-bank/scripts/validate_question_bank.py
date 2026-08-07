@@ -18,6 +18,7 @@ STABLE_ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 OPTION = re.compile(r"^\s*(?:[-*]\s+(?:\[[ xX]\]\s+)?)?(?:\(?([A-Z])\)?[.、])\s+")
 CHECKED_OPTION = re.compile(r"^\s*[-*]\s+\[[xX]\]\s+")
 ANSWER_LEAK = re.compile(r"(?:正确答案|答案\s*[:：]|==[^=]+==|font-color(?:8|13))")
+NOTE_TOPIC_ANCHOR = re.compile(r"^\*\*考点[：:]\s*.+?\*\*\s*$")
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,7 @@ def validate(text: str) -> list[Finding]:
         line_no = start + 1
         question_id = attrs.get("custom-qb-id")
         question_type = attrs.get("custom-qb-type")
+        question_topic_ids = attrs.get("custom-qb-question-topic-ids")
 
         if not question_id:
             findings.append(Finding("E", "101", line_no, "Question heading requires custom-qb-id in the next IAL block."))
@@ -64,6 +66,14 @@ def validate(text: str) -> list[Finding]:
 
         if question_type not in VALID_TYPES:
             findings.append(Finding("E", "104", line_no, "custom-qb-type must be single, multiple, true-false, or subjective."))
+
+        topic_ids = [item.strip() for item in (question_topic_ids or "").split(",")]
+        if not question_topic_ids or any(not STABLE_ID.fullmatch(item) for item in topic_ids):
+            findings.append(Finding("E", "116", line_no, "Question requires valid comma-separated custom-qb-question-topic-ids."))
+        elif len(topic_ids) != len(set(topic_ids)):
+            findings.append(Finding("E", "117", line_no, "custom-qb-question-topic-ids must not contain duplicate IDs."))
+        if "custom-qb-note-topic-id" in attrs:
+            findings.append(Finding("E", "118", line_no, "Question IAL must not use custom-qb-note-topic-id."))
 
         answer = attrs.get("custom-qb-answer")
         if question_type == "single" and not re.fullmatch(r"[A-Z]", answer or ""):
@@ -95,8 +105,19 @@ def validate(text: str) -> list[Finding]:
 
     for index, line in enumerate(lines):
         attrs = attrs_at(lines, index)
-        if attrs.get("custom-qb-role") == "topic" and not STABLE_ID.fullmatch(attrs.get("custom-qb-topic-id", "")):
-            findings.append(Finding("E", "112", index + 1, "Topic IAL requires lowercase ASCII kebab-case custom-qb-topic-id."))
+        if not attrs:
+            continue
+        if any(key in attrs for key in ("custom-qb-role", "custom-qb-topic-id", "custom-qb-topic-ids")):
+            findings.append(Finding("E", "112", index + 1, "Legacy topic attributes must be migrated to the direction-specific topic attributes."))
+        note_topic_id = attrs.get("custom-qb-note-topic-id")
+        if note_topic_id is not None:
+            previous = lines[index - 1].strip() if index > 0 else ""
+            if not STABLE_ID.fullmatch(note_topic_id):
+                findings.append(Finding("E", "119", index + 1, "custom-qb-note-topic-id must contain exactly one lowercase ASCII kebab-case ID."))
+            if not (re.match(r"^#{1,6}\s+\S", previous) or NOTE_TOPIC_ANCHOR.fullmatch(previous)):
+                findings.append(Finding("E", "120", index + 1, "custom-qb-note-topic-id must attach to a heading or **考点：显示名** anchor."))
+            if "custom-qb-id" in attrs or "custom-qb-question-topic-ids" in attrs:
+                findings.append(Finding("E", "121", index + 1, "Note-topic provider and question-topic reference attributes must not coexist."))
 
     if not question_indexes:
         findings.append(Finding("W", "202", 1, "No five-level question headings found."))

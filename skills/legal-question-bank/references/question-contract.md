@@ -4,7 +4,7 @@
 
 | Layer | Owns | Must not own |
 | --- | --- | --- |
-| Markdown + IAL | Question content, stable ID, type, answer, topic, solution boundary | Attempt history, derived statistics, device state |
+| Markdown + IAL | Question content, stable ID, type, answer, question-topic references, note-topic providers, solution boundary | Attempt history, derived statistics, device state |
 | SiYuan adapter | Blocks, attribute views, Riff integration | Portable `Question` model rules |
 | Damophus core | Parsing, answer checking, option mapping, aggregation | SiYuan API calls and UI state |
 | Web adapter | Rendering and web attempt storage | Markdown mutation |
@@ -16,6 +16,7 @@
 3. Infer the solution start from an existing answer/analysis heading only as a migration preview. Write the explicit IAL after confirmation.
 4. If IAL and visible answer text conflict, stop the migration for that question. Do not silently choose either value.
 5. Preserve all source blocks and existing user attributes. Only add the minimum `custom-qb-*` attributes.
+6. Migrate `custom-qb-topic-ids` to `custom-qb-question-topic-ids`, and migrate heading-level `custom-qb-role="topic"` plus `custom-qb-topic-id` to `custom-qb-note-topic-id`. Preview the change; never emit the legacy names in new output.
 
 ## Stable IDs
 
@@ -28,6 +29,8 @@ Use an ID based on the authoritative source and question identity, not display o
 For example: `civil-gold-objective-2020-2-1-14`.
 
 Display numbers may change after an insertion. Stable IDs must not.
+
+Topic IDs use the same lowercase ASCII kebab-case value across both directions. `custom-qb-note-topic-id` means a normal note block provides material for one topic. `custom-qb-question-topic-ids` means a question references one or more topics. Attribute names carry the direction; no role field is involved.
 
 ## Answer Rules
 

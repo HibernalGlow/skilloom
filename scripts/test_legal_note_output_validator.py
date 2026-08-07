@@ -78,6 +78,7 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 
     def test_accepts_goldquest_question_answer_boundary(self) -> None:
         text = """##### 1题
+{: custom-qb-id="civil-question-1" custom-qb-question-topic-ids="civil-topic"}
 * **甲**{: style=\"color: var(--b3-font-color10);\"}实施某行为，如何判断？
     - [ ] A. 选项甲
     - [ ] B. 选项乙
