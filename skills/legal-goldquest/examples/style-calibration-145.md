@@ -59,15 +59,22 @@ flowchart LR
 1. **死亡时间**{: style="color: var(--b3-font-color10);"}
     - **起诉前**{: style="color: var(--b3-font-color12);"}已经死亡。
     - **被告**{: style="color: var(--b3-font-color4);"}在起诉时已无诉讼权利能力。
-    - 所以本案欠缺==明确被告==这一起诉条件。
+    - 所以本案不满足`有明确的被告`这一起诉条件。
 2. **程序阶段**{: style="color: var(--b3-font-color10);"}
     - **法院**{: style="color: var(--b3-font-color11);"}已向**王旭**{: style="color: var(--b3-font-color4);"}送达应诉通知书。
     - 这说明案件已经==受理==。
     - 受理后发现不符合起诉条件，应当裁定**驳回起诉**{: style="color: var(--b3-font-color8);"}。
 3. **排除项**{: style="color: var(--b3-font-color10);"}
-    - A 项“诉讼终结”针对诉讼中出现的死亡。
-    - C 项“不予受理”针对**法院**{: style="color: var(--b3-font-color11);"}在受理前发现条件欠缺。
-    - D 项“驳回诉讼请求”针对实体审理后请求不能获得支持。
+    - ~~A 项：诉讼终结~~
+        - 针对**诉讼中**{: style="color: var(--b3-font-color10);"}出现的死亡。
+    - ~~C 项：不予受理~~
+        - 针对**法院**{: style="color: var(--b3-font-color11);"}在受理前发现条件欠缺。
+    - ~~D 项：驳回诉讼请求~~
+        - 针对**实体审理后**{: style="color: var(--b3-font-color13);"}请求不能获得支持。
+
+> [!NOTE] 📖 固定判断用语
+> `有明确的被告`属于**起诉条件**{: style="color: var(--b3-font-color13);"}。
+> 本题应先检查该条件是否存在，再判断裁判形式。
 
 ###### 三种驳回的定位
 
@@ -85,6 +92,8 @@ flowchart LR
 >     - **起诉条件**{: style="color: var(--b3-font-color13);"}
 >     - **受理阶段**{: style="color: var(--b3-font-color11);"}
 
+---
+
 ###### 当事人死亡的后续分流
 
 - **起诉前**{: style="color: var(--b3-font-color13);"}，**被告**{: style="color: var(--b3-font-color4);"}死亡
@@ -96,7 +105,8 @@ flowchart LR
     - **身份案件**{: style="color: var(--b3-font-color11);"}：身份关系不能继承。
         - 离婚、解除收养关系等案件直接==终结==。
 
-*复习抓手*：先找**时间点**{: style="text-decoration: underline;"}，再找**程序阶段**，最后判断==裁判形式==。
+> [!TIP] 🧭 复习抓手
+> *检索顺序*：先找**时间点**{: style="text-decoration: underline;"}，再找**程序阶段**，最后判断==裁判形式==。
 
 ---
 
@@ -125,7 +135,7 @@ flowchart LR
 > - 送达应诉通知书说明案件处于**受理后**{: style="color: var(--b3-font-color12);"}。
 > - 路径依次经过：
 >     - **起诉前**{: style="color: var(--b3-font-color12);"}死亡
->     - 欠缺==明确被告==
+>     - 欠缺`有明确的被告`
 >     - **受理后**{: style="color: var(--b3-font-color12);"}发现
 >     - 裁定**驳回起诉**{: style="color: var(--b3-font-color8);"}
 
@@ -149,6 +159,8 @@ flowchart LR
 >     - **已经受理**{: style="color: var(--b3-font-color11);"}
 > - 应优先标记决定程序分流的==时间词==。
 
+---
+
 ###### 关联规则
 
 | 问题 | 判断 | 后果 |
@@ -156,5 +168,10 @@ flowchart LR
 | 起诉时有无明确被告 | 无 | 起诉条件欠缺 |
 | 法院是否已经受理 | 是 | 驳回起诉 |
 | 是否经过实体审理 | 否 | 不适用驳回诉讼请求 |
+
+> [!TIP] 🧭 比较轴
+> - 先看**死亡时间**{: style="text-decoration: underline;"}。
+> - 再看**受理阶段**{: style="color: var(--b3-font-color11);"}。
+> - 最后判断==裁判形式==。
 
 *记忆句*：**先死亡，后起诉；已受理，驳起诉。**
