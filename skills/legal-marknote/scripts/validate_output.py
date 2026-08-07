@@ -27,9 +27,10 @@ TABLE_SEPARATOR_PATTERN = re.compile(r"^:?-{3,}:?$")
 MERGE_SPAN_PATTERN = re.compile(r"\b(?P<name>colspan|rowspan)=['\"](?P<value>\d+)['\"]")
 MERGE_PLACEHOLDER_PATTERN = re.compile(r"\bclass=['\"]fn__none['\"]")
 CONTRAST_PAIRS = (("有效", "无效"), ("成立", "不成立"), ("原则", "例外"), ("允许", "禁止"))
-ANSWER_MASK_PATTERN = re.compile(
+LEGACY_ANSWER_MASK_PATTERN = re.compile(
     r"<div><style>b\{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px\}b:hover\{background:#fff2c2;color:#c0392b\}</style>答案：<b>[^<]+</b></div>",
 )
+VISIBLE_ANSWER_LINE_PATTERN = re.compile(r"^\s*(?:[-*]\s*)?(?:正确答案|答案)[：:]\s*\S+")
 IAL_PATTERN = re.compile(r'^\{:\s*(?P<attrs>.+?)\s*\}$')
 IAL_ATTRIBUTE_PATTERN = re.compile(r'(?P<key>[\w-]+)="(?P<value>[^"]*)"')
 STABLE_TOPIC_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -89,6 +90,12 @@ def style_families(value: str) -> set[str]:
         families.add("highlight")
     if re.search(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", value) or re.search(r"_(.+?)_", value):
         families.add("italic")
+    if re.search(r"~~[^~\n]+~~", value):
+        families.add("strike")
+    if re.search(r"(?<!`)`[^`\n]+`(?!`)", value):
+        families.add("code")
+    if re.search(r"text-decoration\s*:\s*underline|<u>.+?</u>", value):
+        families.add("underline")
     if COLOR_ATTRIBUTE_PATTERN.search(value):
         families.add("color")
     return families
@@ -516,6 +523,13 @@ def validate_goldquest(text: str) -> list[Finding]:
     for number, line in enumerate(lines, start=1):
         if re.search(r"-\s*\[[xX]\]", line):
             findings.append(Finding("E", "601", number, "Question options must remain unchecked."))
+    for match in COLORED_TERM_PATTERN.finditer(text):
+        term = match.group("term")
+        line = line_for_offset(text, match.start())
+        if visible_length(term) > 8:
+            findings.append(Finding("E", "617", line, "GoldQuest color anchors must stay within 8 visible characters; color only the decisive retrieval term."))
+        if re.search(r"[，。；：、,.!?！？]", term):
+            findings.append(Finding("E", "618", line, "Punctuation must remain outside a GoldQuest color anchor."))
     task_options = [number for number, line in enumerate(lines, start=1) if re.search(r"-\s*\[[ xX]\]", line)]
     answer_headings = [number for number, line in enumerate(lines, start=1) if re.match(r"^######\s+答案与解析\s*$", line)]
     if task_options and not answer_headings:
@@ -524,26 +538,56 @@ def validate_goldquest(text: str) -> list[Finding]:
     h5_indices = [index for index, line in enumerate(lines) if re.match(r"^#####\s+", line) and not re.match(r"^######", line)]
     for index in h5_indices:
         end = next((candidate for candidate in range(index + 1, len(lines)) if re.match(r"^#{1,5}\s+", lines[candidate])), len(lines))
-        answer = next((candidate for candidate in range(index + 1, end) if re.match(r"^######\s+答案与解析\s*$", lines[candidate])), None)
-        fallback = None
-        if answer is None:
-            fallback = next(
-                (
-                    candidate
-                    for candidate in range(index + 1, end)
-                    if re.match(r"^\s*(?:[-*]\s*)?(?:正确答案|答案)[：:]", lines[candidate])
-                ),
-                None,
-            )
-            if fallback is not None:
-                findings.append(Finding("E", "613", index + 1, "Each GoldQuest question needs its own '###### 答案与解析' boundary; a plain answer line cannot replace it."))
+        answer_heading = next((candidate for candidate in range(index + 1, end) if re.match(r"^######\s+答案与解析\s*$", lines[candidate])), None)
+        solution_ial = next(
+            (
+                candidate
+                for candidate in range(index + 1, end)
+                if ial_attributes(lines[candidate]).get("custom-qb-section") == "solution"
+            ),
+            None,
+        )
+        visible_answer = next(
+            (
+                candidate
+                for candidate in range(index + 1, end)
+                if VISIBLE_ANSWER_LINE_PATTERN.match(lines[candidate])
+            ),
+            None,
+        )
+
+        if answer_heading is None:
+            if solution_ial is not None or visible_answer is not None:
+                findings.append(Finding("E", "613", index + 1, "Each GoldQuest question needs its own '###### 答案与解析' heading before the solution block."))
             else:
-                findings.append(Finding("E", "614", index + 1, "GoldQuest question is missing its own '###### 答案与解析' section."))
+                findings.append(Finding("E", "614", index + 1, "GoldQuest question is missing its answer heading and custom-qb-section='solution' boundary."))
                 continue
 
-        boundary = answer if answer is not None else fallback
-        assert boundary is not None
+        answer_line = solution_ial - 1 if solution_ial is not None and solution_ial > index else None
+        answer_contract_valid = (
+            answer_heading is not None
+            and solution_ial is not None
+            and answer_line is not None
+            and VISIBLE_ANSWER_LINE_PATTERN.match(lines[answer_line]) is not None
+            and next((candidate for candidate in range(answer_heading + 1, solution_ial) if lines[candidate].strip()), None) == answer_line
+        )
+        if not answer_contract_valid:
+            findings.append(Finding("E", "606", (answer_heading or visible_answer or index) + 1, "Answer section must start with a visible answer line immediately followed by custom-qb-section='solution'."))
+
+        boundary = answer_heading if answer_heading is not None else (visible_answer if visible_answer is not None else solution_ial)
+        if boundary is None:
+            continue
         question_text = "\n".join(lines[index + 1:boundary])
+        question_attrs = next(
+            (
+                ial_attributes(lines[candidate])
+                for candidate in range(index + 1, boundary)
+                if "custom-qb-id" in ial_attributes(lines[candidate])
+            ),
+            {},
+        )
+        if re.search(r"-\s*\[[ xX]\]", question_text) and not question_attrs.get("custom-qb-answer"):
+            findings.append(Finding("E", "619", index + 1, "Objective GoldQuest questions need custom-qb-answer in the question IAL for Damophus hiding and grading."))
         if HIGHLIGHT_PATTERN.search(question_text):
             findings.append(Finding("E", "604", index + 1, "Question area must not reveal answers with highlights."))
         leaking_terms = [
@@ -555,13 +599,12 @@ def validate_goldquest(text: str) -> list[Finding]:
         if leaking_terms:
             findings.append(Finding("E", "605", index + 1, f"Question area uses status color on answer-bearing text: {leaking_terms}."))
 
-        answer_lines = lines[boundary + 1:end]
-        if answer is not None:
-            first_content = next((line for line in answer_lines if line.strip()), None)
-            if first_content is None or not ANSWER_MASK_PATTERN.search(first_content):
-                findings.append(Finding("E", "606", answer + 1, "Answer section must start with the answer mask HTML block."))
-            if any(ANSWER_MASK_PATTERN.search(line) for line in question_text.splitlines()):
-                findings.append(Finding("E", "607", index + 1, "Answer mask HTML block is not allowed in the question area."))
+        legacy_mask = next((candidate for candidate in range(index + 1, end) if LEGACY_ANSWER_MASK_PATTERN.search(lines[candidate])), None)
+        if legacy_mask is not None:
+            findings.append(Finding("E", "607", legacy_mask + 1, "Legacy HTML answer masks are not allowed; Damophus masks the answer through custom-qb-answer and custom-qb-section='solution'."))
+
+        analysis_start = solution_ial + 1 if solution_ial is not None else ((visible_answer or boundary) + 1)
+        answer_lines = lines[analysis_start:end]
 
         uncolored_sentences = 0
         top_level_analysis_items = 0
@@ -569,9 +612,9 @@ def validate_goldquest(text: str) -> list[Finding]:
         has_analysis_callout = False
         has_analysis_subheading = False
         has_analysis_table = False
-        for number, line in enumerate(answer_lines, start=boundary + 2):
+        for number, line in enumerate(answer_lines, start=analysis_start + 1):
             stripped = line.strip()
-            if not stripped or ANSWER_MASK_PATTERN.search(line) or stripped.startswith(("```", "> ```", "|")):
+            if not stripped or LEGACY_ANSWER_MASK_PATTERN.search(line) or stripped.startswith(("```", "> ```", "|")):
                 if TABLE_ROW_PATTERN.match(line):
                     has_analysis_table = True
                 continue
@@ -601,7 +644,11 @@ def validate_goldquest(text: str) -> list[Finding]:
                 break
         has_relational_structure = nested_analysis_items > 0 or has_analysis_callout or has_analysis_subheading or has_analysis_table
         if top_level_analysis_items >= 3 and not has_relational_structure:
-            findings.append(Finding("E", "615", boundary + 1, "Multiple independent analysis branches need an indented sublist, stage heading, small table, or semantic Callout; flat peer bullets and bold-only formatting are insufficient."))
+            findings.append(Finding("E", "615", analysis_start + 1, "Multiple independent analysis branches need an indented sublist, stage heading, small table, or semantic Callout; flat peer bullets and bold-only formatting are insufficient."))
+        analysis_text = "\n".join(answer_lines)
+        auxiliary_styles = style_families(analysis_text) & {"highlight", "italic", "strike", "code", "underline"}
+        if visible_length(analysis_text) >= 160 and not auxiliary_styles:
+            findings.append(Finding("E", "620", analysis_start + 1, "Long GoldQuest analysis needs at least one justified auxiliary style: highlight, italic, strikethrough, inline code, or underline."))
     return findings
 
 

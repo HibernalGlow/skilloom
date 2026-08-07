@@ -61,12 +61,15 @@ CONTRACTS = (
             ("每 1-2 句至少出现一个短颜色锚点", "## 工作流"),
             ("题面只允许中性主体/客体色", "## 颜色硬规则"),
             ("先建立词典，再输出正文", "## 颜色硬规则"),
+            ("删除线用于排除旧路径或错误选项", "## 格式决策"),
+            ("较长解析不能始终只有粗体和颜色", "## 格式决策"),
             ("不得用伪 `📌[...]` 标记", "## 格式决策"),
             ("选择内容结构", "## 工作流"),
             ("不要固定生成“争点、规则与法源、事实涵摄、选项辨析、命题思路”", "## 工作流"),
             ("3 列 × 3 个数据行以内", "## 格式决策"),
             ("custom-qb-question-topic-ids", "## 考点 IAL"),
             ("custom-qb-id", "custom-qb-question-topic-ids"),
+            ("custom-qb-answer", "## 题目边界"),
             (".topic-map.json", "## 考点 IAL"),
             *SHARED_TABLE_RULES,
             *SHARED_OUTPUT_GATE_RULES,
@@ -200,7 +203,10 @@ def validate_contract(path: Path, contract: SkillContract) -> list[Finding]:
                 findings.append(
                     Finding(path, line_number(searchable_text, anchor), "E102", f"Missing color-{color} semantic mapping."),
                 )
-        if "**文本内容**{: style=\"color: var(--b3-font-color数字);" not in searchable_text:
+        if not re.search(
+            r'\*\*[^*\n]+\*\*\{:\s*style="[^"]*b3-font-color数字',
+            searchable_text,
+        ):
             anchor = searchable_text.find("思源笔记行内文本颜色语法")
             findings.append(
                 Finding(
