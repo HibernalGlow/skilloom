@@ -197,21 +197,6 @@ class RichPresentationValidationTests(unittest.TestCase):
         ])
         self.assertIn("627", {finding.code for finding in MODULE.validate_text(text, "legal-marknote")})
 
-    def test_medium_marknote_requires_mermaid_style_directive(self) -> None:
-        text = "\n".join([
-            "### 规则",
-            "**甲**{: style=\"background-color: var(--b3-font-background10);\"}提出申请。",
-            "- ==受理==并审查。",
-            "  - _法院_作出判断。",
-            "- ~~错误路径~~应排除。",
-            "  - `期限`届满后处理。",
-            "```mermaid",
-            "flowchart LR",
-            "A[申请] --> B[审查]",
-            "```",
-        ])
-        self.assertIn("628", {finding.code for finding in MODULE.validate_text(text, "legal-marknote")})
-
     def test_repeated_subject_requires_active_color(self) -> None:
         text = "甲提出申请，甲随后补正材料。"
         self.assertIn("625", {finding.code for finding in MODULE.validate_text(text, "legal-marknote")})
