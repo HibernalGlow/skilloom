@@ -69,6 +69,38 @@ class TableSplitValidationTests(unittest.TestCase):
 
         self.assertNotIn("403", {finding.code for finding in findings})
 
+    def test_rejects_large_numbered_list_inside_table_cell(self) -> None:
+        text = "| 类别 | 法定情形 |\n| --- | --- |\n| 证据问题 | 1. 新证据<br />2. 原判缺乏证据<br />3. 伪造证据<br />4. 主要证据未经质证 |\n"
+        findings = MODULE.validate_tables(text)
+
+        self.assertIn("412", {finding.code for finding in findings})
+
+    def test_allows_a_few_short_numbered_items_inside_table_cell(self) -> None:
+        text = "| 类别 | 法定情形 |\n| --- | --- |\n| 证据问题 | 1. 新证据<br />2. 原判缺乏证据 |\n"
+        findings = MODULE.validate_tables(text)
+
+        self.assertNotIn("412", {finding.code for finding in findings})
+
+    def test_allows_unchanged_source_table_with_existing_list_items(self) -> None:
+        source = "| 类别 | 法定情形 |\n| --- | --- |\n| 证据问题 | 1. 新证据<br />2. 原判缺乏证据<br />3. 伪造证据<br />4. 主要证据未经质证 |\n"
+        findings = MODULE.validate_text(source, "legal-marknote", source_text=source)
+
+        self.assertNotIn("412", {finding.code for finding in findings})
+
+    def test_allows_complete_table_to_real_list_conversion(self) -> None:
+        source = "| 类别 | 法定情形 |\n| --- | --- |\n| 证据问题 | 1. 新证据<br />2. 原判缺乏证据<br />3. 伪造证据<br />4. 主要证据未经质证 |\n"
+        output = "- **类别**：证据问题\n- **法定情形**：\n    1. 新证据\n    2. 原判缺乏证据\n    3. 伪造证据\n    4. 主要证据未经质证\n"
+        findings = MODULE.validate_source_preservation(output, source, "legal-marknote")
+
+        self.assertNotIn("702", {finding.code for finding in findings})
+
+    def test_rejects_converting_a_genuine_comparison_table_to_a_list(self) -> None:
+        source = "| 类型 | 效力 |\n| --- | --- |\n| 有效合同 | 有效 |\n| 无效合同 | 无效 |\n"
+        output = "- **有效合同**：有效\n- **无效合同**：无效\n- **类型**与**效力**逐项对应。\n"
+        findings = MODULE.validate_source_preservation(output, source, "legal-marknote")
+
+        self.assertIn("702", {finding.code for finding in findings})
+
     def test_rejects_unbacked_merge_placeholder(self) -> None:
         text = """| 分类 | 期间 | 依据 | 细分 | 规则 |
 | --- | --- | --- | --- | --- |

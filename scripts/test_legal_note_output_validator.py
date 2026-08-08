@@ -22,8 +22,8 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
             "> **要件**是==主体资格==。\n\n"
             "| 审查 | 规则 |\n"
             "| :--- | :--- |\n"
-            "| 内容 | **1. 主体**{: style=\"color: var(--b3-font-color10);\"}：==适格==。"
-            "<br />**2. 后果**：_承担责任_。 |\n"
+            "| 主体 | **资格**{: style=\"color: var(--b3-font-color10);\"}：==适格==。 |\n"
+            "| 后果 | **责任**{: style=\"color: var(--b3-font-color13);\"}：_承担责任_。 |\n"
         )
         self.assertEqual(codes(text), set())
 
@@ -43,8 +43,8 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
         self.assertTrue({"303", "304"} <= codes(text))
 
     def test_rejects_unbroken_enumeration_and_plain_long_cell(self) -> None:
-        text = "| 项目 | 1. 要件一 2. 要件二 |\n| 长文 | " + "普通说明。" * 24 + " |"
-        self.assertTrue({"401", "402"} <= codes(text))
+        text = "| 项目 | 1. 要件一 2. 要件二 3. 要件三 4. 要件四 |\n| 长文 | " + "普通说明。" * 24 + " |"
+        self.assertTrue({"412", "402"} <= codes(text))
 
     def test_rejects_unbacked_merge_placeholder(self) -> None:
         text = """| 分类 | 期间 | 依据 | 细分 | 规则 |

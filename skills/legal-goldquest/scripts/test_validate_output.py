@@ -60,6 +60,18 @@ class GoldquestDensityValidationTests(unittest.TestCase):
         )
         self.assertIn("411", {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")})
 
+    def test_rejects_large_numbered_list_inside_table_cell(self) -> None:
+        text = "| 类别 | 法定情形 |\n| --- | --- |\n| 证据问题 | 1. 新证据<br />2. 原判缺乏证据<br />3. 伪造证据<br />4. 主要证据未经质证 |\n"
+        findings = MODULE.validate_tables(text)
+
+        self.assertIn("412", {finding.code for finding in findings})
+
+    def test_allows_a_few_short_numbered_items_inside_table_cell(self) -> None:
+        text = "| 类别 | 法定情形 |\n| --- | --- |\n| 证据问题 | 1. 新证据<br />2. 原判缺乏证据 |\n"
+        findings = MODULE.validate_tables(text)
+
+        self.assertNotIn("412", {finding.code for finding in findings})
+
     def test_rejects_long_semantically_ungrouped_list(self) -> None:
         text = "\n".join(f"- 项目{i}" for i in range(1, 7))
         self.assertIn("610", {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")})

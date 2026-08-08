@@ -21,11 +21,6 @@ class SkillContract:
 
 
 # Keep independently installed skills self-contained while preventing shared formatting rules from drifting.
-SHARED_TABLE_RULES = (
-    ("枚举项强制软换行", "表格绝对保留"),
-    ("表格单元格排版", "表格绝对保留"),
-)
-
 SHARED_OUTPUT_GATE_RULES = (
     ("scripts/validate_output.py", "输出前"),
     ("--strict", "输出前"),
@@ -57,7 +52,8 @@ CONTRACTS = (
             ("siyuan_topic_manifest.py", "## Existing SiYuan documents"),
             ("20-整理", "siyuan_topic_manifest.py"),
             ("合并网格先行", "思源笔记表格语法"),
-            *SHARED_TABLE_RULES,
+            ("单元格不承载大型列表", "思源笔记表格语法"),
+            ("转换列表继续过门禁", "思源笔记表格语法"),
             *SHARED_OUTPUT_GATE_RULES,
         ),
         True,
@@ -85,11 +81,12 @@ CONTRACTS = (
             ("选择内容结构", "## 工作流"),
             ("不要固定生成“争点、规则与法源、事实涵摄、选项辨析、命题思路”", "## 工作流"),
             ("3 列 × 3 个数据行以内", "## 格式决策"),
+            ("通常达到 4 个独立项目", "## 小表格与其他格式"),
+            ("表格转出的真实列表必须继续遵守解析区全部门禁", "## 小表格与其他格式"),
             ("custom-qb-question-topic-ids", "## 考点 IAL"),
             ("custom-qb-id", "custom-qb-question-topic-ids"),
             ("custom-qb-answer", "## 题目边界"),
             (".topic-map.json", "## 考点 IAL"),
-            *SHARED_TABLE_RULES,
             *SHARED_OUTPUT_GATE_RULES,
         ),
         True,
