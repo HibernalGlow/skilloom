@@ -20,12 +20,30 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
             "> [!NOTE] 法条\n"
             "> \n"
             "> **要件**是==主体资格==。\n\n"
-            "| 审查 | 规则 |\n"
-            "| :--- | :--- |\n"
-            "| 主体 | **资格**{: style=\"color: var(--b3-font-color10);\"}：==适格==。 |\n"
-            "| 后果 | **责任**{: style=\"color: var(--b3-font-color13);\"}：_承担责任_。 |\n"
+            "| 审查 | 规则 | 结果 |\n"
+            "| :--- | :--- | :--- |\n"
+            "| 主体 | **资格**{: style=\"color: var(--b3-font-color10);\"} | ==适格==。 |\n"
+            "| 后果 | **责任**{: style=\"color: var(--b3-font-color13);\"} | _承担责任_。 |\n"
         )
         self.assertEqual(codes(text), set())
+
+    def test_rejects_generated_label_rule_table(self) -> None:
+        text = """| 启动方式 | 具体规定 |
+| --- | --- |
+| 本院启动 | 院长认为裁判确有错误时，提交审判委员会讨论决定再审。 |
+| 上级法院启动 | 上级法院认为下级法院裁判确有错误时，有权启动再审。 |
+"""
+
+        self.assertIn("413", codes(text))
+
+    def test_allows_unchanged_source_label_rule_table(self) -> None:
+        source = """| 启动方式 | 具体规定 |
+| --- | --- |
+| 本院启动 | 院长认为裁判确有错误时，提交审判委员会讨论决定再审。 |
+| 上级法院启动 | 上级法院认为下级法院裁判确有错误时，有权启动再审。 |
+"""
+
+        self.assertNotIn("413", codes(source, source=source))
 
     def test_rejects_long_adjacent_and_escaped_highlights(self) -> None:
         text = "==这是一个明显过长的高亮==\n==主体====结果==\n\\=错误"
@@ -81,6 +99,24 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 """
 
         self.assertNotIn("702", codes(output, source=source))
+
+    def test_rejects_generated_simple_label_rule_table(self) -> None:
+        text = """| 启动方式 | 具体规定 |
+| --- | --- |
+| 本院启动 | 院长认为裁判确有错误时，提交审判委员会讨论决定再审。 |
+| 上级法院启动 | 上级法院认为下级法院裁判确有错误时，有权启动再审。 |
+"""
+
+        self.assertIn("413", codes(text))
+
+    def test_allows_unchanged_source_label_rule_table(self) -> None:
+        source = """| 启动方式 | 具体规定 |
+| --- | --- |
+| 本院启动 | 院长认为裁判确有错误时，提交审判委员会讨论决定再审。 |
+| 上级法院启动 | 上级法院认为下级法院裁判确有错误时，有权启动再审。 |
+"""
+
+        self.assertNotIn("413", codes(source, source=source))
 
     def test_rejects_label_rule_list_conversion_when_rule_is_missing(self) -> None:
         source = """| 启动方式 | 具体规定 |
