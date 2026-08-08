@@ -277,9 +277,43 @@ def table_cell_content_is_preserved(source_blocks: list[list[tuple[int, list[str
     return True
 
 
-def validate_table_cell(cell: str, number: int) -> list[Finding]:
+def table_cell_has_large_list(cell: str) -> bool:
+    numbered_items = len(ENUMERATION_PATTERN.findall(cell))
+    bulleted_items = len(re.findall(r"(?:^|<br\s*/?>)\s*[-*]\s+", cell, re.IGNORECASE))
+    item_count = numbered_items + bulleted_items
+    return item_count >= 4 or (item_count >= 3 and visible_length(cell) >= 100)
+
+
+def table_block_has_large_list(block: list[tuple[int, list[str]]]) -> bool:
+    return any(table_cell_has_large_list(cell) for _, cells in block for cell in cells)
+
+
+def table_block_content_is_preserved_in_tables(
+    source_block: list[tuple[int, list[str]]],
+    output_blocks: list[list[tuple[int, list[str]]]],
+) -> bool:
+    normalized_output_tables = normalized_table_content(
+        " ".join(cell for block in output_blocks for _, cells in block for cell in cells)
+    )
+    for _, cells in source_block:
+        if is_table_separator(cells):
+            continue
+        for cell in cells:
+            fragment = normalized_table_content(cell)
+            if len(fragment) >= 2 and fragment not in normalized_output_tables:
+                return False
+    return True
+
+
+def validate_table_cell(cell: str, number: int, allowed_list_cells: set[str] | None = None) -> list[Finding]:
     findings: list[Finding] = []
     if TABLE_SEPARATOR_PATTERN.fullmatch(cell.replace(" ", "")):
+        return findings
+    if table_cell_has_large_list(cell):
+        fingerprint = normalized_table_content(cell)
+        if allowed_list_cells and fingerprint in allowed_list_cells:
+            return findings
+        findings.append(Finding("E", "412", number, "A large list does not belong inside a table cell; expand it as a real nested list outside the table."))
         return findings
     segments = re.split(r"<br\s*/>", cell)
     marker_counts = [len(ENUMERATION_PATTERN.findall(segment)) for segment in segments]
@@ -349,13 +383,13 @@ def validate_merge_grid(rows: list[tuple[int, list[str]]]) -> list[Finding]:
     return findings
 
 
-def validate_tables(text: str) -> list[Finding]:
+def validate_tables(text: str, allowed_list_cells: set[str] | None = None) -> list[Finding]:
     findings: list[Finding] = []
     for number, line in enumerate(text.splitlines(), start=1):
         if not TABLE_ROW_PATTERN.match(line):
             continue
         for cell in split_table_cells(line):
-            findings.extend(validate_table_cell(cell, number))
+            findings.extend(validate_table_cell(cell, number, allowed_list_cells))
     for block in table_blocks(text):
         findings.extend(validate_merge_grid(block))
     return findings
@@ -862,14 +896,19 @@ def validate_source_preservation(text: str, source_text: str, profile: str) -> l
     output_table_blocks = table_blocks(text)
     source_tables = sum(len(block) for block in source_table_blocks)
     output_tables = sum(len(block) for block in output_table_blocks)
-    if output_tables < source_tables:
-        findings.append(Finding("E", "702", 1, f"Output has fewer Markdown table rows than source ({output_tables} < {source_tables})."))
-    allows_structural_table_split = (
+    preserves_table_content = table_cell_content_is_preserved(source_table_blocks, text)
+    allows_structural_table_change = preserves_table_content and (
         len(output_table_blocks) > len(source_table_blocks)
-        and table_cell_content_is_preserved(source_table_blocks, text)
+        or all(
+            table_block_has_large_list(block)
+            or table_block_content_is_preserved_in_tables(block, output_table_blocks)
+            for block in source_table_blocks
+        )
     )
+    if output_tables < source_tables and not allows_structural_table_change:
+        findings.append(Finding("E", "702", 1, f"Output has fewer Markdown table rows than source ({output_tables} < {source_tables})."))
     for token in MERGE_TOKEN_PATTERN.findall(source_text):
-        if text.count(token) < source_text.count(token) and not allows_structural_table_split:
+        if text.count(token) < source_text.count(token) and not allows_structural_table_change:
             findings.append(Finding("E", "703", 1, f"Source SiYuan table merge token was not preserved: {token}"))
     if profile == "legal-marknote":
         for heading in re.findall(r"^#{1,6}\s+(.+?)\s*$", source_text, re.MULTILINE):
@@ -883,7 +922,14 @@ def validate_text(text: str, profile: str, source_text: str | None = None, requi
     findings.extend(validate_highlights(text))
     findings.extend(validate_colors(text))
     findings.extend(validate_callouts_and_fences(text))
-    findings.extend(validate_tables(text))
+    allowed_list_cells = {
+        normalized_table_content(cell)
+        for block in table_blocks(source_text or "")
+        for _, cells in block
+        for cell in cells
+        if table_cell_has_large_list(cell)
+    }
+    findings.extend(validate_tables(text, allowed_list_cells))
     findings.extend(validate_list_density(text))
     findings.extend(validate_general_density(text))
     if profile == "legal-marknote":
