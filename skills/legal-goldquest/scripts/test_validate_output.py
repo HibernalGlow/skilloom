@@ -72,6 +72,16 @@ class GoldquestDensityValidationTests(unittest.TestCase):
 
         self.assertNotIn("412", {finding.code for finding in findings})
 
+    def test_rejects_generated_label_rule_table(self) -> None:
+        text = """| 启动方式 | 具体规定 |
+| --- | --- |
+| 本院启动 | 院长认为裁判确有错误时，提交审判委员会讨论决定再审。 |
+| 上级法院启动 | 上级法院认为下级法院裁判确有错误时，有权启动再审。 |
+"""
+        findings = MODULE.validate_tables(text)
+
+        self.assertIn("413", {finding.code for finding in findings})
+
     def test_rejects_long_semantically_ungrouped_list(self) -> None:
         text = "\n".join(f"- 项目{i}" for i in range(1, 7))
         self.assertIn("610", {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")})
