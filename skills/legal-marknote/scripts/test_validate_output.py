@@ -144,6 +144,64 @@ class ConceptHeadingValidationTests(unittest.TestCase):
         self.assertNotIn("705", {finding.code for finding in MODULE.validate_text(exercise, "legal-marknote")})
 
 
+class RichPresentationValidationTests(unittest.TestCase):
+    def test_accepts_bold_background_only_anchor(self) -> None:
+        text = '**诉讼中**{: style="background-color: var(--b3-font-background11);"}'
+        self.assertNotIn("201", {finding.code for finding in MODULE.validate_colors(text)})
+
+    def test_rejects_background_only_anchor_without_bold(self) -> None:
+        text = '诉讼中{: style="background-color: var(--b3-font-background11);"}'
+        self.assertIn("201", {finding.code for finding in MODULE.validate_colors(text)})
+
+    def test_rejects_long_marknote_prose_line(self) -> None:
+        text = "甲应当向法院提交全部证据并在法定期间内完成举证，否则将承担不利后果，且不得在庭审结束后再次补交同一组证明材料。"
+        self.assertIn("621", {finding.code for finding in MODULE.validate_text(text, "legal-marknote")})
+
+    def test_medium_marknote_requires_mermaid(self) -> None:
+        text = "\n".join([
+            "### 规则",
+            "**甲**{: style=\"color: var(--b3-font-color10);\"}提出申请。",
+            "- **受理**{: style=\"background-color: var(--b3-font-background11);\"}",
+            "  - **法院**{: style=\"color: var(--b3-font-color8);\"}审查材料。",
+            "- **不受理**{: style=\"color: var(--b3-font-color13);\"}",
+            "  - **甲**{: style=\"color: var(--b3-font-color10);\"}补正。",
+        ])
+        self.assertIn("624", {finding.code for finding in MODULE.validate_text(text, "legal-marknote")})
+
+    def test_medium_marknote_requires_four_auxiliary_styles(self) -> None:
+        text = "\n".join([
+            "### 规则",
+            "**甲**{: style=\"color: var(--b3-font-color10); background-color: var(--b3-font-background10);\"}提出申请。",
+            "- **法院**{: style=\"color: var(--b3-font-color8); background-color: var(--b3-font-background8);\"}审查。",
+            "- **结果**{: style=\"color: var(--b3-font-color13); background-color: var(--b3-font-background13);\"}确定。",
+            "- **期限**{: style=\"color: var(--b3-font-color12);\"}届满。",
+            "```mermaid",
+            "flowchart LR",
+            "A[申请] --> B[审查]",
+            "```",
+        ])
+        self.assertIn("620", {finding.code for finding in MODULE.validate_text(text, "legal-marknote")})
+
+    def test_medium_marknote_requires_three_background_anchors(self) -> None:
+        text = "\n".join([
+            "### 规则",
+            "**甲**{: style=\"background-color: var(--b3-font-background10);\"}提出申请。",
+            "- ==受理==并审查。",
+            "  - _法院_作出判断。",
+            "- ~~错误路径~~应排除。",
+            "  - `期限`届满后处理。",
+            "```mermaid",
+            "flowchart LR",
+            "A[申请] --> B[审查]",
+            "```",
+        ])
+        self.assertIn("627", {finding.code for finding in MODULE.validate_text(text, "legal-marknote")})
+
+    def test_repeated_subject_requires_active_color(self) -> None:
+        text = "甲提出申请，甲随后补正材料。"
+        self.assertIn("625", {finding.code for finding in MODULE.validate_text(text, "legal-marknote")})
+
+
 
 if __name__ == "__main__":
     unittest.main()

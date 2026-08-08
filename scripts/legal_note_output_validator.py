@@ -202,8 +202,8 @@ def validate_callouts_and_fences(text: str) -> list[Finding]:
             if not in_fence:
                 fence_language = fence.group("lang")
                 fence_start = number
-                if fence_language not in {"md", "html"}:
-                    findings.append(Finding("E", "302", number, "Opening code fence must use the md or html language."))
+                if fence_language not in {"md", "html", "mermaid"}:
+                    findings.append(Finding("E", "302", number, "Opening code fence must use the md, html, or mermaid language."))
                 in_fence = True
             else:
                 finish_fence(number)
@@ -480,6 +480,97 @@ def validate_general_density(text: str) -> list[Finding]:
             findings.append(Finding("W", "501", number, "Long prose line should be physically split into semantic list items."))
     if visible_length(text) >= 500 and not COLOR_ATTRIBUTE_PATTERN.search(text):
         findings.append(Finding("W", "502", 1, "Substantial output has no SiYuan semantic color anchors."))
+    return findings
+
+
+def validate_marknote_richness(text: str) -> list[Finding]:
+    findings: list[Finding] = []
+    lines = text.splitlines()
+    body_lines: list[str] = []
+    in_fence = False
+    has_mermaid = False
+    has_callout = False
+    has_table = False
+    has_subheading = False
+    has_divider = False
+    nested_items = 0
+    top_level_items = 0
+
+    for number, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if stripped.startswith(("```mermaid", "> ```mermaid")):
+            has_mermaid = True
+        if stripped.startswith(("```", "> ```")):
+            in_fence = not in_fence
+            continue
+        if in_fence or not stripped:
+            continue
+        if TABLE_ROW_PATTERN.match(line):
+            has_table = True
+            continue
+        if IAL_PATTERN.match(stripped):
+            continue
+        if re.match(r"^-{3,}$", stripped):
+            has_divider = True
+            continue
+        if re.match(r"^#{1,6}\s+", stripped):
+            if re.match(r"^#{3,6}\s+", stripped):
+                has_subheading = True
+            continue
+        if re.match(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING)\]", line):
+            has_callout = True
+            continue
+        if re.match(r"^\s*-\s+", line):
+            if len(line) - len(line.lstrip()) >= 4:
+                nested_items += 1
+            else:
+                top_level_items += 1
+        prose_length = prose_visible_length(stripped)
+        if prose_length > 42:
+            findings.append(Finding("E", "621", number, "MarkNote prose lines must stay within 42 visible characters; split the logic into semantic sublists."))
+        if prose_length >= 14 and not COLOR_ATTRIBUTE_PATTERN.search(stripped):
+            findings.append(Finding("E", "622", number, "Each substantive MarkNote line needs at least one short semantic color anchor."))
+        body_lines.append(line)
+
+    body = "\n".join(body_lines)
+    body_prose = prose_without_fenced_blocks(body)
+    subject_pattern = re.compile("|".join(re.escape(term) for term in sorted(COMMON_SUBJECT_TERMS, key=len, reverse=True)))
+    subject_scan_text = re.sub(r"(?:选项|第)[甲乙丙丁戊]|[甲乙丙丁戊]项", "", body_prose)
+    subject_tokens = subject_pattern.findall(subject_scan_text)
+    for term in set(subject_tokens):
+        styled_occurrences = [match for match in STYLED_TERM_PATTERN.finditer(body_prose) if match.group("term") == term]
+        occurrences = subject_tokens.count(term)
+        if not styled_occurrences:
+            findings.append(Finding("E", "625", 1, f"MarkNote subject '{term}' needs an actively assigned semantic color."))
+        elif len(styled_occurrences) < occurrences:
+            findings.append(Finding("E", "623", 1, f"MarkNote subject '{term}' has uncolored occurrences; reuse its established color everywhere."))
+
+    auxiliary_styles = style_families(body) & {"highlight", "italic", "strike", "code", "underline"}
+    body_length = prose_visible_length(body_prose)
+    sentence_count = len(re.findall(r"[。！？；]", body_prose))
+    branch_count = top_level_items + nested_items
+    medium_complexity = body_length >= 160 or sentence_count >= 4 or branch_count >= 3
+    if medium_complexity and len(auxiliary_styles) < 4:
+        findings.append(Finding("E", "620", 1, "Medium-or-higher complexity MarkNote needs at least four auxiliary style families among highlight, italic, strikethrough, inline code, and underline."))
+    if medium_complexity and not has_mermaid:
+        findings.append(Finding("E", "624", 1, "Medium-or-higher complexity MarkNote needs a Mermaid diagram for its sequence, branches, or subject relations."))
+    structural_styles = {
+        name
+        for name, present in (
+            ("nested-list", nested_items > 0),
+            ("callout", has_callout),
+            ("subheading", has_subheading),
+            ("table", has_table),
+            ("mermaid", has_mermaid),
+            ("divider", has_divider),
+        )
+        if present
+    }
+    if medium_complexity and len(structural_styles) < 4:
+        findings.append(Finding("E", "626", 1, "Medium-or-higher complexity MarkNote needs at least four structural families: nested list, Callout, subheading, table, Mermaid, or divider."))
+    background_anchor_count = len(re.findall(r"b3-font-background(?:[2-9]|1[0-3])", body))
+    if medium_complexity and background_anchor_count < 3:
+        findings.append(Finding("E", "627", 1, "Medium-or-higher complexity MarkNote needs at least three short background-color anchors for visual hierarchy."))
     return findings
 
 
@@ -795,6 +886,8 @@ def validate_text(text: str, profile: str, source_text: str | None = None, requi
     findings.extend(validate_tables(text))
     findings.extend(validate_list_density(text))
     findings.extend(validate_general_density(text))
+    if profile == "legal-marknote":
+        findings.extend(validate_marknote_richness(text))
     findings.extend(validate_concept_headings(text, profile))
     findings.extend(validate_topic_ials(text, profile, require_note_topic))
     if profile == "legal-goldquest":
