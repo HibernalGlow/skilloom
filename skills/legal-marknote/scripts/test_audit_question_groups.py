@@ -59,6 +59,18 @@ class FencedQuestionIdentityTests(unittest.TestCase):
         errors, _ = self.audit_pair(output)
         self.assertTrue(any("identifiers changed" in error.message for error in errors))
 
+    def test_accepts_one_exercise_label_for_multiple_question_fences(self) -> None:
+        errors, _ = self.audit_pair(SOURCE)
+        self.assertFalse(any("repeats the '###### 习题' label" in error.message for error in errors))
+
+    def test_rejects_repeated_exercise_label_in_one_quote_group(self) -> None:
+        output = SOURCE.replace(
+            "> ```md\n> 42. 第二题",
+            "> ###### 习题\n>\n> ```md\n> 42. 第二题",
+        )
+        errors, _ = self.audit_pair(output)
+        self.assertTrue(any("repeats the '###### 习题' label" in error.message for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

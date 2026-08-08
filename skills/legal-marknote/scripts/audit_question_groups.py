@@ -25,6 +25,7 @@ NUMERIC_HEADING = re.compile(r"^>\s*#{1,6}\s+(?:\d+|\(\d+\)|[①②③④⑤⑥�
 ANSWER_ITEM = re.compile(r"^>\s*(\d+)\.\s+")
 QUESTION_LABEL = re.compile(r"^>\s*######\s*习题")
 MARKDOWN_HEADING = re.compile(r"^#{1,6}\s+")
+QUOTED_HEADING = re.compile(r"^>\s*#{1,6}\s+")
 
 
 class AuditError:
@@ -57,9 +58,43 @@ def fenced_question_identifiers(path: Path) -> list[str]:
     return identifiers
 
 
+def validate_question_labels(lines: list[str], path: Path) -> list[AuditError]:
+    """Require one exercise label per continuous quoted exercise group."""
+    errors: list[AuditError] = []
+    label_seen = False
+    in_exercise_group = False
+
+    for number, line in enumerate(lines, start=1):
+        if QUESTION_LABEL.match(line):
+            if label_seen:
+                errors.append(
+                    AuditError(
+                        path,
+                        number,
+                        "continuous quoted exercise group repeats the '###### 习题' label; keep it only before the first question fence",
+                    )
+                )
+            label_seen = True
+            in_exercise_group = True
+            continue
+
+        if not in_exercise_group:
+            continue
+        if not line.strip() or line.lstrip().startswith(">"):
+            if QUOTED_HEADING.match(line):
+                label_seen = False
+                in_exercise_group = False
+            continue
+
+        label_seen = False
+        in_exercise_group = False
+
+    return errors
+
+
 def audit(path: Path, source: Path | None = None) -> tuple[list[AuditError], list[str]]:
     lines = path.read_text(encoding="utf-8").splitlines()
-    errors: list[AuditError] = []
+    errors = validate_question_labels(lines, path)
     advisories: list[str] = []
     index = 0
     question_context = False
