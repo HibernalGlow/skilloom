@@ -198,6 +198,56 @@ flowchart LR
 
         self.assertIn("626", codes(text))
 
+    def test_requires_three_background_anchors_for_medium_complexity(self) -> None:
+        text = f"""##### 1.
+* 题干。
+{ANSWER_BLOCK}
+- **条件**{{: style="color: var(--b3-font-color12);"}}
+    - *先看*`主体资格`。
+    - ~~排除实体判断~~。
+    - 最终==驳回起诉==。
+```mermaid
+flowchart LR
+    A[条件] --> B[结论]
+```
+"""
+
+        self.assertIn("627", codes(text))
+
+    def test_accepts_three_short_background_anchors(self) -> None:
+        text = f"""##### 1.
+* 题干。
+{ANSWER_BLOCK}
+- **起诉前**{{: style="color: var(--b3-font-color12); background-color: var(--b3-font-background12);"}}死亡。
+    - **受理后**{{: style="color: var(--b3-font-color11); background-color: var(--b3-font-background11);"}}发现。
+    - 最终**驳回起诉**{{: style="color: var(--b3-font-color8); background-color: var(--b3-font-background8);"}}。
+"""
+
+        self.assertNotIn("627", codes(text))
+
+    def test_accepts_background_only_after_bold_text(self) -> None:
+        text = f"""##### 1.
+* 题干。
+{ANSWER_BLOCK}
+**诉讼中**{{: style="background-color: var(--b3-font-background11);"}}发生死亡。
+"""
+
+        result = {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")}
+        self.assertNotIn("201", result)
+        self.assertNotIn("617", result)
+
+    def test_rejects_unbold_or_overlong_background_anchor(self) -> None:
+        text = f"""##### 1.
+* 题干。
+{ANSWER_BLOCK}
+诉讼中{{: style="background-color: var(--b3-font-background11);"}}发生死亡。
+**法院受理后发现条件欠缺**{{: style="background-color: var(--b3-font-background12);"}}。
+"""
+
+        result = {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")}
+        self.assertIn("201", result)
+        self.assertIn("617", result)
+
     def test_rejects_long_analysis_line(self) -> None:
         text = f"""##### 1.
 * 题干。

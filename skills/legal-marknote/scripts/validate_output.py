@@ -19,6 +19,9 @@ COLOR_ATTRIBUTE_PATTERN = re.compile(r'\{:\s*style="([^"]*b3-font[^"]*)"\}')
 COLORED_TERM_PATTERN = re.compile(
     r'\*\*(?P<term>.+?)\*\*\{:\s*style="[^"]*b3-font-color(?P<color>\d+)[^"]*"\}',
 )
+STYLED_TERM_PATTERN = re.compile(
+    r'\*\*(?P<term>.+?)\*\*\{:\s*style="(?P<style>[^"]*b3-font-(?:color|background)\d+[^\"]*)"\}',
+)
 ENUMERATION_PATTERN = re.compile(r"(?<![\w])(?:\d{1,2}[、.]|[（(]\d{1,2}[）)]|[①-⑳])")
 IMAGE_PATTERN = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 MERGE_TOKEN_PATTERN = re.compile(r"\{:\s*(?:colspan='\d+'|rowspan='\d+'|class='fn__none')\}")
@@ -151,7 +154,7 @@ def validate_colors(text: str) -> list[Finding]:
     for match in COLOR_ATTRIBUTE_PATTERN.finditer(text):
         prefix = text[max(0, match.start() - 240):match.start()]
         if not re.search(r"\*\*[^*\n]+\*\*$", prefix):
-            findings.append(Finding("E", "201", line_for_offset(text, match.start()), "SiYuan color style must attach directly to bold text."))
+            findings.append(Finding("E", "201", line_for_offset(text, match.start()), "SiYuan foreground/background color style must attach directly to bold text."))
         numbers = [int(value) for value in re.findall(r"b3-font-(?:color|background)(\d+)", match.group(1))]
         if not numbers or any(value < 2 or value > 13 for value in numbers):
             findings.append(Finding("E", "202", line_for_offset(text, match.start()), "SiYuan color numbers must be integers from 2 through 13."))
@@ -551,7 +554,7 @@ def validate_goldquest(text: str) -> list[Finding]:
     for number, line in enumerate(lines, start=1):
         if re.search(r"-\s*\[[xX]\]", line):
             findings.append(Finding("E", "601", number, "Question options must remain unchecked."))
-    for match in COLORED_TERM_PATTERN.finditer(text):
+    for match in STYLED_TERM_PATTERN.finditer(text):
         term = match.group("term")
         line = line_for_offset(text, match.start())
         if visible_length(term) > 8:
@@ -635,9 +638,9 @@ def validate_goldquest(text: str) -> list[Finding]:
         answer_lines = lines[analysis_start:end]
         analysis_text = "\n".join(answer_lines)
         analysis_prose = prose_without_fenced_blocks(analysis_text)
-        analysis_subject_colors = {
-            match.group("term"): int(match.group("color"))
-            for match in COLORED_TERM_PATTERN.finditer(analysis_prose)
+        analysis_subject_styles = {
+            match.group("term")
+            for match in STYLED_TERM_PATTERN.finditer(analysis_prose)
             if match.group("term") in COMMON_SUBJECT_TERMS
             or (
                 2 <= len(match.group("term")) <= 3
@@ -645,11 +648,11 @@ def validate_goldquest(text: str) -> list[Finding]:
                 and re.fullmatch(r"[\u4e00-\u9fff]+", match.group("term"))
             )
         }
-        for term, color in analysis_subject_colors.items():
-            colored_form = re.compile(
-                rf'\*\*{re.escape(term)}\*\*\{{:\s*style="[^"]*b3-font-color{color}[^\"]*"\}}'
+        for term in analysis_subject_styles:
+            styled_form = re.compile(
+                rf'\*\*{re.escape(term)}\*\*\{{:\s*style="[^"]*b3-font-(?:color|background)\d+[^\"]*"\}}'
             )
-            remaining_prose = re.sub(r"(?:选项|第)[甲乙丙丁戊]|[甲乙丙丁戊]项", "", colored_form.sub("", analysis_prose))
+            remaining_prose = re.sub(r"(?:选项|第)[甲乙丙丁戊]|[甲乙丙丁戊]项", "", styled_form.sub("", analysis_prose))
             if term in remaining_prose:
                 findings.append(Finding("E", "623", index + 1, f"Term '{term}' has uncolored occurrences in the analysis; reuse its established color every time."))
 
@@ -658,14 +661,14 @@ def validate_goldquest(text: str) -> list[Finding]:
         subject_tokens = subject_pattern.findall(subject_scan_text)
         for term in set(subject_tokens):
             occurrences = subject_tokens.count(term)
-            colored_occurrences = [
+            styled_occurrences = [
                 match
-                for match in COLORED_TERM_PATTERN.finditer(analysis_prose)
+                for match in STYLED_TERM_PATTERN.finditer(analysis_prose)
                 if match.group("term") == term
             ]
-            if not colored_occurrences:
+            if not styled_occurrences:
                 findings.append(Finding("E", "625", index + 1, f"Analysis subject '{term}' needs an actively assigned semantic color."))
-            elif len(colored_occurrences) < occurrences:
+            elif len(styled_occurrences) < occurrences:
                 findings.append(Finding("E", "623", index + 1, f"Analysis subject '{term}' has uncolored occurrences; reuse its established color everywhere in the analysis."))
 
         uncolored_sentences = 0
@@ -753,6 +756,9 @@ def validate_goldquest(text: str) -> list[Finding]:
         }
         if medium_complexity and len(structural_styles) < 4:
             findings.append(Finding("E", "626", analysis_start + 1, "Medium-or-higher complexity analysis needs at least four structural families: nested list, Callout, subheading, table, Mermaid, or divider."))
+        background_anchor_count = len(re.findall(r"b3-font-background(?:[2-9]|1[0-3])", analysis_text))
+        if medium_complexity and background_anchor_count < 3:
+            findings.append(Finding("E", "627", analysis_start + 1, "Medium-or-higher complexity analysis needs at least three short background-color anchors for strong visual hierarchy."))
     return findings
 
 

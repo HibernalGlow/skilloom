@@ -40,9 +40,9 @@
 {: custom-qb-section="solution"}
 
 > [!IMPORTANT] ❗ 一句话定案
-> - **王旭**{: style="color: var(--b3-font-color4);"}在**起诉前**{: style="color: var(--b3-font-color12);"}死亡。
-> - **法院**{: style="color: var(--b3-font-color11);"}在**受理后**{: style="color: var(--b3-font-color12);"}才发现条件欠缺。
-> - 最终裁定==驳回起诉==。
+> - **王旭**{: style="color: var(--b3-font-color4);"}在**起诉前**{: style="color: var(--b3-font-color12); background-color: var(--b3-font-background12);"}死亡。
+> - **法院**{: style="color: var(--b3-font-color11);"}在**受理后**{: style="background-color: var(--b3-font-background12);"}才发现条件欠缺。
+> - 最终裁定**驳回起诉**{: style="color: var(--b3-font-color8); background-color: var(--b3-font-background8);"}。
 
 ###### 主线图
 
@@ -58,19 +58,20 @@ flowchart LR
 
 1. **死亡时间**{: style="color: var(--b3-font-color10);"}
     - **起诉前**{: style="color: var(--b3-font-color12);"}已经死亡。
-    - **被告**{: style="color: var(--b3-font-color4);"}在起诉时已无诉讼权利能力。
+    - **被告**{: style="color: var(--b3-font-color4);"}在起诉时已无**诉讼权利能力**{: style="color: var(--b3-font-color13); background-color: var(--b3-font-background13);"}。
     - 所以本案不满足`有明确的被告`这一起诉条件。
 2. **程序阶段**{: style="color: var(--b3-font-color10);"}
     - **法院**{: style="color: var(--b3-font-color11);"}已向**王旭**{: style="color: var(--b3-font-color4);"}送达应诉通知书。
     - 这说明案件已经==受理==。
     - 受理后发现不符合起诉条件，应当裁定**驳回起诉**{: style="color: var(--b3-font-color8);"}。
 3. **排除项**{: style="color: var(--b3-font-color10);"}
-    - ~~A 项：诉讼终结~~
+    - ❌ ~~A 项：诉讼终结~~
         - 针对**诉讼中**{: style="color: var(--b3-font-color10);"}出现的死亡。
-    - ~~C 项：不予受理~~
+    - ❌ ~~C 项：不予受理~~
         - 针对**法院**{: style="color: var(--b3-font-color11);"}在受理前发现条件欠缺。
-    - ~~D 项：驳回诉讼请求~~
+    - ❌ ~~D 项：驳回诉讼请求~~
         - 针对**实体审理后**{: style="color: var(--b3-font-color13);"}请求不能获得支持。
+    - ✅ **B 项：驳回起诉**{: style="color: var(--b3-font-color8); background-color: var(--b3-font-background8);"}
 
 > [!NOTE] 📖 固定判断用语
 > `有明确的被告`属于**起诉条件**{: style="color: var(--b3-font-color13);"}。
@@ -80,8 +81,8 @@ flowchart LR
 
 | 处理方式 | 发现阶段 | 判断性质 |
 | :--- | :--- | :--- |
-| 不予受理 | **受理前**{: style="color: var(--b3-font-color12);"} | 程序条件欠缺 |
-| 驳回起诉 | **受理后**{: style="color: var(--b3-font-color8);"} | 程序条件欠缺 |
+| 不予受理 | **受理前**{: style="background-color: var(--b3-font-background12);"} | 程序条件欠缺 |
+| 驳回起诉 | **受理后**{: style="color: var(--b3-font-color8); background-color: var(--b3-font-background8);"} | 程序条件欠缺 |
 | 驳回诉讼请求 | 实体审理后 | 实体请求不成立 |
 
 > [!CAUTION] ⚠️ 最大陷阱
@@ -91,6 +92,8 @@ flowchart LR
 >     - **死亡时间**{: style="color: var(--b3-font-color10);"}
 >     - **起诉条件**{: style="color: var(--b3-font-color13);"}
 >     - **受理阶段**{: style="color: var(--b3-font-color11);"}
+
+> *先查条件是否存在，再决定裁判形式。*
 
 ---
 
@@ -117,7 +120,7 @@ flowchart LR
 - 正确答案：B。
 {: custom-qb-section="solution"}
 
-*解题结论*：**法院**{: style="color: var(--b3-font-color11);"}应当裁定 ==驳回起诉==。
+*解题结论*：**法院**{: style="color: var(--b3-font-color11);"}应当裁定 **驳回起诉**{: style="color: var(--b3-font-color8); background-color: var(--b3-font-background8);"}。
 
 ###### 一眼定位
 
@@ -132,24 +135,24 @@ flowchart LR
 ```
 
 > [!IMPORTANT] ❗ 本题落点
-> - 送达应诉通知书说明案件处于**受理后**{: style="color: var(--b3-font-color12);"}。
+> - 送达应诉通知书说明案件处于**受理后**{: style="color: var(--b3-font-color12); background-color: var(--b3-font-background12);"}。
 > - 路径依次经过：
->     - **起诉前**{: style="color: var(--b3-font-color12);"}死亡
+>     - **起诉前**{: style="background-color: var(--b3-font-background12);"}死亡
 >     - 欠缺`有明确的被告`
 >     - **受理后**{: style="color: var(--b3-font-color12);"}发现
->     - 裁定**驳回起诉**{: style="color: var(--b3-font-color8);"}
+>     - 裁定**驳回起诉**{: style="color: var(--b3-font-color8); background-color: var(--b3-font-background8);"}
 
 ###### 为什么其他选项不成立
 
-- ~~A. 诉讼终结~~
+- ❌ ~~A. 诉讼终结~~
     - 要求死亡发生在**诉讼中**{: style="color: var(--b3-font-color10);"}。
     - 本题发生在**起诉前**{: style="color: var(--b3-font-color12);"}。
-- **B. 驳回起诉**{: style="color: var(--b3-font-color8);"}
+- ✅ **B. 驳回起诉**{: style="color: var(--b3-font-color8); background-color: var(--b3-font-background8);"}
     - **法院**{: style="color: var(--b3-font-color11);"}在**受理后**{: style="color: var(--b3-font-color12);"}发现条件欠缺。
     - 因而处理==正确==。
-- ~~C. 不予受理~~
+- ❌ ~~C. 不予受理~~
     - 适用于受理前已经发现欠缺起诉条件。
-- ~~D. 驳回诉讼请求~~
+- ❌ ~~D. 驳回诉讼请求~~
     - 这是实体审理后的败诉判决；本题尚未进入实体判断。
 
 > [!CAUTION] ⚠️ 题目设置的视觉干扰
