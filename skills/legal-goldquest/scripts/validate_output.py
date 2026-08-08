@@ -489,6 +489,7 @@ def validate_marknote_richness(text: str) -> list[Finding]:
     body_lines: list[str] = []
     in_fence = False
     has_mermaid = False
+    has_mermaid_style = False
     has_callout = False
     has_table = False
     has_subheading = False
@@ -500,6 +501,13 @@ def validate_marknote_richness(text: str) -> list[Finding]:
         stripped = line.strip()
         if stripped.startswith(("```mermaid", "> ```mermaid")):
             has_mermaid = True
+        if has_mermaid and (
+            "classDef" in stripped
+            or re.search(r"\bstyle\s+[A-Za-z][A-Za-z0-9_-]*\s+", stripped)
+            or "themeVariables" in stripped
+            or stripped.startswith("%%{init:")
+        ):
+            has_mermaid_style = True
         if stripped.startswith(("```", "> ```")):
             in_fence = not in_fence
             continue
@@ -554,6 +562,8 @@ def validate_marknote_richness(text: str) -> list[Finding]:
         findings.append(Finding("E", "620", 1, "Medium-or-higher complexity MarkNote needs at least four auxiliary style families among highlight, italic, strikethrough, inline code, and underline."))
     if medium_complexity and not has_mermaid:
         findings.append(Finding("E", "624", 1, "Medium-or-higher complexity MarkNote needs a Mermaid diagram for its sequence, branches, or subject relations."))
+    if medium_complexity and has_mermaid and not has_mermaid_style:
+        findings.append(Finding("E", "628", 1, "Mermaid must contain a semantic style directive: themeVariables, classDef, or targeted style rules."))
     structural_styles = {
         name
         for name, present in (
