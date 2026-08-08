@@ -81,6 +81,38 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 """
         self.assertFalse({"404", "406", "407", "408", "409", "410"} & codes(text))
 
+    def test_rejects_split_table_without_real_header(self) -> None:
+        text = """| 本院启动 | 院长 | 提交审判委员会讨论 |
+| 上级法院启动 | 上级法院 | 直接启动再审 |
+"""
+
+        self.assertIn("414", codes(text))
+
+    def test_rejects_merged_data_row_used_as_markdown_header(self) -> None:
+        text = """| {: rowspan='2'}确认调解协议效力 | 符合条件 | 裁定确认效力 |
+| --- | --- | --- |
+| {: class='fn__none'} | 不符合条件 | 裁定驳回申请 |
+"""
+
+        self.assertIn("416", codes(text))
+
+    def test_accepts_real_header_before_merged_data_rows(self) -> None:
+        text = """| 程序 | 审查结果 | 法律后果 |
+| --- | --- | --- |
+| {: rowspan='2'}确认调解协议效力 | 符合条件 | 裁定确认效力 |
+| {: class='fn__none'} | 不符合条件 | 裁定驳回申请 |
+"""
+
+        self.assertFalse({"414", "415", "416"} & codes(text))
+
+    def test_allows_unchanged_legacy_merged_header_with_source(self) -> None:
+        source = """| {: rowspan='2'}确认调解协议效力 | 符合条件 | 裁定确认效力 |
+| --- | --- | --- |
+| {: class='fn__none'} | 不符合条件 | 裁定驳回申请 |
+"""
+
+        self.assertNotIn("416", codes(source, source=source))
+
     def test_compares_source_images_tables_merge_tokens_and_headings(self) -> None:
         source = "# 原标题\n![](assets/a.png)\n| {: colspan='2'}内容 | 空格 |"
         output = "# 新标题\n普通正文"
