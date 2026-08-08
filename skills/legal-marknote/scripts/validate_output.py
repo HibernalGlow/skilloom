@@ -307,6 +307,28 @@ def table_block_fingerprint(block: list[tuple[int, list[str]]]) -> str:
     return "|".join(normalized_table_content(cell) for _, cells in block for cell in cells)
 
 
+def validate_table_structure(
+    block: list[tuple[int, list[str]]],
+    allowed_legacy_structures: set[str] | None = None,
+) -> list[Finding]:
+    if not block:
+        return []
+    fingerprint = table_block_fingerprint(block)
+    if allowed_legacy_structures and fingerprint in allowed_legacy_structures:
+        return []
+
+    separator_indexes = [index for index, (_, cells) in enumerate(block) if is_table_separator(cells)]
+    if not separator_indexes:
+        return [Finding("E", "414", block[0][0], "Every Markdown table needs a real header row followed immediately by a separator row.")]
+    if separator_indexes != [1]:
+        return [Finding("E", "415", block[separator_indexes[0]][0], "The Markdown separator must be the table's second row, immediately after its real header.")]
+
+    header_number, header_cells = block[0]
+    if any(MERGE_TOKEN_PATTERN.search(cell) for cell in header_cells):
+        return [Finding("E", "416", header_number, "The real Markdown header row must not contain rowspan, colspan, or fn__none; start merged cells in the first data row.")]
+    return []
+
+
 def table_block_content_is_preserved_as_label_rule_list(
     source_block: list[tuple[int, list[str]]],
     output_text: str,
@@ -422,6 +444,7 @@ def validate_tables(
     text: str,
     allowed_list_cells: set[str] | None = None,
     allowed_label_rule_tables: set[str] | None = None,
+    allowed_legacy_structures: set[str] | None = None,
 ) -> list[Finding]:
     findings: list[Finding] = []
     for number, line in enumerate(text.splitlines(), start=1):
@@ -430,6 +453,7 @@ def validate_tables(
         for cell in split_table_cells(line):
             findings.extend(validate_table_cell(cell, number, allowed_list_cells))
     for block in table_blocks(text):
+        findings.extend(validate_table_structure(block, allowed_legacy_structures))
         findings.extend(validate_merge_grid(block))
         if table_block_is_simple_label_rule(block):
             fingerprint = table_block_fingerprint(block)
@@ -991,7 +1015,18 @@ def validate_text(text: str, profile: str, source_text: str | None = None, requi
         for block in table_blocks(source_text or "")
         if table_block_is_simple_label_rule(block)
     }
-    findings.extend(validate_tables(text, allowed_list_cells, allowed_label_rule_tables))
+    allowed_legacy_structures = {
+        table_block_fingerprint(block)
+        for block in table_blocks(source_text or "")
+    }
+    findings.extend(
+        validate_tables(
+            text,
+            allowed_list_cells,
+            allowed_label_rule_tables,
+            allowed_legacy_structures,
+        )
+    )
     findings.extend(validate_list_density(text))
     findings.extend(validate_general_density(text))
     if profile == "legal-marknote":

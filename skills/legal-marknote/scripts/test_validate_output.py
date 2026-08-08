@@ -122,6 +122,21 @@ class TableSplitValidationTests(unittest.TestCase):
 
         self.assertIn("406", {finding.code for finding in findings})
 
+    def test_rejects_split_table_without_header(self) -> None:
+        text = "| 本院启动 | 院长 | 决定再审 |\n| 上级法院启动 | 上级法院 | 启动再审 |\n"
+        findings = MODULE.validate_tables(text)
+
+        self.assertIn("414", {finding.code for finding in findings})
+
+    def test_rejects_rowspan_data_as_header(self) -> None:
+        text = """| {: rowspan='2'}确认调解协议效力 | 符合条件 | 裁定确认效力 |
+| --- | --- | --- |
+| {: class='fn__none'} | 不符合条件 | 裁定驳回申请 |
+"""
+        findings = MODULE.validate_tables(text)
+
+        self.assertIn("416", {finding.code for finding in findings})
+
 
 class NoteTopicIalValidationTests(unittest.TestCase):
     def test_accepts_heading_provider_and_explicit_anchor(self) -> None:
