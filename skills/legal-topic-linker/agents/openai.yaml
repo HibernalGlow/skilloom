@@ -1,0 +1,7 @@
+interface:
+  display_name: "法考精细考点关联"
+  short_description: "逐题审计细颗粒度法律考点，并绑定精确笔记提供块"
+  default_prompt: "Use $legal-topic-linker to audit these legal questions, refine their atomic topic IDs, and bind exact note providers."
+
+policy:
+  allow_implicit_invocation: true
