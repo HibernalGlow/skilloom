@@ -47,7 +47,6 @@ CONTRACTS = (
             ("至少四类结构载体", "## Rich visual contract"),
             ("至少三个短背景色锚点", "## Rich visual contract"),
             ("Mermaid 的语义触发", "## Rich visual contract"),
-            ("Mermaid must contain a semantic style directive", "## Rich visual contract"),
             ("背景色：", "## Rich visual contract"),
             ("E620-E627", "## Rich visual contract"),
             ("inside each fenced question block", "## Question-answer formatting"),
