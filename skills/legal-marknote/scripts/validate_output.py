@@ -296,10 +296,15 @@ def table_block_is_simple_label_rule(block: list[tuple[int, list[str]]]) -> bool
         return False
     data_rows = content_rows[1:]
     return all(
-        1 <= visible_length(cells[0]) <= 24
-        and visible_length(cells[1]) >= max(12, visible_length(cells[0]) + 4)
+        1 <= len(normalized_table_content(cells[0])) <= 24
+        and len(normalized_table_content(cells[1]))
+        >= max(12, len(normalized_table_content(cells[0])) + 4)
         for cells in data_rows
     )
+
+
+def table_block_fingerprint(block: list[tuple[int, list[str]]]) -> str:
+    return "|".join(normalized_table_content(cell) for _, cells in block for cell in cells)
 
 
 def table_block_content_is_preserved_as_label_rule_list(
@@ -413,7 +418,11 @@ def validate_merge_grid(rows: list[tuple[int, list[str]]]) -> list[Finding]:
     return findings
 
 
-def validate_tables(text: str, allowed_list_cells: set[str] | None = None) -> list[Finding]:
+def validate_tables(
+    text: str,
+    allowed_list_cells: set[str] | None = None,
+    allowed_label_rule_tables: set[str] | None = None,
+) -> list[Finding]:
     findings: list[Finding] = []
     for number, line in enumerate(text.splitlines(), start=1):
         if not TABLE_ROW_PATTERN.match(line):
@@ -422,6 +431,10 @@ def validate_tables(text: str, allowed_list_cells: set[str] | None = None) -> li
             findings.extend(validate_table_cell(cell, number, allowed_list_cells))
     for block in table_blocks(text):
         findings.extend(validate_merge_grid(block))
+        if table_block_is_simple_label_rule(block):
+            fingerprint = table_block_fingerprint(block)
+            if not allowed_label_rule_tables or fingerprint not in allowed_label_rule_tables:
+                findings.append(Finding("E", "413", block[0][0], "A two-column label-and-explanation structure should be a real Markdown list unless it has another comparison axis."))
     return findings
 
 
@@ -973,7 +986,12 @@ def validate_text(text: str, profile: str, source_text: str | None = None, requi
         for cell in cells
         if table_cell_has_large_list(cell)
     }
-    findings.extend(validate_tables(text, allowed_list_cells))
+    allowed_label_rule_tables = {
+        table_block_fingerprint(block)
+        for block in table_blocks(source_text or "")
+        if table_block_is_simple_label_rule(block)
+    }
+    findings.extend(validate_tables(text, allowed_list_cells, allowed_label_rule_tables))
     findings.extend(validate_list_density(text))
     findings.extend(validate_general_density(text))
     if profile == "legal-marknote":
