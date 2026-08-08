@@ -49,6 +49,8 @@ CONTRACTS = (
             ("Mermaid 的语义触发", "## Rich visual contract"),
             ("背景色：", "## Rich visual contract"),
             ("E620-E627", "## Rich visual contract"),
+            ("inside each fenced question block", "## Question-answer formatting"),
+            ("audit_question_groups.py <output.md> --source <source.md>", "## Workflow"),
             ("custom-qb-note-topic-id", "## Note-topic provider IAL"),
             ("--require-topic-ial", "custom-qb-note-topic-id"),
             ("siyuan_topic_manifest.py", "## Existing SiYuan documents"),

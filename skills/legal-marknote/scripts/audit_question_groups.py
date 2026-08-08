@@ -11,6 +11,15 @@ from pathlib import Path
 QUESTION_FENCE = re.compile(r"^>\s*```md\s*$")
 CLOSE_FENCE = re.compile(r"^>\s*```\s*$")
 QUESTION_NUMBER = re.compile(r"^>\s*(\d+)\.\s+")
+QUESTION_IDENTIFIER = re.compile(
+    r"^>\s*(?P<identifier>"
+    r"(?:第\s*\d+\s*题)"
+    r"|(?:\d+[.．、])"
+    r"|(?:[（(]\d+[)）])"
+    r"|(?:[①②③④⑤⑥⑦⑧⑨⑩])"
+    r"|(?:[一二三四五六七八九十]+[、.．])"
+    r")"
+)
 ANSWER_HEADING = re.compile(r"^>\s*\*\*回答与解析：\*\*\s*$")
 NUMERIC_HEADING = re.compile(r"^>\s*#{1,6}\s+(?:\d+|\(\d+\)|[①②③④⑤⑥⑦⑧⑨⑩])(?:[.)、]|\s)")
 ANSWER_ITEM = re.compile(r"^>\s*(\d+)\.\s+")
@@ -28,7 +37,27 @@ class AuditError:
         return f"{self.path}:{self.line}: {self.message}"
 
 
-def audit(path: Path) -> tuple[list[AuditError], list[str]]:
+def fenced_question_identifiers(path: Path) -> list[str]:
+    """Return source identifiers exactly as written inside quoted md fences."""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    identifiers: list[str] = []
+    in_question_fence = False
+    for line in lines:
+        if not in_question_fence and QUESTION_FENCE.match(line):
+            in_question_fence = True
+            continue
+        if in_question_fence and CLOSE_FENCE.match(line):
+            in_question_fence = False
+            continue
+        if not in_question_fence:
+            continue
+        match = QUESTION_IDENTIFIER.match(line)
+        if match:
+            identifiers.append(match.group("identifier"))
+    return identifiers
+
+
+def audit(path: Path, source: Path | None = None) -> tuple[list[AuditError], list[str]]:
     lines = path.read_text(encoding="utf-8").splitlines()
     errors: list[AuditError] = []
     advisories: list[str] = []
@@ -123,18 +152,39 @@ def audit(path: Path) -> tuple[list[AuditError], list[str]]:
                 f"{path}:{answer_line}: answer group has no indented sublist; review whether independent reasons need semantic nesting"
             )
 
+    if source is not None:
+        source_identifiers = fenced_question_identifiers(source)
+        output_identifiers = fenced_question_identifiers(path)
+        if source_identifiers != output_identifiers:
+            errors.append(
+                AuditError(
+                    path,
+                    1,
+                    "fenced question identifiers changed: "
+                    f"source={source_identifiers!r}, output={output_identifiers!r}",
+                )
+            )
+
     return errors, advisories
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="+", type=Path)
+    parser.add_argument(
+        "--source",
+        type=Path,
+        help="Original Markdown used to verify exact question and subquestion identifiers inside quoted md fences.",
+    )
     args = parser.parse_args()
+
+    if args.source is not None and len(args.paths) != 1:
+        parser.error("--source requires exactly one output path")
 
     errors: list[AuditError] = []
     advisories: list[str] = []
     for path in args.paths:
-        file_errors, file_advisories = audit(path)
+        file_errors, file_advisories = audit(path, args.source)
         errors.extend(file_errors)
         advisories.extend(file_advisories)
 
