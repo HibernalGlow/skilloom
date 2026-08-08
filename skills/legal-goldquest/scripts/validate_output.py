@@ -288,6 +288,36 @@ def table_block_has_large_list(block: list[tuple[int, list[str]]]) -> bool:
     return any(table_cell_has_large_list(cell) for _, cells in block for cell in cells)
 
 
+def table_block_is_simple_label_rule(block: list[tuple[int, list[str]]]) -> bool:
+    content_rows = [cells for _, cells in block if not is_table_separator(cells)]
+    if len(content_rows) < 2 or any(len(cells) != 2 for cells in content_rows):
+        return False
+    if any(MERGE_TOKEN_PATTERN.search(cell) for cells in content_rows for cell in cells):
+        return False
+    data_rows = content_rows[1:]
+    return all(
+        1 <= visible_length(cells[0]) <= 24
+        and visible_length(cells[1]) >= max(12, visible_length(cells[0]) + 4)
+        for cells in data_rows
+    )
+
+
+def table_block_content_is_preserved_as_label_rule_list(
+    source_block: list[tuple[int, list[str]]],
+    output_text: str,
+) -> bool:
+    if not table_block_is_simple_label_rule(source_block):
+        return False
+    normalized_output = normalized_table_content(output_text)
+    content_rows = [cells for _, cells in source_block if not is_table_separator(cells)]
+    for cells in content_rows[1:]:
+        for cell in cells:
+            fragment = normalized_table_content(cell)
+            if len(fragment) >= 2 and fragment not in normalized_output:
+                return False
+    return True
+
+
 def table_block_content_is_preserved_in_tables(
     source_block: list[tuple[int, list[str]]],
     output_blocks: list[list[tuple[int, list[str]]]],
@@ -897,10 +927,24 @@ def validate_source_preservation(text: str, source_text: str, profile: str) -> l
     source_tables = sum(len(block) for block in source_table_blocks)
     output_tables = sum(len(block) for block in output_table_blocks)
     preserves_table_content = table_cell_content_is_preserved(source_table_blocks, text)
+    preserves_label_rule_content = all(
+        table_block_content_is_preserved_as_label_rule_list(block, text)
+        or table_block_content_is_preserved_in_tables(block, output_table_blocks)
+        for block in source_table_blocks
+    )
     allows_structural_table_change = preserves_table_content and (
         len(output_table_blocks) > len(source_table_blocks)
         or all(
             table_block_has_large_list(block)
+            or table_block_content_is_preserved_in_tables(block, output_table_blocks)
+            for block in source_table_blocks
+        )
+    )
+    allows_structural_table_change = allows_structural_table_change or (
+        preserves_label_rule_content
+        and all(
+            table_block_is_simple_label_rule(block)
+            or table_block_has_large_list(block)
             or table_block_content_is_preserved_in_tables(block, output_table_blocks)
             for block in source_table_blocks
         )

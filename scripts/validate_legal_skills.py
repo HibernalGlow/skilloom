@@ -53,6 +53,7 @@ CONTRACTS = (
             ("20-整理", "siyuan_topic_manifest.py"),
             ("合并网格先行", "思源笔记表格语法"),
             ("单元格不承载大型列表", "思源笔记表格语法"),
+            ("单轴名称—说明表", "## Workflow"),
             ("转换列表继续过门禁", "思源笔记表格语法"),
             *SHARED_OUTPUT_GATE_RULES,
         ),

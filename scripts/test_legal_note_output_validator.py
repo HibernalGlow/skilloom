@@ -68,6 +68,42 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
         output = "# 新标题\n普通正文"
         self.assertTrue({"701", "702", "703", "704"} <= codes(output, source=source))
 
+    def test_accepts_simple_label_rule_table_converted_to_list(self) -> None:
+        source = """| 启动方式 | 具体规定 |
+| --- | --- |
+| 本院启动 | 院长认为裁判确有错误时，提交审判委员会讨论决定再审。 |
+| 上级法院启动 | 上级法院认为下级法院裁判确有错误时，有权启动再审。 |
+"""
+        output = """- **本院启动**
+    - 院长认为裁判确有错误时，提交审判委员会讨论决定再审。
+- **上级法院启动**
+    - 上级法院认为下级法院裁判确有错误时，有权启动再审。
+"""
+
+        self.assertNotIn("702", codes(output, source=source))
+
+    def test_rejects_label_rule_list_conversion_when_rule_is_missing(self) -> None:
+        source = """| 启动方式 | 具体规定 |
+| --- | --- |
+| 本院启动 | 院长认为裁判确有错误时，提交审判委员会讨论决定再审。 |
+| 上级法院启动 | 上级法院认为下级法院裁判确有错误时，有权启动再审。 |
+"""
+        output = "- **本院启动**\n    - 院长认为裁判确有错误时，提交审判委员会讨论决定再审。\n"
+
+        self.assertIn("702", codes(output, source=source))
+
+    def test_keeps_multi_axis_table_preservation_gate(self) -> None:
+        source = """| 启动方式 | 启动主体 | 处理方式 |
+| --- | --- | --- |
+| 本院启动 | 院长 | 提交审判委员会讨论 |
+| 上级法院启动 | 上级法院 | 直接启动再审 |
+"""
+        output = """- **本院启动**：院长提交审判委员会讨论。
+- **上级法院启动**：上级法院直接启动再审。
+"""
+
+        self.assertIn("702", codes(output, source=source))
+
     def test_rejects_numeric_only_heading_before_short_concept_definition(self) -> None:
         text = "### 1.\n\n六赃：六种非法获取公私财物的犯罪。\n"
 
