@@ -24,6 +24,11 @@ STYLED_TERM_PATTERN = re.compile(
 )
 ENUMERATION_PATTERN = re.compile(r"(?<![\w])(?:\d{1,2}[、.]|[（(]\d{1,2}[）)]|[①-⑳])")
 IMAGE_PATTERN = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+STATIC_VISUAL_PATTERN = re.compile(
+    r"!\[(?P<alt>[^\]]*(?:可视化|图解|流程图|关系图|决策图|时间线|diagram)[^\]]*)\]"
+    r"\((?P<target>[^)\s]+?\.(?:svg|png)(?:[?#][^)]*)?)\)",
+    re.IGNORECASE,
+)
 MERGE_TOKEN_PATTERN = re.compile(r"\{:\s*(?:colspan='\d+'|rowspan='\d+'|class='fn__none')\}")
 TABLE_ROW_PATTERN = re.compile(r"^\s*\|.*\|\s*$")
 TABLE_SEPARATOR_PATTERN = re.compile(r"^:?-{3,}:?$")
@@ -91,6 +96,18 @@ def prose_without_fenced_blocks(value: str) -> str:
             continue
         lines.append(line)
     return "\n".join(lines)
+
+
+def visual_families(value: str) -> set[str]:
+    """Return intentional SiYuan-compatible visual carriers present in Markdown."""
+    families: set[str] = set()
+    if re.search(r"(?m)^(?:\s*>\s*)?```mermaid\s*$", value):
+        families.add("mermaid")
+    if re.search(r"(?m)^(?:\s*>\s*)?```html\s*$", value):
+        families.add("html")
+    if STATIC_VISUAL_PATTERN.search(value):
+        families.add("static-image")
+    return families
 
 
 def split_table_cells(line: str) -> list[str]:
@@ -589,7 +606,7 @@ def validate_marknote_richness(text: str) -> list[Finding]:
     lines = text.splitlines()
     body_lines: list[str] = []
     in_fence = False
-    has_mermaid = False
+    visuals = visual_families(text)
     has_callout = False
     has_table = False
     has_subheading = False
@@ -599,8 +616,6 @@ def validate_marknote_richness(text: str) -> list[Finding]:
 
     for number, line in enumerate(lines, start=1):
         stripped = line.strip()
-        if stripped.startswith(("```mermaid", "> ```mermaid")):
-            has_mermaid = True
         if stripped.startswith(("```", "> ```")):
             in_fence = not in_fence
             continue
@@ -653,8 +668,8 @@ def validate_marknote_richness(text: str) -> list[Finding]:
     medium_complexity = body_length >= 160 or sentence_count >= 4 or branch_count >= 3
     if medium_complexity and len(auxiliary_styles) < 4:
         findings.append(Finding("E", "620", 1, "Medium-or-higher complexity MarkNote needs at least four auxiliary style families among highlight, italic, strikethrough, inline code, and underline."))
-    if medium_complexity and not has_mermaid:
-        findings.append(Finding("E", "624", 1, "Medium-or-higher complexity MarkNote needs a Mermaid diagram for its sequence, branches, or subject relations."))
+    if medium_complexity and not visuals:
+        findings.append(Finding("E", "624", 1, "Medium-or-higher complexity MarkNote needs one intentional SiYuan visual: editable Mermaid, a div-wrapped HTML block, or an SVG/PNG image whose alt text identifies it as a visualization."))
     structural_styles = {
         name
         for name, present in (
@@ -662,13 +677,13 @@ def validate_marknote_richness(text: str) -> list[Finding]:
             ("callout", has_callout),
             ("subheading", has_subheading),
             ("table", has_table),
-            ("mermaid", has_mermaid),
+            ("visual", bool(visuals)),
             ("divider", has_divider),
         )
         if present
     }
     if medium_complexity and len(structural_styles) < 4:
-        findings.append(Finding("E", "626", 1, "Medium-or-higher complexity MarkNote needs at least four structural families: nested list, Callout, subheading, table, Mermaid, or divider."))
+        findings.append(Finding("E", "626", 1, "Medium-or-higher complexity MarkNote needs at least four structural families: nested list, Callout, subheading, table, visual, or divider."))
     background_anchor_count = len(re.findall(r"b3-font-background(?:[2-9]|1[0-3])", body))
     if medium_complexity and background_anchor_count < 3:
         findings.append(Finding("E", "627", 1, "Medium-or-higher complexity MarkNote needs at least three short background-color anchors for visual hierarchy."))
@@ -869,13 +884,11 @@ def validate_goldquest(text: str) -> list[Finding]:
         has_analysis_callout = False
         has_analysis_subheading = False
         has_analysis_table = False
-        has_analysis_mermaid = False
+        analysis_visuals = visual_families(analysis_text)
         has_analysis_divider = False
         in_analysis_fence = False
         for number, line in enumerate(answer_lines, start=analysis_start + 1):
             stripped = line.strip()
-            if stripped.startswith(("```mermaid", "> ```mermaid")):
-                has_analysis_mermaid = True
             if stripped.startswith(("```", "> ```")):
                 in_analysis_fence = not in_analysis_fence
                 continue
@@ -932,8 +945,8 @@ def validate_goldquest(text: str) -> list[Finding]:
         medium_complexity = analysis_length >= 160 or branch_count >= 3 or analysis_sentence_count >= 4
         if medium_complexity and len(auxiliary_styles) < 4:
             findings.append(Finding("E", "620", analysis_start + 1, "Medium-or-higher complexity analysis needs at least four auxiliary style families among highlight, italic, strikethrough, inline code, and underline."))
-        if medium_complexity and not has_analysis_mermaid:
-            findings.append(Finding("E", "624", analysis_start + 1, "Medium-or-higher complexity analysis needs a Mermaid diagram that exposes its sequence, branches, or subject relations."))
+        if medium_complexity and not analysis_visuals:
+            findings.append(Finding("E", "624", analysis_start + 1, "Medium-or-higher complexity analysis needs one intentional SiYuan visual: editable Mermaid, a div-wrapped HTML block, or an SVG/PNG image whose alt text identifies it as a visualization."))
         structural_styles = {
             name
             for name, present in (
@@ -941,13 +954,13 @@ def validate_goldquest(text: str) -> list[Finding]:
                 ("callout", has_analysis_callout),
                 ("subheading", has_analysis_subheading),
                 ("table", has_analysis_table),
-                ("mermaid", has_analysis_mermaid),
+                ("visual", bool(analysis_visuals)),
                 ("divider", has_analysis_divider),
             )
             if present
         }
         if medium_complexity and len(structural_styles) < 4:
-            findings.append(Finding("E", "626", analysis_start + 1, "Medium-or-higher complexity analysis needs at least four structural families: nested list, Callout, subheading, table, Mermaid, or divider."))
+            findings.append(Finding("E", "626", analysis_start + 1, "Medium-or-higher complexity analysis needs at least four structural families: nested list, Callout, subheading, table, visual, or divider."))
         background_anchor_count = len(re.findall(r"b3-font-background(?:[2-9]|1[0-3])", analysis_text))
         if medium_complexity and background_anchor_count < 3:
             findings.append(Finding("E", "627", analysis_start + 1, "Medium-or-higher complexity analysis needs at least three short background-color anchors for strong visual hierarchy."))

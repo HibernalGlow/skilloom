@@ -303,7 +303,7 @@ flowchart LR
 
         self.assertIn("622", codes(text))
 
-    def test_requires_mermaid_for_medium_complexity(self) -> None:
+    def test_requires_an_intentional_visual_for_medium_complexity(self) -> None:
         text = f"""##### 1.
 * 题干。
 {ANSWER_BLOCK}
@@ -327,6 +327,34 @@ flowchart LR
 flowchart LR
     A[资格欠缺] --> B[已经受理] --> C[驳回起诉]
 ```
+"""
+
+        self.assertNotIn("624", codes(text))
+
+    def test_accepts_div_wrapped_html_for_medium_complexity(self) -> None:
+        text = f"""##### 1.
+* 题干。
+{ANSWER_BLOCK}
+- **条件**{{: style="color: var(--b3-font-color12);"}}
+    - **主体**{{: style="color: var(--b3-font-color10);"}}资格欠缺。
+    - **阶段**{{: style="color: var(--b3-font-color11);"}}已经受理。
+    - **后果**{{: style="color: var(--b3-font-color8);"}}驳回起诉。
+> ```html
+> <div class="legal-visual"><span>资格</span><span>→</span><span>驳回</span></div>
+> ```
+"""
+
+        self.assertNotIn("624", codes(text))
+
+    def test_accepts_labeled_static_png_for_medium_complexity(self) -> None:
+        text = f"""##### 1.
+* 题干。
+{ANSWER_BLOCK}
+- **条件**{{: style="color: var(--b3-font-color12);"}}
+    - **主体**{{: style="color: var(--b3-font-color10);"}}资格欠缺。
+    - **阶段**{{: style="color: var(--b3-font-color11);"}}已经受理。
+    - **后果**{{: style="color: var(--b3-font-color8);"}}驳回起诉。
+![裁判路径图解](assets/judgment-path.png)
 """
 
         self.assertNotIn("624", codes(text))
