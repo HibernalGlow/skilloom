@@ -214,7 +214,7 @@ class RichPresentationValidationTests(unittest.TestCase):
         text = "甲应当向法院提交全部证据并在法定期间内完成举证，否则将承担不利后果，且不得在庭审结束后再次补交同一组证明材料。"
         self.assertIn("621", {finding.code for finding in MODULE.validate_text(text, "legal-marknote")})
 
-    def test_medium_marknote_requires_mermaid(self) -> None:
+    def test_medium_marknote_requires_an_intentional_visual(self) -> None:
         text = "\n".join([
             "### 规则",
             "**甲**{: style=\"color: var(--b3-font-color10);\"}提出申请。",
@@ -224,6 +224,32 @@ class RichPresentationValidationTests(unittest.TestCase):
             "  - **甲**{: style=\"color: var(--b3-font-color10);\"}补正。",
         ])
         self.assertIn("624", {finding.code for finding in MODULE.validate_text(text, "legal-marknote")})
+
+    def test_medium_marknote_accepts_div_wrapped_html_visual(self) -> None:
+        text = "\n".join([
+            "### 规则",
+            "**甲**{: style=\"color: var(--b3-font-color10);\"}提出申请。",
+            "- **受理**{: style=\"background-color: var(--b3-font-background11);\"}",
+            "  - **法院**{: style=\"color: var(--b3-font-color8);\"}审查材料。",
+            "- **不受理**{: style=\"color: var(--b3-font-color13);\"}",
+            "  - **甲**{: style=\"color: var(--b3-font-color10);\"}补正。",
+            "> ```html",
+            "> <div class=\"legal-visual\"><span>申请</span><span>→</span><span>审查</span></div>",
+            "> ```",
+        ])
+        self.assertNotIn("624", {finding.code for finding in MODULE.validate_text(text, "legal-marknote")})
+
+    def test_medium_marknote_accepts_labeled_static_svg_visual(self) -> None:
+        text = "\n".join([
+            "### 规则",
+            "**甲**{: style=\"color: var(--b3-font-color10);\"}提出申请。",
+            "- **受理**{: style=\"background-color: var(--b3-font-background11);\"}",
+            "  - **法院**{: style=\"color: var(--b3-font-color8);\"}审查材料。",
+            "- **不受理**{: style=\"color: var(--b3-font-color13);\"}",
+            "  - **甲**{: style=\"color: var(--b3-font-color10);\"}补正。",
+            "![申请审查流程图](assets/application-review.svg)",
+        ])
+        self.assertNotIn("624", {finding.code for finding in MODULE.validate_text(text, "legal-marknote")})
 
     def test_medium_marknote_requires_four_auxiliary_styles(self) -> None:
         text = "\n".join([

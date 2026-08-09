@@ -207,6 +207,44 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 
         self.assertNotIn("705", codes(text, "legal-goldquest"))
 
+    def test_medium_marknote_accepts_div_wrapped_html_visual(self) -> None:
+        text = """### 程序
+**申请人**{: style="color: var(--b3-font-color10);"}提出申请。
+- **受理**{: style="background-color: var(--b3-font-background11);"}
+    - **法院**{: style="color: var(--b3-font-color8);"}审查。
+- **驳回**{: style="background-color: var(--b3-font-background13);"}
+    - **申请人**{: style="color: var(--b3-font-color10);"}补正。
+> ```html
+> <div class="legal-visual"><strong>申请</strong><span>→</span><strong>审查</strong></div>
+> ```
+"""
+
+        self.assertNotIn("624", codes(text))
+
+    def test_medium_marknote_accepts_labeled_static_svg_visual(self) -> None:
+        text = """### 程序
+**申请人**{: style="color: var(--b3-font-color10);"}提出申请。
+- **受理**{: style="background-color: var(--b3-font-background11);"}
+    - **法院**{: style="color: var(--b3-font-color8);"}审查。
+- **驳回**{: style="background-color: var(--b3-font-background13);"}
+    - **申请人**{: style="color: var(--b3-font-color10);"}补正。
+![申请审查流程图](assets/application-review.svg)
+"""
+
+        self.assertNotIn("624", codes(text))
+
+    def test_ordinary_png_does_not_satisfy_visual_gate(self) -> None:
+        text = """### 程序
+**申请人**{: style="color: var(--b3-font-color10);"}提出申请。
+- **受理**{: style="background-color: var(--b3-font-background11);"}
+    - **法院**{: style="color: var(--b3-font-color8);"}审查。
+- **驳回**{: style="background-color: var(--b3-font-background13);"}
+    - **申请人**{: style="color: var(--b3-font-color10);"}补正。
+![教材截图](assets/source-page.png)
+"""
+
+        self.assertIn("624", codes(text))
+
     def test_rejects_goldquest_answer_leak_and_checked_option(self) -> None:
         text = """##### 1题
 * 题干含==正确答案==
