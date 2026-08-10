@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from audit_heading_promotions import audit_heading_promotions  # noqa: E402
 
 
-def codes(source: str, output: str, minimum_added_level: int = 4) -> set[str]:
+def codes(source: str, output: str, minimum_added_level: int = 3) -> set[str]:
     return {
         finding.code
         for finding in audit_heading_promotions(
@@ -47,11 +47,16 @@ class HeadingPromotionAuditTests(unittest.TestCase):
     def test_rejects_removed_or_releveled_original_heading(self) -> None:
         source = "# 民事诉讼\n## 既判力\n### 概念\n"
         output = "# 民事诉讼\n### 既判力\n#### 概念\n"
-        self.assertTrue({"701", "703", "702"} <= codes(source, output))
+        self.assertTrue({"701", "703"} <= codes(source, output))
 
-    def test_rejects_new_high_level_heading(self) -> None:
+    def test_accepts_h3_classification_below_existing_h2(self) -> None:
         source = "# 民事诉讼\n## 既判力\n"
         output = "# 民事诉讼\n## 既判力\n### 新增大标题\n"
+        self.assertNotIn("702", codes(source, output))
+
+    def test_rejects_new_h2_peer_below_document_root(self) -> None:
+        source = "# 民事诉讼\n"
+        output = "# 民事诉讼\n## 新增大标题\n"
         self.assertIn("702", codes(source, output))
 
     def test_ignores_headings_inside_code_fences_and_quotes(self) -> None:
