@@ -7,6 +7,7 @@ import argparse
 import json
 import re
 import sys
+from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -142,7 +143,7 @@ def style_families(value: str) -> set[str]:
         families.add("strike")
     if re.search(r"(?<!`)`[^`\n]+`(?!`)", value):
         families.add("code")
-    if re.search(r"text-decoration\s*:\s*underline|<u>.+?</u>", value):
+    if re.search(r"text-decoration\s*:\s*underline|<u(?:\s[^>]*)?>.+?</u>", value, re.IGNORECASE):
         families.add("underline")
     if COLOR_ATTRIBUTE_PATTERN.search(value):
         families.add("color")
@@ -189,8 +190,27 @@ def validate_emphasis_syntax(text: str) -> list[Finding]:
 
 def validate_colors(text: str) -> list[Finding]:
     findings: list[Finding] = []
+    bad_underlines = list(
+        re.finditer(
+            r"</u>\s*\{:\s*style=\"(?P<style>[^\"]*b3-font-(?:color|background)[^\"]*)\"\s*\}",
+            text,
+            re.IGNORECASE,
+        )
+    )
+    bad_style_starts = {match.start("style") for match in bad_underlines}
+    for match in bad_underlines:
+        findings.append(
+            Finding(
+                "E",
+                "205",
+                line_for_offset(text, match.start()),
+                "Keep colored underline styling inside <u style=\"...\">text</u>; a style IAL after </u> is invalid.",
+            )
+        )
     for match in COLOR_ATTRIBUTE_PATTERN.finditer(text):
         prefix = text[max(0, match.start() - 240):match.start()]
+        if match.start(1) in bad_style_starts:
+            continue
         if not re.search(r"\*\*[^*\n]+\*\*$", prefix):
             findings.append(Finding("E", "201", line_for_offset(text, match.start()), "SiYuan foreground/background color style must attach directly to bold text."))
         numbers = [int(value) for value in re.findall(r"b3-font-(?:color|background)(\d+)", match.group(1))]
@@ -989,7 +1009,31 @@ def validate_goldquest(text: str) -> list[Finding]:
     return findings
 
 
-def validate_source_preservation(text: str, source_text: str, profile: str) -> list[Finding]:
+def normalize_source_heading(title: str) -> str:
+    title = re.sub(r"\{:[^}]+\}", "", title)
+    title = re.sub(r"!\[([^]]*)\]\([^)]*\)", r"\1", title)
+    title = re.sub(r"[`*_~=]", "", title)
+    title = re.sub(r"(?<=\d)\s*(?=[\u3400-\u9fff])", " ", title)
+    title = re.sub(r"\s+", " ", title).strip()
+    return re.sub(r"\s*[:：]\s*$", "", title)
+
+
+def is_repairable_source_heading(title: str) -> bool:
+    normalized = normalize_source_heading(title)
+    compact = re.sub(r"\s+", "", normalized)
+    return bool(
+        re.fullmatch(r"(?:\d+[.、]?|[（(]?\d+[）)]|[①-⑳])", compact)
+        or re.fullmatch(r"例\s*\d+", normalized)
+        or normalized in {"热点"}
+    )
+
+
+def validate_source_preservation(
+    text: str,
+    source_text: str,
+    profile: str,
+    allow_structural_repair: bool = False,
+) -> list[Finding]:
     findings: list[Finding] = []
     for image in IMAGE_PATTERN.findall(source_text):
         if image not in IMAGE_PATTERN.findall(text):
@@ -1027,13 +1071,29 @@ def validate_source_preservation(text: str, source_text: str, profile: str) -> l
         if text.count(token) < source_text.count(token) and not allows_structural_table_change:
             findings.append(Finding("E", "703", 1, f"Source SiYuan table merge token was not preserved: {token}"))
     if profile == "legal-marknote":
+        output_headings = [
+            normalize_source_heading(heading)
+            for heading in re.findall(r"^#{1,6}\s+(.+?)\s*$", text, re.MULTILINE)
+        ]
+        remaining = Counter(output_headings)
         for heading in re.findall(r"^#{1,6}\s+(.+?)\s*$", source_text, re.MULTILINE):
-            if heading not in text:
+            normalized = normalize_source_heading(heading)
+            if remaining[normalized]:
+                remaining[normalized] -= 1
+            elif allow_structural_repair and is_repairable_source_heading(heading):
+                continue
+            else:
                 findings.append(Finding("E", "704", 1, f"Source heading was not preserved: {heading}"))
     return findings
 
 
-def validate_text(text: str, profile: str, source_text: str | None = None, require_note_topic: bool = False) -> list[Finding]:
+def validate_text(
+    text: str,
+    profile: str,
+    source_text: str | None = None,
+    require_note_topic: bool = False,
+    allow_structural_repair: bool = False,
+) -> list[Finding]:
     findings = []
     findings.extend(validate_highlights(text))
     findings.extend(validate_emphasis_syntax(text))
@@ -1073,7 +1133,7 @@ def validate_text(text: str, profile: str, source_text: str | None = None, requi
         findings.extend(validate_goldquest_table_size(text))
         findings.extend(validate_goldquest(text))
     if source_text is not None:
-        findings.extend(validate_source_preservation(text, source_text, profile))
+        findings.extend(validate_source_preservation(text, source_text, profile, allow_structural_repair))
     return sorted(findings, key=lambda finding: (finding.line, finding.level != "E", finding.code))
 
 
@@ -1092,6 +1152,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--require-source", action="store_true", help="Fail when --source is omitted.")
     parser.add_argument("--strict", action="store_true", help="Treat advisory warnings as gate failures.")
     parser.add_argument("--require-topic-ial", action="store_true", help="Require at least one MarkNote note-topic provider declaration.")
+    parser.add_argument(
+        "--allow-structural-repair",
+        action="store_true",
+        help="Allow recognized source shell headings to be repaired or demoted while preserving substantive headings.",
+    )
     parser.add_argument("--format", choices=("text", "json"), default="text")
     return parser.parse_args()
 
@@ -1106,7 +1171,13 @@ def main() -> int:
         return 1
     text = args.output.read_text(encoding="utf-8")
     source_text = args.source.read_text(encoding="utf-8") if args.source else None
-    findings = validate_text(text, args.profile, source_text, args.require_topic_ial)
+    findings = validate_text(
+        text,
+        args.profile,
+        source_text,
+        args.require_topic_ial,
+        args.allow_structural_repair,
+    )
     if args.format == "json":
         print(json.dumps([asdict(finding) for finding in findings], ensure_ascii=False, indent=2))
     elif findings:

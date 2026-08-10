@@ -10,8 +10,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from legal_note_output_validator import validate_text  # noqa: E402
 
 
-def codes(text: str, profile: str = "legal-marknote", source: str | None = None) -> set[str]:
-    return {finding.code for finding in validate_text(text, profile, source)}
+def codes(
+    text: str,
+    profile: str = "legal-marknote",
+    source: str | None = None,
+    *,
+    allow_structural_repair: bool = False,
+) -> set[str]:
+    return {
+        finding.code
+        for finding in validate_text(
+            text,
+            profile,
+            source,
+            allow_structural_repair=allow_structural_repair,
+        )
+    }
 
 
 class LegalNoteOutputValidatorTests(unittest.TestCase):
@@ -58,6 +72,16 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
         text = "<em>轻旁注</em>与**关键结论**。"
 
         self.assertFalse({"104", "105"} & codes(text))
+
+    def test_accepts_colored_underline_inside_tag(self) -> None:
+        text = '**重点**{: style="color: var(--b3-font-color10);"}：<u style="color: var(--b3-font-color11);">短语</u>'
+
+        self.assertNotIn("205", codes(text))
+
+    def test_rejects_external_style_ial_after_underline(self) -> None:
+        text = '**重点**{: style="color: var(--b3-font-color10);"}：<u>短语</u>{: style="color: var(--b3-font-color11);"}'
+
+        self.assertIn("205", codes(text))
 
     def test_ignores_emphasis_examples_in_code_and_question_fences(self) -> None:
         text = "`*foo* _foo_ __foo__`\n> ```md\n> *原题字符*\n> ```"
@@ -132,6 +156,22 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
         source = "# 原标题\n![](assets/a.png)\n| {: colspan='2'}内容 | 空格 |"
         output = "# 新标题\n普通正文"
         self.assertTrue({"701", "702", "703", "704"} <= codes(output, source=source))
+
+    def test_source_shell_headings_need_explicit_repair_mode(self) -> None:
+        source = "# 商法\n### 热点\n##### 1.\n正文\n#### 例1：\n例子\n"
+        output = "# 商法\n正文\n例子\n"
+
+        self.assertIn("704", codes(output, source=source))
+        self.assertNotIn(
+            "704",
+            codes(output, source=source, allow_structural_repair=True),
+        )
+
+    def test_source_heading_spacing_and_trailing_colon_are_normalized(self) -> None:
+        source = "# 商法\n### 3出资责任：\n"
+        output = "# 商法\n#### 3 出资责任\n"
+
+        self.assertNotIn("704", codes(output, source=source))
 
     def test_accepts_simple_label_rule_table_converted_to_list(self) -> None:
         source = """| 启动方式 | 具体规定 |
