@@ -19,6 +19,7 @@ Use this skill only after the user explicitly invokes `$damophus-dev`. Treat the
 - Keep SiYuan kernel calls, Attribute Views, Riff, and plugin data APIs in adapters.
 - Keep Svelte thin: render state, collect input, dispatch typed events, and own only transient presentation state.
 - Keep each module's user-facing appearance in one module-owned contract. Declare a semantic icon key once, resolve it through surface adapters for SiYuan symbol IDs and Lucide/Svelte components, and make settings, menus, Docks, and tabs consume that same declaration. For icon changes, use Browser Mode to verify the rendered settings icon and ensure registered module icons remain distinct.
+- Register centrally managed entry surfaces through the shared entry declaration instead of duplicating desktop Dock, mobile Dock, plugin menu, command, or tab switches inside module settings. The central entry page must render only declared capabilities, preserve existing storage keys, and never hide or reconfigure a SiYuan-native surface that the module does not own.
 - Preserve the boundary between question content, immutable attempt history, derived statistics, recoverable session state, and question-set assembly.
 - Existing question content is read-only by default. Mutate metadata or records only when the request authorizes it.
 - For cross-document assembly, consume the exported blueprint and frozen question queue contracts. The user currently permits edits to `assembly/**`, but preserve its public interfaces and coordinate shared-file changes explicitly.
