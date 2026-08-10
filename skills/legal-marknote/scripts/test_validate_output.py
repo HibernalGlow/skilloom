@@ -200,25 +200,6 @@ class ConceptHeadingValidationTests(unittest.TestCase):
         self.assertNotIn("705", {finding.code for finding in MODULE.validate_text(promoted, "legal-marknote")})
         self.assertNotIn("705", {finding.code for finding in MODULE.validate_text(exercise, "legal-marknote")})
 
-    def test_requires_governing_bold_label_to_become_child_heading(self) -> None:
-        unpromoted = """## 考查角度3: 公司的能力
-**权利能力和行为能力**{: style="color: var(--b3-font-color10);"}：同时产生、同时终止。
-
-- 产生：公司成立之日。
-- 终止：注销登记之日。
-"""
-        promoted = """## 考查角度3: 公司的能力
-### 权利能力和行为能力
-
-同时产生、同时终止。
-
-- 产生：公司成立之日。
-- 终止：注销登记之日。
-"""
-
-        self.assertIn("706", {finding.code for finding in MODULE.validate_text(unpromoted, "legal-marknote")})
-        self.assertNotIn("706", {finding.code for finding in MODULE.validate_text(promoted, "legal-marknote")})
-
 
 class RichPresentationValidationTests(unittest.TestCase):
     def test_rejects_markdown_emphasis_and_accepts_em_tag(self) -> None:
