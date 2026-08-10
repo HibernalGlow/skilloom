@@ -202,6 +202,13 @@ class ConceptHeadingValidationTests(unittest.TestCase):
 
 
 class RichPresentationValidationTests(unittest.TestCase):
+    def test_rejects_markdown_emphasis_and_accepts_em_tag(self) -> None:
+        rejected = "*星号斜体*\n_下划线斜体_\n__下划线加粗__"
+        accepted = "<em>轻旁注</em>与**关键结论**。"
+
+        self.assertTrue({"104", "105"} <= {finding.code for finding in MODULE.validate_text(rejected, "legal-marknote")})
+        self.assertFalse({"104", "105"} & {finding.code for finding in MODULE.validate_text(accepted, "legal-marknote")})
+
     def test_accepts_bold_background_only_anchor(self) -> None:
         text = '**诉讼中**{: style="background-color: var(--b3-font-background11);"}'
         self.assertNotIn("201", {finding.code for finding in MODULE.validate_colors(text)})
@@ -270,7 +277,7 @@ class RichPresentationValidationTests(unittest.TestCase):
             "### 规则",
             "**甲**{: style=\"background-color: var(--b3-font-background10);\"}提出申请。",
             "- ==受理==并审查。",
-            "  - _法院_作出判断。",
+            "  - <em>法院</em>作出判断。",
             "- ~~错误路径~~应排除。",
             "  - `期限`届满后处理。",
             "```mermaid",

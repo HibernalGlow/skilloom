@@ -26,6 +26,15 @@ def codes(text: str) -> set[str]:
 
 
 class GoldquestDensityValidationTests(unittest.TestCase):
+    def test_rejects_markdown_emphasis_and_accepts_em_tag(self) -> None:
+        rejected = "*星号斜体*\n_下划线斜体_\n__下划线加粗__"
+        accepted = "<em>轻旁注</em>与**关键结论**。"
+        rejected_codes = {finding.code for finding in MODULE.validate_text(rejected, "legal-goldquest")}
+        accepted_codes = {finding.code for finding in MODULE.validate_text(accepted, "legal-goldquest")}
+
+        self.assertTrue({"104", "105"} <= rejected_codes)
+        self.assertFalse({"104", "105"} & accepted_codes)
+
     def test_rejects_three_uncolored_analysis_sentences(self) -> None:
         text = (
             f"##### 1.\n* 题干。\n{ANSWER_BLOCK}\n"
@@ -202,7 +211,7 @@ class GoldquestDensityValidationTests(unittest.TestCase):
 **规则**{{: style="color: var(--b3-font-color10);"}}适用于本案，先审查主体资格，再判断程序阶段，最后确定裁判方式。
 **条件**{{: style="color: var(--b3-font-color12);"}}要求案件已经受理，并且法院是在受理之后才发现起诉条件欠缺。
 **后果**{{: style="color: var(--b3-font-color8);"}}是裁定==驳回起诉==，而不是~~不予受理~~。
-*复习时*还要核对`有明确的被告`，并区分**程序轴**{{: style="text-decoration: underline;"}}。
+<em>复习时</em>还要核对`有明确的被告`，并区分**程序轴**{{: style="text-decoration: underline;"}}。
 """
 
         self.assertNotIn("620", codes(text))
@@ -212,7 +221,7 @@ class GoldquestDensityValidationTests(unittest.TestCase):
 * 题干。
 {ANSWER_BLOCK}
 **规则**{{: style="color: var(--b3-font-color10);"}}用于判断==程序结果==。
-*复习时*应排除~~实体结论~~。
+<em>复习时</em>应排除~~实体结论~~。
 **条件**{{: style="color: var(--b3-font-color12);"}}需要继续核对。
 **后果**{{: style="color: var(--b3-font-color8);"}}最终确定裁判方式。
 """
@@ -224,7 +233,7 @@ class GoldquestDensityValidationTests(unittest.TestCase):
 * 题干。
 {ANSWER_BLOCK}
 - **条件**{{: style="color: var(--b3-font-color12);"}}
-    - *先看*`主体资格`。
+    - <em>先看</em>`主体资格`。
     - ~~排除实体判断~~。
     - 最终==驳回起诉==。
 ```mermaid
@@ -240,7 +249,7 @@ flowchart LR
 * 题干。
 {ANSWER_BLOCK}
 - **条件**{{: style="color: var(--b3-font-color12);"}}
-    - *先看*`主体资格`。
+    - <em>先看</em>`主体资格`。
     - ~~排除实体判断~~。
     - 最终==驳回起诉==。
 ```mermaid
