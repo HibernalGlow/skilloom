@@ -32,6 +32,10 @@ Display numbers may change after an insertion. Stable IDs must not.
 
 Topic IDs use the same lowercase ASCII kebab-case value across both directions. `custom-qb-note-topic-id` means a normal note block provides material for one topic. `custom-qb-question-topic-ids` means a question references one or more topics. Attribute names carry the direction; no role field is involved.
 
+## Granularity Gate
+
+Use `custom-qb-note-topic-parent-id` on a finer provider to explicitly declare its parent topic. The parent provider must exist in the scanned corpus. Questions must reference leaf providers; referencing a parent that has children fails `scripts/audit_topic_granularity.py`. A question may use `custom-qb-topic-granularity-exception="reason"` only when review confirms that no finer reusable point exists. The exception reason is required and is not a substitute for semantic review. Never infer hierarchy from an ID prefix.
+
 ## Answer Rules
 
 - `single`: one original option ID, for example `A`.

@@ -14,6 +14,7 @@ description: 将法考客观题和主观题整理为可被 Damophus 思源题库
 3. 写入或补齐本技能定义的 IAL；不得改动现有稳定 ID。只有在原 ID 明显错误且用户明确同意时才迁移，并记录旧 ID。
 4. 客观题作答区只放题干和选项。答案、解析结论、状态色、高亮和答案遮罩都从 `custom-qb-section="solution"` 起开始出现。
 5. 在提交前运行 `python -X utf8 scripts/validate_question_bank.py <output.md> --strict`。有原始文件时追加 `--source <source.md> --require-source`。
+6. 在提交前运行考点颗粒度门禁：`python -X utf8 scripts/audit_topic_granularity.py <question-or-note-path> --strict`。该门禁要求题目引用最细考点；只有确实没有更细考点时，才允许使用带理由的例外属性。
 
 ## Source Contract
 
@@ -27,6 +28,7 @@ description: 将法考客观题和主观题整理为可被 Damophus 思源题库
 ```
 
 - `custom-qb-note-topic-id` 只用于 MarkNote 等普通笔记提供方；一个块只提供一个考点，可以在不同笔记中重复。
+- 当一个提供方是更细考点时，在同一 IAL 中声明 `custom-qb-note-topic-parent-id="parent-topic-id"`。父 ID 必须是另一个专题/考点提供方的 `custom-qb-note-topic-id`；没有子考点的提供方不需要写该属性。
 - 题库题目不继承该属性。题目使用 `custom-qb-question-topic-ids` 显式引用一个或多个 Topic Index 稳定 ID。
 - 两种属性通过相同 ID 值关联，但不使用 `custom-qb-role` 判断方向。
 
@@ -41,6 +43,7 @@ description: 将法考客观题和主观题整理为可被 Damophus 思源题库
 
 - `custom-qb-id` 全库唯一、稳定、仅使用小写 ASCII 字母、数字和连字符。
 - `custom-qb-question-topic-ids` 必填；使用英文逗号分隔一个或多个小写 ASCII kebab-case ID，不得重复。
+- 题目必须引用最细考点。若某个被引用 ID 是其他提供方的父考点，必须改为引用子考点；只有确实没有更细考点时，才可在题目 IAL 中写 `custom-qb-topic-granularity-exception="简短且具体的理由"`，并在审计记录中保留该理由。
 - `custom-qb-type` 只能为 `single`、`multiple`、`true-false` 或 `subjective`。
 - `single` 必须有一个 `custom-qb-answer` 选项 ID；`multiple` 必须用英文逗号列出至少两个选项 ID；`true-false` 使用 `true` 或 `false`；`subjective` 不写 `custom-qb-answer`。
 - 选项身份优先通过 `A.`、`A、`、`（A）` 或任务列表前缀识别。不要为普通选项逐项写 IAL。
@@ -98,5 +101,6 @@ description: 将法考客观题和主观题整理为可被 Damophus 思源题库
 - 不要根据选项顺序推断答案；答案始终引用原始选项 ID。
 - 不要为同步而重写正文层级、移动块、删除材料或生成独立错题文档。
 - 新输出不要使用 `custom-qb-role`、`custom-qb-topic-id` 或 `custom-qb-topic-ids`；旧属性只能作为迁移输入并必须给出转换预览。
+- 不要用 ID 字符串前缀臆测父子关系；父子关系必须通过 `custom-qb-note-topic-parent-id` 显式声明。
 
 阅读 [references/question-contract.md](references/question-contract.md) 以处理旧稿迁移、异常选项和与未来网站的兼容约束。
