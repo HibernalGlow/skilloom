@@ -59,11 +59,6 @@ SHORT_CONCEPT_DEFINITION_PATTERN = re.compile(
 EXERCISE_REGION_PATTERN = re.compile(r"(?:习题|试一试|练习题|真题)")
 EXERCISE_CONTINUATION_PATTERN = re.compile(r"^(?:答案与解析|回答与解析)[：:]?$")
 NON_CONCEPT_LABELS = {"答案", "回答", "解析", "问题", "题目", "示例", "例题", "注意", "提示"}
-CLASSIFICATION_LEAD_PATTERN = re.compile(
-    r'^\s*\*\*(?P<title>[^*\n]{2,24})\*\*'
-    r'(?:\{:\s*style="[^"]*"\})?\s*[：:]\s*(?P<body>.*)$'
-)
-NON_HEADING_CLASSIFICATION_LABELS = NON_CONCEPT_LABELS | {"必考", "结论", "正确答案", "错误答案"}
 
 
 @dataclass(frozen=True)
@@ -777,40 +772,6 @@ def validate_concept_headings(text: str, profile: str) -> list[Finding]:
             )
         )
 
-    in_fence = False
-    for index, line in enumerate(lines):
-        if re.match(r"^(?:\s*>\s*)?```", line):
-            in_fence = not in_fence
-            continue
-        if in_fence or line.startswith((" ", "\t", ">", "|")):
-            continue
-        classification = CLASSIFICATION_LEAD_PATTERN.fullmatch(line.strip())
-        if not classification:
-            continue
-        title = re.sub(r"[`~=]", "", classification.group("title")).strip()
-        if title in NON_HEADING_CLASSIFICATION_LABELS or visible_length(title) > 16:
-            continue
-
-        cursor = index + 1
-        while cursor < len(lines) and (not lines[cursor].strip() or IAL_PATTERN.fullmatch(lines[cursor].strip())):
-            cursor += 1
-        if cursor >= len(lines):
-            continue
-        child = lines[cursor]
-        if not (
-            re.match(r"^(?:[-*]\s+|\d+[.、]\s+)", child)
-            or TABLE_ROW_PATTERN.match(child)
-            or re.match(r"^>\s*(?:\[!|```)", child)
-        ):
-            continue
-        findings.append(
-            Finding(
-                "E",
-                "706",
-                index + 1,
-                f"Top-level classification label '{title}' governs following blocks; promote it to the next heading level and move text after the colon into its own paragraph.",
-            )
-        )
     return findings
 
 
