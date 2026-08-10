@@ -70,7 +70,7 @@ def audit_heading_promotions(
     source_text: str,
     output_text: str,
     *,
-    minimum_added_level: int = 4,
+    minimum_added_level: int = 3,
 ) -> list[Finding]:
     """Ensure source headings are preserved and additions stay at lower levels."""
 
@@ -155,9 +155,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--minimum-added-level",
         type=int,
-        default=4,
+        default=3,
         choices=range(2, 7),
-        help="Lowest allowed level for added headings; defaults to H4.",
+        help="Lowest allowed level for added headings; defaults to H3 so an H2 topic may gain H3 classifications.",
     )
     parser.add_argument("--strict", action="store_true", help="Treat outline warnings as failures.")
     parser.add_argument("--format", choices=("text", "json"), default="text")

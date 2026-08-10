@@ -206,6 +206,38 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 
         self.assertNotIn("705", codes(text))
 
+    def test_rejects_bold_classification_label_that_governs_a_list(self) -> None:
+        text = """## 考查角度3: 公司的能力
+**权利能力和行为能力**{: style="color: var(--b3-font-color10);"}：同时产生、同时终止。
+
+- 产生：公司成立之日。
+- 终止：注销登记之日。
+"""
+
+        self.assertIn("706", codes(text))
+
+    def test_accepts_classification_promoted_below_h2(self) -> None:
+        text = """## 考查角度3: 公司的能力
+### 权利能力和行为能力
+
+同时产生、同时终止。
+
+- 产生：公司成立之日。
+- 终止：注销登记之日。
+"""
+
+        self.assertNotIn("706", codes(text))
+
+    def test_does_not_promote_local_signal_label(self) -> None:
+        text = """## 考查角度
+**结论**：记住以下两点。
+
+- 第一项。
+- 第二项。
+"""
+
+        self.assertNotIn("706", codes(text))
+
     def test_keeps_exercise_counter_heading_without_question_stem(self) -> None:
         text = """###### 习题
 ### 1.
