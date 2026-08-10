@@ -136,7 +136,7 @@ def style_families(value: str) -> set[str]:
         families.add("bold")
     if HIGHLIGHT_PATTERN.search(value):
         families.add("highlight")
-    if re.search(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", value) or re.search(r"_(.+?)_", value):
+    if re.search(r"<em(?:\s[^>]*)?>[\s\S]+?</em>", value, re.IGNORECASE):
         families.add("italic")
     if re.search(r"~~[^~\n]+~~", value):
         families.add("strike")
@@ -163,6 +163,27 @@ def validate_highlights(text: str) -> list[Finding]:
     for number, line in enumerate(text.splitlines(), start=1):
         if "\\=" in line:
             findings.append(Finding("E", "103", number, "Do not escape equals signs in highlight syntax."))
+    return findings
+
+
+def validate_emphasis_syntax(text: str) -> list[Finding]:
+    findings: list[Finding] = []
+    in_fence = False
+    asterisk_italic = re.compile(r"(?<!\*)\*(?![\s*])[^*\n]*?\S\*(?!\*)")
+    underscore_italic = re.compile(r"(?<![\w_])_(?![_\s])[^_\n]*?\S_(?![\w_])")
+    underscore_bold = re.compile(r"(?<!_)__(?![_\s])[^_\n]*?\S__(?!_)")
+
+    for number, line in enumerate(text.splitlines(), start=1):
+        if re.match(r"^(?:\s*>\s*)?```", line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        searchable = re.sub(r"(?<!`)`[^`\n]+`(?!`)", "", line)
+        if underscore_bold.search(searchable):
+            findings.append(Finding("E", "105", number, "Double-underscore bold is disabled; use **text** for bold."))
+        if asterisk_italic.search(searchable) or underscore_italic.search(searchable):
+            findings.append(Finding("E", "104", number, "Markdown italic markers are disabled; use <em>text</em> sparingly."))
     return findings
 
 
@@ -1014,6 +1035,7 @@ def validate_source_preservation(text: str, source_text: str, profile: str) -> l
 def validate_text(text: str, profile: str, source_text: str | None = None, require_note_topic: bool = False) -> list[Finding]:
     findings = []
     findings.extend(validate_highlights(text))
+    findings.extend(validate_emphasis_syntax(text))
     findings.extend(validate_colors(text))
     findings.extend(validate_callouts_and_fences(text))
     allowed_list_cells = {

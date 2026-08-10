@@ -23,7 +23,7 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
             "| 审查 | 规则 | 结果 |\n"
             "| :--- | :--- | :--- |\n"
             "| 主体 | **资格**{: style=\"color: var(--b3-font-color10);\"} | ==适格==。 |\n"
-            "| 后果 | **责任**{: style=\"color: var(--b3-font-color13);\"} | _承担责任_。 |\n"
+            "| 后果 | **责任**{: style=\"color: var(--b3-font-color13);\"} | <em>承担责任</em>。 |\n"
         )
         self.assertEqual(codes(text), set())
 
@@ -48,6 +48,21 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
     def test_rejects_long_adjacent_and_escaped_highlights(self) -> None:
         text = "==这是一个明显过长的高亮==\n==主体====结果==\n\\=错误"
         self.assertTrue({"101", "102", "103"} <= codes(text))
+
+    def test_rejects_markdown_italic_and_underscore_bold(self) -> None:
+        text = "*星号斜体*\n_下划线斜体_\n__下划线加粗__"
+
+        self.assertTrue({"104", "105"} <= codes(text))
+
+    def test_accepts_sparse_em_italic_and_double_asterisk_bold(self) -> None:
+        text = "<em>轻旁注</em>与**关键结论**。"
+
+        self.assertFalse({"104", "105"} & codes(text))
+
+    def test_ignores_emphasis_examples_in_code_and_question_fences(self) -> None:
+        text = "`*foo* _foo_ __foo__`\n> ```md\n> *原题字符*\n> ```"
+
+        self.assertFalse({"104", "105"} & codes(text))
 
     def test_rejects_invalid_color_attachment_range_and_drift(self) -> None:
         text = """主体{: style=\"color: var(--b3-font-color14);\"}

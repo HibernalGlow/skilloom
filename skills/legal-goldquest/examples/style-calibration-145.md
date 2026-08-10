@@ -12,7 +12,7 @@
 - 正确答案：B。
 {: custom-qb-section="solution"}
 
-*解题结论*：本题选择 ==B==。
+<em>解题结论</em>：本题选择 ==B==。
 
 - **判断起点**{: style="color: var(--b3-font-color10);"}：题目明确交代：
     - **王旭**{: style="color: var(--b3-font-color4);"}在**张丽**{: style="color: var(--b3-font-color3);"}起诉前已经死亡。
@@ -93,7 +93,7 @@ flowchart LR
 >     - **起诉条件**{: style="color: var(--b3-font-color13);"}
 >     - **受理阶段**{: style="color: var(--b3-font-color11);"}
 
-> *先查条件是否存在，再决定裁判形式。*
+> <em>先查条件是否存在，再决定裁判形式。</em>
 
 ---
 
@@ -109,7 +109,7 @@ flowchart LR
         - 离婚、解除收养关系等案件直接==终结==。
 
 > [!TIP] 🧭 复习抓手
-> *检索顺序*：先找**时间点**{: style="text-decoration: underline;"}，再找**程序阶段**，最后判断==裁判形式==。
+> <em>检索顺序</em>：先找**时间点**{: style="text-decoration: underline;"}，再找**程序阶段**，最后判断==裁判形式==。
 
 ---
 
@@ -120,7 +120,7 @@ flowchart LR
 - 正确答案：B。
 {: custom-qb-section="solution"}
 
-*解题结论*：**法院**{: style="color: var(--b3-font-color11);"}应当裁定 **驳回起诉**{: style="color: var(--b3-font-color8); background-color: var(--b3-font-background8);"}。
+<em>解题结论</em>：**法院**{: style="color: var(--b3-font-color11);"}应当裁定 **驳回起诉**{: style="color: var(--b3-font-color8); background-color: var(--b3-font-background8);"}。
 
 ###### 一眼定位
 
@@ -177,4 +177,4 @@ flowchart LR
 > - 再看**受理阶段**{: style="color: var(--b3-font-color11);"}。
 > - 最后判断==裁判形式==。
 
-*记忆句*：**先死亡，后起诉；已受理，驳起诉。**
+<em>记忆句</em>：**先死亡，后起诉；已受理，驳起诉。**
