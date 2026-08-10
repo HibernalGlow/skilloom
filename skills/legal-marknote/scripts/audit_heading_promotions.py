@@ -23,8 +23,8 @@ class Heading:
     line: int
 
     @property
-    def key(self) -> tuple[int, str]:
-        return self.level, normalize_title(self.title)
+    def key(self) -> str:
+        return normalize_title(self.title)
 
 
 @dataclass(frozen=True)
@@ -41,7 +41,21 @@ def normalize_title(title: str) -> str:
     title = re.sub(r"\{:[^}]+\}", "", title)
     title = re.sub(r"!\[([^]]*)\]\([^)]*\)", r"\1", title)
     title = re.sub(r"[`*_~=]", "", title)
-    return re.sub(r"\s+", " ", title).strip()
+    title = re.sub(r"(?<=\d)\s*(?=[\u3400-\u9fff])", " ", title)
+    title = re.sub(r"\s+", " ", title).strip()
+    return re.sub(r"\s*[:：]\s*$", "", title)
+
+
+def is_repairable_shell_heading(heading: Heading) -> bool:
+    """Recognize only headings whose marker is structural noise, not substance."""
+
+    title = normalize_title(heading.title)
+    compact = re.sub(r"\s+", "", title)
+    return bool(
+        re.fullmatch(r"(?:\d+[.、]?|[（(]?\d+[）)]|[①-⑳])", compact)
+        or re.fullmatch(r"例\s*\d+", title)
+        or title in {"热点"}
+    )
 
 
 def parse_headings(text: str) -> list[Heading]:
@@ -71,6 +85,7 @@ def audit_heading_promotions(
     output_text: str,
     *,
     minimum_added_level: int = 3,
+    allow_structural_repair: bool = False,
 ) -> list[Finding]:
     """Ensure source headings are preserved and additions stay at lower levels."""
 
@@ -80,7 +95,7 @@ def audit_heading_promotions(
 
     source_keys = [heading.key for heading in source_headings]
     output_keys = [heading.key for heading in output_headings]
-    output_by_key: dict[tuple[int, str], list[int]] = {}
+    output_by_key: dict[str, list[int]] = {}
     for index, key in enumerate(output_keys):
         output_by_key.setdefault(key, []).append(index)
 
@@ -91,6 +106,8 @@ def audit_heading_promotions(
             None,
         )
         if match_index is None:
+            if allow_structural_repair and is_repairable_shell_heading(source_heading):
+                continue
             findings.append(
                 Finding(
                     "E",
@@ -100,9 +117,23 @@ def audit_heading_promotions(
                 ),
             )
             continue
+        matched_heading = output_headings[match_index]
+        if matched_heading.level != source_heading.level and not allow_structural_repair:
+            findings.append(
+                Finding(
+                    "E",
+                    "706",
+                    matched_heading.line,
+                    f"Original heading level changed from H{source_heading.level} to H{matched_heading.level}; rerun with --allow-structural-repair after semantic review.",
+                )
+            )
         cursor = match_index + 1
 
-    source_counts = Counter(source_keys)
+    source_counts = Counter(
+        heading.key
+        for heading in source_headings
+        if not (allow_structural_repair and is_repairable_shell_heading(heading))
+    )
     remaining = source_counts.copy()
     added_indices: set[int] = set()
     for index, heading in enumerate(output_headings):
@@ -123,7 +154,7 @@ def audit_heading_promotions(
     for key, count in remaining.items():
         if count:
             findings.append(
-                Finding("E", "703", 1, f"Original heading count changed for H{key[0]} '{key[1]}': missing {count}.")
+                Finding("E", "703", 1, f"Original heading count changed for '{key}': missing {count}.")
             )
 
     stack: list[Heading] = []
@@ -160,6 +191,11 @@ def parse_args() -> argparse.Namespace:
         help="Lowest allowed level for added headings; defaults to H3 so an H2 topic may gain H3 classifications.",
     )
     parser.add_argument("--strict", action="store_true", help="Treat outline warnings as failures.")
+    parser.add_argument(
+        "--allow-structural-repair",
+        action="store_true",
+        help="Allow removal of recognized numeric/example/empty shell headings while preserving substantive headings.",
+    )
     parser.add_argument("--format", choices=("text", "json"), default="text")
     return parser.parse_args()
 
@@ -172,6 +208,7 @@ def main() -> int:
         source_text,
         output_text,
         minimum_added_level=args.minimum_added_level,
+        allow_structural_repair=args.allow_structural_repair,
     )
     if args.format == "json":
         print(json.dumps([asdict(finding) for finding in findings], ensure_ascii=False, indent=2))
