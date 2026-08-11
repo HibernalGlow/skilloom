@@ -45,7 +45,17 @@ Inside a `习题` block, treat `回答与解析` as a hard boundary: the answer 
 
 ## Question-answer formatting
 
-For a question set with many assertions, do not use one large fenced block for all questions. Write `> ###### 习题` once at the top of the continuous quoted exercise group. Each short question then gets its own `> ```md` block and its own immediately following answer list without another `习题` heading. Do not create `习题1`, `习题2`, or `习题3`; the immutable source numbers inside the fences already identify the questions. Only a continuous large problem with `(1)`–`(3)` subquestions may share one block. Do not group independent short questions merely because there are two or three of them. Keep all groups inside the same outer `> ` quotation; do not start a new outer quotation for each group. The fence is for the learner's question prompt only; answers and explanations remain ordinary Markdown inside that one surrounding quote block. `**回答与解析：**` may be written once before the first answer list when it improves scanning, but never repeat that label after every question block.
+For a question set with many assertions, do not use one large fenced block for all questions. Write `> ###### 习题` once at the top of the continuous quoted exercise group. Each short question then gets its own `> ```md` block and its own immediately following answer list without another `习题` heading. Inside a fence, separate the question into scan lines: the first line contains only the immutable question number plus any source type/topic label; `题干：` occupies its own line for shared facts; `问题：` occupies its own line; every numbered subquestion then occupies one following line. A pure question with no shared facts may omit the empty `题干：` line. Do not append `(1)` and `(2)` to the stem line or place two subquestions on one line. Do not create `习题1`, `习题2`, or `习题3`; the immutable source numbers inside the fences already identify the questions. Only a continuous large problem with `(1)`–`(3)` subquestions may share one block. Do not group independent short questions merely because there are two or three of them. Keep all groups inside the same outer `> ` quotation; do not start a new outer quotation for each group. The fence is for the learner's question prompt only; answers and explanations remain ordinary Markdown inside that one surrounding quote block. `**回答与解析：**` may be written once before the first answer list when it improves scanning, but never repeat that label after every question block.
+
+````md
+> ```md
+> [发起人责任·判断] 1.
+> 题干：甲、乙设立公司；甲以自己名义与丙签订仓库租赁合同。
+> 问题：
+> (1) 公司成立后，丙可请求甲和公司承担连带责任？
+> (2) 公司未成立，丙只能向甲主张50%的责任？
+> ```
+````
 
 Question identity inside the `md` fences is immutable. If the source question blocks contain `37.` and `42.`, the split blocks remain `37.` and `42.`; they do not become `1.` and `2.`. Preserve fenced subquestion tokens exactly as written, including `(1)`, `（1）`, `①`, `一、`, full-width punctuation, and skipped numbers. This restriction does not prevent ordinary explanation lists outside the question fences from using standard Markdown numbering.
 

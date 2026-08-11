@@ -22,6 +22,8 @@ SOURCE = """> ###### 习题
 >
 > ```md
 > 37. 第一题
+> 题干：共同事实。
+> 问题：
 > (1) 第一小问
 > ```
 >
@@ -29,6 +31,7 @@ SOURCE = """> ###### 习题
 >
 > ```md
 > 42. 第二题
+> 问题：第二题问句？
 > ```
 >
 > 42. 答案与解析。
@@ -58,6 +61,36 @@ class FencedQuestionIdentityTests(unittest.TestCase):
         output = SOURCE.replace("> (1) 第一小问", "> 1. 第一小问")
         errors, _ = self.audit_pair(output)
         self.assertTrue(any("identifiers changed" in error.message for error in errors))
+
+    def test_rejects_stem_and_multiple_subquestions_on_one_line(self) -> None:
+        output = SOURCE.replace(
+            "> 题干：共同事实。\n> 问题：\n> (1) 第一小问",
+            "> 题干：共同事实。(1) 第一小问(2) 第二小问",
+        )
+        errors, _ = self.audit_pair(output)
+
+        self.assertTrue(any("crowded onto one line" in error.message for error in errors))
+        self.assertTrue(any("separate 题干： and 问题：" in error.message for error in errors))
+
+    def test_accepts_labeled_stem_and_one_subquestion_per_line(self) -> None:
+        output = SOURCE.replace(
+            "> (1) 第一小问",
+            "> (1) 第一小问\n> (2) 第二小问",
+        )
+        source = SOURCE.replace(
+            "> 题干：共同事实。\n> 问题：\n> (1) 第一小问",
+            "> 题干：共同事实。(1) 第一小问(2) 第二小问",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source_path = root / "source.md"
+            output_path = root / "output.md"
+            source_path.write_text(source, encoding="utf-8")
+            output_path.write_text(output, encoding="utf-8")
+            errors, _ = MODULE.audit(output_path, source_path)
+
+        self.assertFalse(any("identifiers changed" in error.message for error in errors))
+        self.assertFalse(any("crowded onto one line" in error.message for error in errors))
 
     def test_accepts_one_exercise_label_for_multiple_question_fences(self) -> None:
         errors, _ = self.audit_pair(SOURCE)

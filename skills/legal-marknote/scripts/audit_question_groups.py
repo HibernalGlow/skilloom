@@ -10,9 +10,9 @@ from pathlib import Path
 
 QUESTION_FENCE = re.compile(r"^>\s*```md\s*$")
 CLOSE_FENCE = re.compile(r"^>\s*```\s*$")
-QUESTION_NUMBER = re.compile(r"^>\s*(\d+)\.\s+")
+QUESTION_NUMBER = re.compile(r"^>\s*(?:\[[^\]\n]+\]\s*)?(\d+)\.\s*")
 QUESTION_IDENTIFIER = re.compile(
-    r"^>\s*(?P<identifier>"
+    r"^>\s*(?:\[[^\]\n]+\]\s*)?(?P<identifier>"
     r"(?:第\s*\d+\s*题)"
     r"|(?:\d+[.．、])"
     r"|(?:[（(]\d+[)）])"
@@ -20,6 +20,9 @@ QUESTION_IDENTIFIER = re.compile(
     r"|(?:[一二三四五六七八九十]+[、.．])"
     r")"
 )
+SUBQUESTION_IDENTIFIER = re.compile(r"[（(]\d+[)）]|[①②③④⑤⑥⑦⑧⑨⑩]")
+STEM_LABEL = re.compile(r"^>\s*题干[：:]\s*\S")
+QUESTION_PROMPT_LABEL = re.compile(r"^>\s*问题[：:]\s*(?:\S.*)?$")
 ANSWER_HEADING = re.compile(r"^>\s*\*\*回答与解析：\*\*\s*$")
 NUMERIC_HEADING = re.compile(r"^>\s*#{1,6}\s+(?:\d+|\(\d+\)|[①②③④⑤⑥⑦⑧⑨⑩])(?:[.)、]|\s)")
 ANSWER_ITEM = re.compile(r"^>\s*(\d+)\.\s+")
@@ -52,9 +55,15 @@ def fenced_question_identifiers(path: Path) -> list[str]:
             continue
         if not in_question_fence:
             continue
+        occupied_spans: list[tuple[int, int]] = []
         match = QUESTION_IDENTIFIER.match(line)
         if match:
             identifiers.append(match.group("identifier"))
+            occupied_spans.append(match.span("identifier"))
+        for subquestion in SUBQUESTION_IDENTIFIER.finditer(line):
+            if any(start <= subquestion.start() < end for start, end in occupied_spans):
+                continue
+            identifiers.append(subquestion.group(0))
     return identifiers
 
 
@@ -113,7 +122,9 @@ def audit(path: Path, source: Path | None = None) -> tuple[list[AuditError], lis
         opening_line = index + 1
         index += 1
         question_numbers: list[int] = []
+        fence_lines: list[tuple[int, str]] = []
         while index < len(lines) and not CLOSE_FENCE.match(lines[index]):
+            fence_lines.append((index + 1, lines[index]))
             match = QUESTION_NUMBER.match(lines[index])
             if match:
                 question_numbers.append(int(match.group(1)))
@@ -131,6 +142,49 @@ def audit(path: Path, source: Path | None = None) -> tuple[list[AuditError], lis
                     f"question block contains {len(question_numbers)} top-level numbered questions; expected one main question (subquestions are allowed)",
                 )
             )
+
+        subquestion_count = 0
+        for line_number, fence_line in fence_lines:
+            markers = list(SUBQUESTION_IDENTIFIER.finditer(fence_line))
+            main_identifier = QUESTION_IDENTIFIER.match(fence_line)
+            if main_identifier:
+                main_span = main_identifier.span("identifier")
+                markers = [
+                    marker
+                    for marker in markers
+                    if not (main_span[0] <= marker.start() < main_span[1])
+                ]
+            subquestion_count += len(markers)
+            if len(markers) > 1:
+                errors.append(
+                    AuditError(
+                        path,
+                        line_number,
+                        "question stem and numbered subquestions are crowded onto one line; keep the stem and every subquestion on separate lines",
+                    )
+                )
+                continue
+            if markers:
+                prefix = re.sub(r"^>\s*", "", fence_line[:markers[0].start()]).strip()
+                if prefix:
+                    errors.append(
+                        AuditError(
+                            path,
+                            line_number,
+                            "numbered subquestion must start its own line instead of following stem or question text",
+                        )
+                    )
+        if subquestion_count:
+            has_stem = any(STEM_LABEL.match(line) for _, line in fence_lines)
+            has_question_label = any(QUESTION_PROMPT_LABEL.match(line) for _, line in fence_lines)
+            if not (has_stem and has_question_label):
+                errors.append(
+                    AuditError(
+                        path,
+                        opening_line,
+                        "multi-part question needs separate 题干： and 问题： lines before its one-line subquestions",
+                    )
+                )
 
         closing_index = index
         index += 1
