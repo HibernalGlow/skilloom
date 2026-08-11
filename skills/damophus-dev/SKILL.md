@@ -33,9 +33,12 @@ When implementing a familiar capability, first locate a mature reference impleme
 1. Define the smallest vertical slice and its observable completion condition.
 2. Reuse existing types, schemas, adapters, and UI primitives before adding abstractions.
 3. Add or update focused tests with the change. Keep core tests independent of SiYuan and keep browser tests for user-visible workflows.
-4. Inspect the diff for accidental content mutation, duplicated state, stale imports, oversized Svelte logic, and unrelated formatting.
-5. Discover the repository's current validation scripts from `package.json` and configuration, then run the narrowest relevant checks followed by the full checks required by the change.
-6. Commit only this task's files after validation, using a functional commit message. Leave unrelated work unstaged and report it.
+4. For UI or styling work, assume the emitted plugin stylesheet affects the entire SiYuan document. Express descendant-dependent layout through component state, `data-*` attributes, or stable layout rules; do not add relational selectors such as `:has()` to globally injected CSS.
+5. Inspect the diff for accidental content mutation, duplicated state, stale imports, oversized Svelte logic, and unrelated formatting.
+6. Discover the repository's current validation scripts from `package.json` and configuration, then run the narrowest relevant checks followed by the full checks required by the change.
+7. After every UI or styling build, inspect `dist/index.css` and dynamically injected CSS in `dist/index.js`, then run `pnpm test:package`. The package validation must fail if either artifact contains `:has(`; do not bypass or weaken this gate.
+8. When fixing a measured rendering regression, record the real SiYuan Web surface before and after the fix. Use the browser DevTools performance recorder on the same interaction, include an enabled/disabled A/B comparison, and compare style recalculation time, long tasks, and dropped frames before declaring success.
+9. Commit only this task's files after validation, using a functional commit message. Leave unrelated work unstaged and report it.
 
 ## Data Rules
 
@@ -43,6 +46,6 @@ Markdown and IAL remain the authoritative question-content source. Attribute Vie
 
 ## Completion Gate
 
-The task is complete only when the requested behaviour is implemented, relevant tests pass, type checking and packaging/build checks appropriate to the change pass, the final diff has been reviewed, and the commit boundary is clear. Report any unrelated failures separately instead of hiding them.
+The task is complete only when the requested behaviour is implemented, relevant tests pass, type checking and packaging/build checks appropriate to the change pass, the final diff has been reviewed, and the commit boundary is clear. A rendering-performance fix also requires real-SiYuan before/after evidence and a passing emitted-artifact CSS gate. Report any unrelated failures separately instead of hiding them.
 
 Read [project-contract.md](references/project-contract.md) when the change crosses content, adapter, core, exam, assembly, or UI boundaries.
