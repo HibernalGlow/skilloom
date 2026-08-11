@@ -858,6 +858,27 @@ def validate_goldquest(text: str) -> list[Finding]:
         if boundary is None:
             continue
         question_text = "\n".join(lines[index + 1:boundary])
+        question_lines = lines[index + 1:boundary]
+        parenthesized_subquestions: list[tuple[int, str, list[re.Match[str]]]] = []
+        for relative_index, question_line in enumerate(question_lines, start=index + 2):
+            if IAL_PATTERN.fullmatch(question_line.strip()) or re.search(r"-\s*\[[ xX]\]", question_line):
+                continue
+            markers = list(re.finditer(r"[（(]\s*\d+\s*[）)]", question_line))
+            if markers:
+                parenthesized_subquestions.append((relative_index, question_line, markers))
+            if len(markers) > 1:
+                findings.append(Finding("E", "628", relative_index, "Each GoldQuest subquestion must occupy its own line; split the shared stem and every numbered question."))
+                continue
+            if markers:
+                prefix = question_line[:markers[0].start()]
+                prefix = re.sub(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)", "", prefix).strip()
+                if prefix and not re.fullmatch(r"\*\*问题", prefix):
+                    findings.append(Finding("E", "628", relative_index, "A numbered GoldQuest subquestion must start its own list line, separate from the shared stem."))
+        if sum(len(markers) for _, _, markers in parenthesized_subquestions) >= 2:
+            has_stem_label = any(re.match(r"^\s*[-*+]\s+\*\*题干\*\*[：:]", line) for line in question_lines)
+            has_question_label = any(re.match(r"^\s*[-*+]\s+\*\*问题\*\*[：:]", line) for line in question_lines)
+            if not (has_stem_label and has_question_label):
+                findings.append(Finding("E", "629", index + 1, "Multi-part GoldQuest questions need separate **题干** and **问题** blocks before the one-line subquestions."))
         question_attrs = next(
             (
                 ial_attributes(lines[candidate])

@@ -308,6 +308,31 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 """
         self.assertTrue({"601", "603"} <= codes(text, "legal-goldquest"))
 
+    def test_rejects_stem_and_multiple_subquestions_on_one_line(self) -> None:
+        text = """##### 1. 发起人责任·判断
+{: custom-qb-id="commercial-company-promoter-001" custom-qb-question-topic-ids="commercial-company-promoter-liability"}
+* 甲、乙设立公司，甲与丙签订仓库租赁合同。（1）公司成立后由谁负责？（2）公司未成立时由谁负责？
+###### 答案与解析
+- 正确答案：第一问甲与公司，第二问甲。
+{: custom-qb-section="solution"}
+"""
+
+        self.assertTrue({"628", "629"} <= codes(text, "legal-goldquest"))
+
+    def test_accepts_separate_stem_and_one_line_subquestions(self) -> None:
+        text = """##### 1. 发起人责任·判断
+{: custom-qb-id="commercial-company-promoter-001" custom-qb-question-topic-ids="commercial-company-promoter-liability"}
+* **题干**：甲、乙设立公司，甲与丙签订仓库租赁合同。
+* **问题**：
+    1. 公司成立后由谁负责？
+    2. 公司未成立时由谁负责？
+###### 答案与解析
+- 正确答案：第一问甲与公司，第二问甲。
+{: custom-qb-section="solution"}
+"""
+
+        self.assertFalse({"628", "629"} & codes(text, "legal-goldquest"))
+
     def test_requires_an_answer_boundary_for_each_goldquest_question(self) -> None:
         text = """##### 1.
 * 题干。
