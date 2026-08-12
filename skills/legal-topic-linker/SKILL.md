@@ -15,6 +15,8 @@ Build a precise relationship graph from each question to the smallest reusable l
 - Do not store a SiYuan block ID in either topic attribute. Block IDs are navigation and mutation targets only.
 - Keep broad chapter, section, and专题 labels as taxonomy, never as point-to-point relationship keys.
 - A question may reference multiple atomic topics. A provider block declares exactly one topic; multiple exact providers may reuse the same topic ID.
+- Select providers only from reusable knowledge notes with enough surrounding hierarchy and explanation to place the proposition in the subject system.
+- Treat past exams, question banks, exercises, stems, options, answers, and question-local analysis as question material, never as note providers.
 - Preserve question text, note text, hierarchy, references, backlinks, and unrelated attributes unless the user explicitly authorizes a content edit.
 
 Read [the granularity rubric](references/granularity-rubric.md) before proposing or replacing topic IDs. Read [the SiYuan and Markdown workflow](references/siyuan-markdown-workflow.md) before searching or writing providers.
@@ -23,7 +25,7 @@ Read [the granularity rubric](references/granularity-rubric.md) before proposing
 
 ### 1. Establish Scope
 
-Identify the exact question files, directories, SiYuan documents, or question blocks. Also identify candidate note corpora. Search 精讲卷 and 背诵卷 first when present, but allow any source with the best semantic fit.
+Identify the exact question files, directories, SiYuan documents, or question blocks. Also identify candidate knowledge-note corpora. Search 精讲卷 and 背诵卷 first when present, then other systematic notes with the best semantic fit. Exclude question and exercise corpora from the provider search scope.
 
 Run the structural inventory before semantic edits:
 
@@ -69,7 +71,7 @@ Only search providers after question topics are confirmed. For each atomic topic
 5. Reject a broad heading that merely contains the answer somewhere in a large subtree.
 6. If no exact provider exists, report a provider gap. Propose a dedicated `**考点：显示名**` anchor only when it can attach to existing exact explanatory content without distorting the note.
 
-Never include the current question block itself as its own note provider. A question-containing ancestor may remain discoverable as a source, but it is not the preferred reusable provider for that same question.
+Use question text and analysis only to identify the controlling proposition. Reject every question block and question-containing subtree as a provider, including a different question that happens to test the same rule. A question-containing ancestor may remain discoverable as evidence, but never bind it as `custom-qb-note-topic-id`. If no contextual note explains the proposition, keep the provider gap open rather than degrading to question-to-question linkage.
 
 ### 5. Preview Writes
 
