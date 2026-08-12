@@ -33,6 +33,31 @@ def codes(
 
 
 class LegalNoteOutputValidatorTests(unittest.TestCase):
+    def test_flags_repeated_paragraph_plus_short_list_groups(self) -> None:
+        text = """适用情形：
+- 情形一
+- 情形二
+- 情形三
+
+法律后果：
+- 后果一
+- 后果二
+"""
+
+        self.assertIn("504", codes(text))
+
+    def test_accepts_parentified_short_list_groups(self) -> None:
+        text = """- **适用情形**
+  - 情形一
+  - 情形二
+  - 情形三
+- **法律后果**
+  - 后果一
+  - 后果二
+"""
+
+        self.assertNotIn("504", codes(text))
+
     def test_default_table_gate_accepts_three_by_three(self) -> None:
         text = """| 维度 | 概念甲 | 概念乙 |
 | --- | --- | --- |

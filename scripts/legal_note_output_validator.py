@@ -793,6 +793,57 @@ def validate_concept_list_palette(text: str) -> list[Finding]:
     return findings
 
 
+def validate_paragraph_parent_fragmentation(text: str) -> list[Finding]:
+    """Flag repeated paragraph-plus-short-list groups that should form one hierarchy."""
+    lines = text.splitlines()
+    groups: list[tuple[int, int]] = []
+    in_fence = False
+    index = 0
+    while index < len(lines):
+        stripped = lines[index].strip()
+        if stripped.startswith(("```", "> ```")):
+            in_fence = not in_fence
+            index += 1
+            continue
+        if (
+            in_fence
+            or not stripped
+            or stripped.startswith(("#", ">", "|", "- ", "* ", "+ ", "```"))
+            or IAL_PATTERN.match(stripped)
+            or re.match(r"^\d+[.)]\s+", stripped)
+        ):
+            index += 1
+            continue
+        parent_line = index + 1
+        cursor = index + 1
+        while cursor < len(lines) and not lines[cursor].strip():
+            cursor += 1
+        child_count = 0
+        while cursor < len(lines) and re.match(r"^\s*(?:[-+*]|\d+[.)])\s+", lines[cursor]):
+            child_count += 1
+            cursor += 1
+        if 2 <= child_count <= 3:
+            groups.append((parent_line, cursor))
+            index = cursor
+        else:
+            index += 1
+
+    findings: list[Finding] = []
+    for first, second in zip(groups, groups[1:]):
+        between = lines[first[1] : second[0] - 1]
+        if all(not line.strip() for line in between):
+            findings.append(
+                Finding(
+                    "W",
+                    "504",
+                    first[0],
+                    "Repeated paragraph-plus-2-or-3-item groups should usually become peer parent list items with their original items nested beneath them; keep paragraphs only for independent conclusions or transitions.",
+                )
+            )
+            break
+    return findings
+
+
 def validate_concept_headings(text: str, profile: str) -> list[Finding]:
     if profile != "legal-marknote":
         return []
@@ -1221,6 +1272,7 @@ def validate_text(
     findings.extend(validate_general_density(text))
     if profile == "legal-marknote":
         findings.extend(validate_marknote_richness(text))
+        findings.extend(validate_paragraph_parent_fragmentation(text))
     findings.extend(validate_concept_headings(text, profile))
     findings.extend(validate_topic_ials(text, profile, require_note_topic))
     if profile == "legal-goldquest":
