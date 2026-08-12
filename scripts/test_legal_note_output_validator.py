@@ -16,6 +16,8 @@ def codes(
     source: str | None = None,
     *,
     allow_structural_repair: bool = False,
+    max_table_columns: int = 3,
+    max_table_rows: int = 3,
 ) -> set[str]:
     return {
         finding.code
@@ -24,11 +26,55 @@ def codes(
             profile,
             source,
             allow_structural_repair=allow_structural_repair,
+            max_table_columns=max_table_columns,
+            max_table_rows=max_table_rows,
         )
     }
 
 
 class LegalNoteOutputValidatorTests(unittest.TestCase):
+    def test_default_table_gate_accepts_three_by_three(self) -> None:
+        text = """| 维度 | 概念甲 | 概念乙 |
+| --- | --- | --- |
+| 主体 | 甲 | 乙 |
+| 要件 | A | B |
+| 后果 | 有效 | 无效 |
+"""
+
+        self.assertNotIn("411", codes(text))
+
+    def test_strict_table_gate_rejects_more_than_two_by_two(self) -> None:
+        text = """| 维度 | 概念甲 | 概念乙 |
+| --- | --- | --- |
+| 主体 | 甲 | 乙 |
+| 要件 | A | B |
+| 后果 | 有效 | 无效 |
+"""
+
+        self.assertIn("411", codes(text, max_table_columns=2, max_table_rows=2))
+
+    def test_table_gate_can_be_explicitly_relaxed(self) -> None:
+        text = """| 维度 | 甲 | 乙 | 丙 |
+| --- | --- | --- | --- |
+| 主体 | A | B | C |
+| 要件 | A | B | C |
+| 程序 | A | B | C |
+| 后果 | A | B | C |
+"""
+
+        self.assertNotIn("411", codes(text, max_table_columns=4, max_table_rows=4))
+
+    def test_source_table_is_exempt_from_size_gate(self) -> None:
+        source = """| 维度 | 甲 | 乙 | 丙 |
+| --- | --- | --- | --- |
+| 主体 | A | B | C |
+| 要件 | A | B | C |
+| 程序 | A | B | C |
+| 后果 | A | B | C |
+"""
+
+        self.assertNotIn("411", codes(source, source=source, max_table_columns=2, max_table_rows=2))
+
     def test_flags_monotonous_peer_concept_list_palette(self) -> None:
         text = "\n".join([
             '- **权利能力**{: style="color: var(--b3-font-color10);"}：主体资格。',
