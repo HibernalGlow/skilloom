@@ -11,7 +11,7 @@ reverse discovery: SiYuan-computed backlink
 optional second edge: target block -> source block
 ```
 
-A block reference plus its computed backlink is already bidirectional navigation: one stored source-to-target reference appears as an inbound backlink on the target. A query embed is a live display edge stored in the `refs` table as `type='query_embed'`, but the current `ref backlinks` command does not reliably display it. An explicit reciprocal connection stores two independent edges and therefore requires two independent placement decisions.
+A block reference plus its computed backlink is already bidirectional navigation: one stored source-to-target reference appears as an inbound backlink on the target. A query embed is one live display edge stored in the `refs` table as `type='query_embed'`; use SiYuan's link-block views to navigate it. Store one edge by default. An explicit reciprocal connection stores two independent edges and is only used when the user asks for a reverse link in the target content, with two independent placement decisions.
 
 ## Block References
 
@@ -26,6 +26,52 @@ Use SiYuan's native Kramdown block-reference syntax with a verified block ID:
 - Prefer a static anchor when the surrounding sentence requires stable wording.
 - Keep custom anchor text factual; avoid silently changing the relationship into a stronger claim.
 - Verify the parsed result with `block kramdown`; quoting and subtype details are parser-sensitive.
+
+## Anchor Text
+
+Use a controlled anchor, not free-form prose. The anchor names the target knowledge point; the surrounding text names the relationship.
+
+Choose in this order:
+
+1. Use the target's concise canonical knowledge-point heading as a dynamic anchor.
+2. Use a verified note alias or established doctrinal term when the heading is not the ordinary name.
+3. Preserve an exact natural mention from the source sentence when a contextual inline edit is explicitly authorized and the mention identifies the target unambiguously.
+4. Generate a static anchor only when the target is a paragraph, the heading contains source numbering or editorial noise, or the canonical name is too broad without one operative qualifier.
+
+Construct a generated static anchor as a short noun phrase:
+
+```text
+<doctrine, procedure, or legal object> + <decisive condition, exception, or consequence>
+```
+
+Examples:
+
+```markdown
+适用条件：((20240102123456-abcdefg "善意取得的构成要件"))
+例外：((20240102123456-abcdefg "无权处分不影响合同效力"))
+程序阶段：((20240102123456-abcdefg "二审中的反诉处理"))
+```
+
+Keep relationship labels such as `适用条件`、`例外`、`对比`、`依据`、`程序阶段` outside the anchor. Preserve exact legal terminology. Remove question numbers, years, source-volume names, chapter numbering, emojis, and editorial prefixes from generated anchors. Reject generic labels such as `相关内容`、`点击查看`、`本题考点`、`详见`、`该知识点`.
+
+### Controlled Emoji Labels
+
+Emoji are allowed as a compact visual cue, but they belong to the relationship label, never to the knowledge-point anchor. Use at most one leading emoji per link paragraph or embed label and choose from this stable vocabulary:
+
+| Emoji | Label meaning | Example |
+| --- | --- | --- |
+| `📚` | 依据、法条、权威来源 | `📚 依据：((... "合同效力"))` |
+| `✅` | 适用条件、构成要件、成立标准 | `✅ 适用条件：((... "善意取得的构成要件"))` |
+| `⚠️` | 例外、限制、风险提示 | `⚠️ 例外：((... "无权处分不影响合同效力"))` |
+| `↔️` | 对比、区分、相反规则 | `↔️ 对比：((... "诉讼时效与除斥期间"))` |
+| `🧭` | 程序阶段、路径、操作顺序 | `🧭 程序阶段：((... "二审中的反诉处理"))` |
+| `🧩` | 组成部分、关联知识点 | `🧩 组成要件：((... "意思表示"))` |
+
+Do not invent decorative emoji, stack multiple emoji, or use an emoji to make a weak relationship look stronger. If no controlled label fits, omit the emoji and use a plain factual label. Normalize headings by stripping decorative emoji before using them as anchors; do not alter the target block itself.
+
+Prefer the shortest phrase that remains unique in the local subject context. Add one domain or procedure qualifier only when needed to distinguish homonyms. Reuse the same anchor for the same target within one curated scope unless the source uses a verified established synonym.
+
+Record anchor provenance as `heading`, `alias`, `natural mention`, or `generated`. For `generated`, include the target text that supports every term. Use a dynamic anchor for `heading`; use a static anchor for the other cases when stable wording matters.
 
 A reference may live inline in a newly inserted paragraph:
 
@@ -94,7 +140,9 @@ limit 100;
 - Preserve target content; never replace it with a copied excerpt to simulate an embed.
 - Verify source and target IDs immediately before mutation.
 - Reject self-links, exact duplicate edges, and links whose only evidence is a broad shared topic.
-- Preserve meaningful one-way relationships. Reciprocal mode represents two useful reading paths, not compulsory graph symmetry.
+- Select targets from contextual knowledge notes. Treat question and past-exam blocks as sources or evidence, not reusable knowledge targets.
+- Keep any emoji in the relationship label, with at most one controlled leading emoji; never put it in the anchor text.
+- Preserve meaningful one-way relationships. Automatic backlink/link-block views provide the normal reverse navigation; reciprocal mode represents a separately requested second content edge, not compulsory graph symmetry.
 - Keep embeds precise. A large dynamic query can expose unrelated or sensitive content later.
 - Use `ref mentions` as discovery evidence only. Plain-text mention does not prove an intentional reference.
 - Stop on ambiguous placement, stale blocks, parser changes, or partial writes.
@@ -109,4 +157,4 @@ siyuan -w $siyuanWorkspace ref refresh --id <target-id> -f json
 siyuan -w $siyuanWorkspace ref backlinks --id <target-id> -f json
 ```
 
-For a reference, require the intended source in the target's backlink results and a matching `refs` row. For an embed, require `NodeBlockQueryEmbed` or equivalent embed-block type from `block get`, the exact target ID in the round-tripped query, and a `refs` row with `type='query_embed'`. If the user requested bidirectional embed navigation, verify the separately inserted reverse edge instead of relying on the backlink command.
+For a reference, require the intended source in the target's backlink results and a matching `refs` row. For an embed, require `NodeBlockQueryEmbed` or equivalent embed-block type from `block get`, the exact target ID in the round-tripped query, and a `refs` row with `type='query_embed'`; also inspect the available link-block view when user-visible reverse navigation matters. Only if the user requested explicit reciprocal mode, verify the separately inserted reverse edge.
