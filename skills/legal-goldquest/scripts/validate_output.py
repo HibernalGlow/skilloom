@@ -524,15 +524,28 @@ def validate_tables(
     return findings
 
 
-def validate_goldquest_table_size(text: str) -> list[Finding]:
+def validate_table_size(
+    text: str,
+    profile: str,
+    max_columns: int,
+    max_data_rows: int,
+    allowed_source_tables: set[str] | None = None,
+) -> list[Finding]:
     findings: list[Finding] = []
     for block in table_blocks(text):
-        content_rows = [row for row in block if not is_table_separator(row[1])]
-        if not content_rows:
+        if allowed_source_tables and table_block_fingerprint(block) in allowed_source_tables:
             continue
+        data_rows = [row for index, row in enumerate(block) if index >= 2 and not is_table_separator(row[1])]
         width = max(len(cells) for _, cells in block)
-        if width > 3 or len(content_rows) > 3:
-            findings.append(Finding("E", "411", content_rows[0][0], "GoldQuest tables must be at most 3 columns by 3 data rows; split larger comparisons semantically."))
+        if width > max_columns or len(data_rows) > max_data_rows:
+            findings.append(
+                Finding(
+                    "E",
+                    "411",
+                    block[0][0],
+                    f"{profile} tables must be at most {max_columns} columns by {max_data_rows} data rows; split larger comparisons semantically or explicitly raise --max-table-columns/--max-table-rows when the larger table is necessary.",
+                )
+            )
     return findings
 
 
@@ -1163,6 +1176,8 @@ def validate_text(
     source_text: str | None = None,
     require_note_topic: bool = False,
     allow_structural_repair: bool = False,
+    max_table_columns: int = 3,
+    max_table_rows: int = 3,
 ) -> list[Finding]:
     findings = []
     findings.extend(validate_highlights(text))
@@ -1186,6 +1201,15 @@ def validate_text(
         for block in table_blocks(source_text or "")
     }
     findings.extend(
+        validate_table_size(
+            text,
+            profile,
+            max_table_columns,
+            max_table_rows,
+            allowed_legacy_structures,
+        )
+    )
+    findings.extend(
         validate_tables(
             text,
             allowed_list_cells,
@@ -1200,7 +1224,6 @@ def validate_text(
     findings.extend(validate_concept_headings(text, profile))
     findings.extend(validate_topic_ials(text, profile, require_note_topic))
     if profile == "legal-goldquest":
-        findings.extend(validate_goldquest_table_size(text))
         findings.extend(validate_goldquest(text))
     if source_text is not None:
         findings.extend(validate_source_preservation(text, source_text, profile, allow_structural_repair))
@@ -1221,6 +1244,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source", type=Path, help="Original source file for preservation checks.")
     parser.add_argument("--require-source", action="store_true", help="Fail when --source is omitted.")
     parser.add_argument("--strict", action="store_true", help="Treat advisory warnings as gate failures.")
+    parser.add_argument("--max-table-columns", type=int, help="Override the table column gate (default 3; strict default 2).")
+    parser.add_argument("--max-table-rows", type=int, help="Override the table data-row gate (default 3; strict default 2).")
     parser.add_argument("--require-topic-ial", action="store_true", help="Require at least one MarkNote note-topic provider declaration.")
     parser.add_argument(
         "--allow-structural-repair",
@@ -1239,6 +1264,9 @@ def main() -> int:
     if args.require_source and args.source is None:
         print(f"{args.output}:1: E700: --source is required by this gate.")
         return 1
+    if (args.max_table_columns is not None and args.max_table_columns < 1) or (args.max_table_rows is not None and args.max_table_rows < 1):
+        print("--max-table-columns and --max-table-rows must be positive integers.", file=sys.stderr)
+        return 2
     text = args.output.read_text(encoding="utf-8")
     source_text = args.source.read_text(encoding="utf-8") if args.source else None
     findings = validate_text(
@@ -1247,6 +1275,8 @@ def main() -> int:
         source_text,
         args.require_topic_ial,
         args.allow_structural_repair,
+        args.max_table_columns if args.max_table_columns is not None else (2 if args.strict else 3),
+        args.max_table_rows if args.max_table_rows is not None else (2 if args.strict else 3),
     )
     if args.format == "json":
         print(json.dumps([asdict(finding) for finding in findings], ensure_ascii=False, indent=2))
