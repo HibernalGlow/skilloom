@@ -276,6 +276,54 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 
         self.assertNotIn("702", codes(output, source=source))
 
+    def test_accepts_table_converted_with_horizontal_columns_as_parents(self) -> None:
+        source = """| 比较维度 | 概念A | 概念B |
+| --- | --- | --- |
+| 要件 | 要件甲 | 要件乙 |
+| 后果 | 后果甲 | 后果乙 |
+"""
+        output = """- **概念A**
+    - **比较维度**
+    - **要件**：要件甲
+    - **后果**：后果甲
+- **概念B**
+    - **要件**：要件乙
+    - **后果**：后果乙
+"""
+
+        self.assertNotIn("702", codes(output, source=source))
+
+    def test_accepts_table_converted_with_vertical_rows_as_parents(self) -> None:
+        source = """| 制度 | 要件 | 后果 |
+| --- | --- | --- |
+| 制度A | 要件甲 | 后果甲 |
+| 制度B | 要件乙 | 后果乙 |
+"""
+        output = """- **制度A**
+    - **要件**：要件甲
+    - **后果**：后果甲
+- **制度B**
+    - **要件**：要件乙
+    - **后果**：后果乙
+"""
+
+        self.assertNotIn("702", codes(output, source=source))
+
+    def test_axis_list_conversion_still_requires_every_labeled_cell(self) -> None:
+        source = """| 比较维度 | 概念A | 概念B |
+| --- | --- | --- |
+| 要件 | 要件甲 | 要件乙 |
+| 后果 | 后果甲 | 后果乙 |
+"""
+        output = """- **概念A**
+    - **要件**：要件甲
+    - **后果**：后果甲
+- **概念B**
+    - **要件**：要件乙
+"""
+
+        self.assertIn("702", codes(output, source=source))
+
     def test_rejects_generated_simple_label_rule_table(self) -> None:
         text = """| 启动方式 | 具体规定 |
 | --- | --- |

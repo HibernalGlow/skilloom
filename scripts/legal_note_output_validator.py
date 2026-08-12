@@ -407,6 +407,24 @@ def table_block_content_is_preserved_as_label_rule_list(
     return True
 
 
+def table_block_content_is_preserved_as_axis_list(
+    source_block: list[tuple[int, list[str]]],
+    output_text: str,
+) -> bool:
+    """Allow either table axis to become list parents when every labeled cell survives."""
+    if any(MERGE_TOKEN_PATTERN.search(cell) for _, cells in source_block for cell in cells):
+        return False
+    normalized_output = normalized_table_content(output_text)
+    for _, cells in source_block:
+        if is_table_separator(cells):
+            continue
+        for cell in cells:
+            fragment = normalized_table_content(cell)
+            if len(fragment) >= 2 and fragment not in normalized_output:
+                return False
+    return True
+
+
 def table_block_content_is_preserved_in_tables(
     source_block: list[tuple[int, list[str]]],
     output_blocks: list[list[tuple[int, list[str]]]],
@@ -1182,6 +1200,11 @@ def validate_source_preservation(
         or table_block_content_is_preserved_in_tables(block, output_table_blocks)
         for block in source_table_blocks
     )
+    preserves_axis_list_content = all(
+        table_block_content_is_preserved_as_axis_list(block, text)
+        or table_block_content_is_preserved_in_tables(block, output_table_blocks)
+        for block in source_table_blocks
+    )
     allows_structural_table_change = preserves_table_content and (
         len(output_table_blocks) > len(source_table_blocks)
         or all(
@@ -1199,6 +1222,7 @@ def validate_source_preservation(
             for block in source_table_blocks
         )
     )
+    allows_structural_table_change = allows_structural_table_change or preserves_axis_list_content
     if output_tables < source_tables and not allows_structural_table_change:
         findings.append(Finding("E", "702", 1, f"Output has fewer Markdown table rows than source ({output_tables} < {source_tables})."))
     for token in MERGE_TOKEN_PATTERN.findall(source_text):

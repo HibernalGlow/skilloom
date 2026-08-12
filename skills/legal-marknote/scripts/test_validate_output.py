@@ -94,9 +94,9 @@ class TableSplitValidationTests(unittest.TestCase):
 
         self.assertNotIn("702", {finding.code for finding in findings})
 
-    def test_rejects_converting_a_genuine_comparison_table_to_a_list(self) -> None:
+    def test_rejects_comparison_list_conversion_that_drops_an_axis_label(self) -> None:
         source = "| 类型 | 效力 |\n| --- | --- |\n| 有效合同 | 有效 |\n| 无效合同 | 无效 |\n"
-        output = "- **有效合同**：有效\n- **无效合同**：无效\n- **类型**与**效力**逐项对应。\n"
+        output = "- **有效合同**：有效\n- **无效合同**：无效\n- **类型**逐项对应。\n"
         findings = MODULE.validate_source_preservation(output, source, "legal-marknote")
 
         self.assertIn("702", {finding.code for finding in findings})
