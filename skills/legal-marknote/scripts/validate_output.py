@@ -23,6 +23,10 @@ COLORED_TERM_PATTERN = re.compile(
 STYLED_TERM_PATTERN = re.compile(
     r'\*\*(?P<term>.+?)\*\*\{:\s*style="(?P<style>[^"]*b3-font-(?:color|background)\d+[^\"]*)"\}',
 )
+CONCEPT_LIST_LEAD_PATTERN = re.compile(
+    r'^(?P<quote>\s*(?:>\s*)?)(?P<indent>\s*)(?:[-+*]|\d+[.)])\s+'
+    r'\*\*(?P<term>[^*\n]+)\*\*\{:\s*style="(?P<style>[^"]*b3-font-(?:color|background)\d+[^\"]*)"\}'
+)
 ENUMERATION_PATTERN = re.compile(r"(?<![\w])(?:\d{1,2}[、.]|[（(]\d{1,2}[）)]|[①-⑳])")
 IMAGE_PATTERN = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 STATIC_VISUAL_PATTERN = re.compile(
@@ -728,6 +732,51 @@ def validate_marknote_richness(text: str) -> list[Finding]:
     background_anchor_count = len(re.findall(r"b3-font-background(?:[2-9]|1[0-3])", body))
     if medium_complexity and background_anchor_count < 3:
         findings.append(Finding("E", "627", 1, "Medium-or-higher complexity MarkNote needs at least three short background-color anchors for visual hierarchy."))
+    findings.extend(validate_concept_list_palette(text))
+    return findings
+
+
+def validate_concept_list_palette(text: str) -> list[Finding]:
+    """Flag visually monotonous runs while leaving semantic equivalence to review."""
+    findings: list[Finding] = []
+    run: list[tuple[int, str, str]] = []
+    run_key: tuple[str, str] | None = None
+
+    def flush() -> None:
+        nonlocal run, run_key
+        if len(run) >= 3 and len({term for _, term, _ in run}) >= 3:
+            findings.append(
+                Finding(
+                    "W",
+                    "503",
+                    run[0][0],
+                    "Three or more peer concept items reuse one identical lead-anchor style; split concepts into legal-function color slots, or keep the shared color and add a second visual dimension when they truly share one role.",
+                )
+            )
+        run = []
+        run_key = None
+
+    in_fence = False
+    for number, line in enumerate(text.splitlines(), start=1):
+        stripped = line.strip()
+        if stripped.startswith(("```", "> ```")):
+            in_fence = not in_fence
+            flush()
+            continue
+        if in_fence or not stripped:
+            flush()
+            continue
+        match = CONCEPT_LIST_LEAD_PATTERN.match(line)
+        if not match:
+            flush()
+            continue
+        style = ";".join(sorted(part.strip() for part in match.group("style").split(";") if part.strip()))
+        key = (match.group("quote") + match.group("indent"), style)
+        if run_key != key:
+            flush()
+            run_key = key
+        run.append((number, match.group("term").strip(), style))
+    flush()
     return findings
 
 

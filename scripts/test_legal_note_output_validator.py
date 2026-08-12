@@ -29,6 +29,24 @@ def codes(
 
 
 class LegalNoteOutputValidatorTests(unittest.TestCase):
+    def test_flags_monotonous_peer_concept_list_palette(self) -> None:
+        text = "\n".join([
+            '- **权利能力**{: style="color: var(--b3-font-color10);"}：主体资格。',
+            '- **行为能力**{: style="color: var(--b3-font-color10);"}：行为门槛。',
+            '- **责任能力**{: style="color: var(--b3-font-color10);"}：责任后果。',
+        ])
+
+        self.assertIn("503", codes(text))
+
+    def test_accepts_functionally_varied_concept_list_palette(self) -> None:
+        text = "\n".join([
+            '- **权利能力**{: style="color: var(--b3-font-color10);"}：主体资格。',
+            '- **行为能力**{: style="color: var(--b3-font-color11);"}：行为门槛。',
+            '- **责任能力**{: style="background-color: var(--b3-font-background13);"}：责任后果。',
+        ])
+
+        self.assertNotIn("503", codes(text))
+
     def test_accepts_semantically_styled_table_and_callout(self) -> None:
         text = (
             "> [!NOTE] 法条\n"
