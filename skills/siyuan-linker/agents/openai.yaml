@@ -1,0 +1,4 @@
+interface:
+  display_name: "思源双向链接整理"
+  short_description: "SiYuan 双向链接、块引用与嵌入发现和审计工具"
+  default_prompt: "使用 $siyuan-linker 审计指定思源笔记的关联，并预览高置信块引用或嵌入块。"
