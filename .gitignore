@@ -1,2 +1,60 @@
+# ===== Python =====
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+__pypackages__/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ===== Node / JS / TS（如技能内含前端或脚本） =====
+node_modules/
+dist/
+build/
+.next/
+out/
+.nuxt/
+.svelte-kit/
+.turbo/
+coverage/
+*.tsbuildinfo
+.eslintcache
+
+# ===== 环境与密钥 =====
+.env
+.env.*
+!.env.example
+
+# ===== 日志 =====
+*.log
+logs/
+log/
+
+# ===== 缓存 / 临时 =====
+.cache/
+.temp/
+tmp/
+temp/
+*.tmp
+
+# ===== 编辑器 / 系统 =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===== AI 工具链 =====
+.codex-validation
+.codex-*/
