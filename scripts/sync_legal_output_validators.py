@@ -24,6 +24,13 @@ SYNC_GROUPS = (
             ROOT / "skills" / "legal-goldquest" / "scripts" / "legal_goldquest_option_gate.py",
         ),
     ),
+    (
+        ROOT / "scripts" / "legal_marknote_prose_gate.py",
+        (
+            ROOT / "skills" / "legal-marknote" / "scripts" / "legal_marknote_prose_gate.py",
+            ROOT / "skills" / "legal-goldquest" / "scripts" / "legal_marknote_prose_gate.py",
+        ),
+    ),
 )
 
 

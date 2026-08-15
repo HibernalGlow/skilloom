@@ -12,6 +12,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from legal_goldquest_option_gate import validate_option_analysis  # noqa: E402
+from legal_marknote_prose_gate import validate_marknote_prose_structure  # noqa: E402
 
 ALLOWED_CALLOUTS = {"TIP", "NOTE", "IMPORTANT", "CAUTION", "WARNING"}
 STATUS_COLORS = {5, 8, 12, 13}
@@ -674,7 +675,6 @@ def validate_general_density(text: str) -> list[Finding]:
         findings.append(Finding("W", "502", 1, "Substantial output has no SiYuan semantic color anchors."))
     return findings
 
-
 def validate_marknote_richness(text: str) -> list[Finding]:
     findings: list[Finding] = []
     lines = text.splitlines()
@@ -807,7 +807,6 @@ def validate_concept_list_palette(text: str) -> list[Finding]:
         run.append((number, match.group("term").strip(), style))
     flush()
     return findings
-
 
 def validate_paragraph_parent_fragmentation(text: str) -> list[Finding]:
     """Flag repeated paragraph-plus-short-list groups that should form one hierarchy."""
@@ -1297,6 +1296,7 @@ def validate_text(
     if profile == "legal-marknote":
         findings.extend(validate_marknote_richness(text))
         findings.extend(validate_paragraph_parent_fragmentation(text))
+        findings.extend(Finding(item.level, item.code, item.line, item.message) for item in validate_marknote_prose_structure(text))
     findings.extend(validate_concept_headings(text, profile))
     findings.extend(validate_topic_ials(text, profile, require_note_topic))
     if profile == "legal-goldquest":

@@ -71,6 +71,80 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 
         self.assertNotIn("504", codes(text))
 
+    def test_rejects_mechanical_line_breaks_and_dangling_color_anchor(self) -> None:
+        text = """**行政强制执行**{: style="color: var(--b3-font-color10);"}，
+是指**行政机关**{: style="color: var(--b3-font-color10);"}或者**行政机关**{: style="color: var(--b3-font-color10);"}向人民**法院**{: style="color: var(--b3-font-color12);"}申请，
+**对不履行**{: style="background-color: var(--b3-font-background11);"}行政决定的`公民、法人或者其他组织`，
+依法强制其履行义务的<u>行为</u>。**强制执行**{: style="color: var(--b3-font-color12);"}
+"""
+
+        self.assertTrue({"505", "506"} <= codes(text))
+
+    def test_accepts_semantically_structured_definition(self) -> None:
+        text = """**行政强制执行**{: style="color: var(--b3-font-color10);"}是指：
+
+- **执行路径**
+    - 由**行政机关**{: style="color: var(--b3-font-color10);"}直接实施；
+    - 由**行政机关**{: style="color: var(--b3-font-color10);"}向人民**法院**{: style="color: var(--b3-font-color12);"}申请执行。
+- **执行对象**
+    - **不履行**{: style="background-color: var(--b3-font-background11);"}行政决定的`公民、法人或者其他组织`。
+- **执行内容**
+    - 依法强制其==履行义务==。
+"""
+
+        self.assertFalse({"505", "506"} & codes(text))
+
+    def test_accepts_adjacent_complete_sentences(self) -> None:
+        text = """**行政机关**{: style="color: var(--b3-font-color10);"}依法作出决定。
+**相对人**{: style="color: var(--b3-font-color11);"}应当履行义务。
+"""
+
+        self.assertNotIn("505", codes(text))
+
+    def test_accepts_a_plain_lead_followed_by_a_list(self) -> None:
+        text = """**执行路径**{: style="color: var(--b3-font-color10);"}包括：
+- 行政机关直接实施。
+- 行政机关申请法院执行。
+"""
+
+        self.assertNotIn("505", codes(text))
+
+    def test_rejects_fragmented_plain_prose_inside_callout(self) -> None:
+        text = """> [!NOTE] 定义
+> **行政强制执行**{: style="color: var(--b3-font-color10);"}，
+> 是指行政机关依法采取措施，
+> 强制相对人履行义务的行为。
+"""
+
+        self.assertIn("505", codes(text))
+
+    def test_ignores_fragment_like_text_inside_fence(self) -> None:
+        text = """```md
+行政强制执行，
+是指行政机关依法采取措施，
+强制相对人履行义务的行为。
+```
+"""
+
+        self.assertNotIn("505", codes(text))
+
+    def test_rejects_a_trailing_comma_fragment_after_a_complete_sentence(self) -> None:
+        text = """**行政机关**{: style="color: var(--b3-font-color10);"}依法作出决定。
+仍需继续说明的条件，
+"""
+
+        self.assertIn("505", codes(text))
+
+    def test_ignores_yaml_frontmatter(self) -> None:
+        text = """---
+title: 行政强制执行
+tags: 行政法, 强制执行
+---
+**行政机关**{: style="color: var(--b3-font-color10);"}依法作出决定。
+"""
+
+        self.assertNotIn("505", codes(text))
+
     def test_default_table_gate_accepts_three_by_three(self) -> None:
         text = """| 维度 | 概念甲 | 概念乙 |
 | --- | --- | --- |
