@@ -11,8 +11,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = (
+    ROOT / "scripts" / "legal_goldquest_option_gate.py",
     ROOT / "scripts" / "legal_note_output_validator.py",
+    ROOT / "skills" / "legal-marknote" / "scripts" / "legal_goldquest_option_gate.py",
     ROOT / "skills" / "legal-marknote" / "scripts" / "validate_output.py",
+    ROOT / "skills" / "legal-goldquest" / "scripts" / "legal_goldquest_option_gate.py",
     ROOT / "skills" / "legal-goldquest" / "scripts" / "validate_output.py",
     ROOT / "skills" / "legal-question-bank" / "scripts" / "validate_question_bank.py",
     ROOT / "skills" / "legal-marknote" / "scripts" / "siyuan_topic_manifest.py",

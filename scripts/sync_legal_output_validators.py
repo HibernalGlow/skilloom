@@ -9,10 +9,21 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "scripts" / "legal_note_output_validator.py"
-TARGETS = (
-    ROOT / "skills" / "legal-marknote" / "scripts" / "validate_output.py",
-    ROOT / "skills" / "legal-goldquest" / "scripts" / "validate_output.py",
+SYNC_GROUPS = (
+    (
+        ROOT / "scripts" / "legal_note_output_validator.py",
+        (
+            ROOT / "skills" / "legal-marknote" / "scripts" / "validate_output.py",
+            ROOT / "skills" / "legal-goldquest" / "scripts" / "validate_output.py",
+        ),
+    ),
+    (
+        ROOT / "scripts" / "legal_goldquest_option_gate.py",
+        (
+            ROOT / "skills" / "legal-marknote" / "scripts" / "legal_goldquest_option_gate.py",
+            ROOT / "skills" / "legal-goldquest" / "scripts" / "legal_goldquest_option_gate.py",
+        ),
+    ),
 )
 
 
@@ -24,19 +35,23 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    source_bytes = SOURCE.read_bytes()
-    stale = [target for target in TARGETS if not target.is_file() or target.read_bytes() != source_bytes]
+    stale = [
+        (source, target)
+        for source, targets in SYNC_GROUPS
+        for target in targets
+        if not target.is_file() or target.read_bytes() != source.read_bytes()
+    ]
     if args.check:
-        for target in stale:
+        for _, target in stale:
             print(f"STALE {target.relative_to(ROOT)}")
         if stale:
             print("Run: python -X utf8 scripts/sync_legal_output_validators.py")
             return 1
         print("PASS legal output validator copies are synchronized.")
         return 0
-    for target in stale:
+    for source, target in stale:
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(SOURCE, target)
+        shutil.copyfile(source, target)
         print(f"SYNC {target.relative_to(ROOT)}")
     if not stale:
         print("PASS legal output validator copies already synchronized.")
