@@ -58,3 +58,4 @@ Thumbs.db
 # ===== AI 工具链 =====
 .codex-validation
 .codex-*/
+.review_tmp/
