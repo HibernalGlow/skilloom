@@ -10,7 +10,8 @@ import sys
 from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
-
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from legal_goldquest_option_gate import validate_option_analysis  # noqa: E402
 
 ALLOWED_CALLOUTS = {"TIP", "NOTE", "IMPORTANT", "CAUTION", "WARNING"}
 STATUS_COLORS = {5, 8, 12, 13}
@@ -65,7 +66,6 @@ EXERCISE_REGION_PATTERN = re.compile(r"(?:习题|试一试|练习题|真题)")
 EXERCISE_CONTINUATION_PATTERN = re.compile(r"^(?:答案与解析|回答与解析)[：:]?$")
 NON_CONCEPT_LABELS = {"答案", "回答", "解析", "问题", "题目", "示例", "例题", "注意", "提示"}
 
-
 @dataclass(frozen=True)
 class Finding:
     level: str
@@ -76,11 +76,9 @@ class Finding:
     def render(self, path: Path) -> str:
         return f"{path}:{self.line}: {self.level}{self.code}: {self.message}"
 
-
 def visible_length(value: str) -> int:
     plain = re.sub(r"[`*_~\s，。；：、,.!?！？（）()《》\[\]{}]", "", value)
     return len(plain)
-
 
 def prose_visible_length(value: str) -> int:
     plain = re.sub(r'\{:\s*[^}\n]+\}', '', value)
@@ -1039,6 +1037,8 @@ def validate_goldquest(text: str) -> list[Finding]:
         answer_lines = lines[analysis_start:end]
         analysis_text = "\n".join(answer_lines)
         analysis_prose = prose_without_fenced_blocks(analysis_text)
+        option_gate = validate_option_analysis(question_lines, answer_lines, analysis_start + 1, question_attrs.get("custom-qb-answer", ""))
+        findings.extend(Finding("E", item.code, item.line, item.message) for item in option_gate.findings)
         analysis_subject_styles = {
             match.group("term")
             for match in STYLED_TERM_PATTERN.finditer(analysis_prose)
@@ -1111,7 +1111,7 @@ def validate_goldquest(text: str) -> list[Finding]:
                     top_level_analysis_items += 1
             sentence_count = len(re.findall(r"[。！？；]", stripped))
             prose_length = prose_visible_length(stripped)
-            if prose_length > 42:
+            if prose_length > 42 and number not in option_gate.replay_lines:
                 findings.append(Finding("E", "621", number, "Analysis prose lines must stay within 42 visible characters; split the logic into a lead line and semantic sublist."))
             if prose_length >= 14 and not COLOR_ATTRIBUTE_PATTERN.search(stripped):
                 findings.append(Finding("E", "622", number, "Each substantive analysis line needs at least one short semantic color anchor."))

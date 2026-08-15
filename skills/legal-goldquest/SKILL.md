@@ -94,7 +94,7 @@ description: 将法考题目、选项和完整解析整理为适合思源闪卡�
 
 ## 完成门禁
 
-- 必须运行 `python -X utf8 skills/legal-goldquest/scripts/validate_output.py <output.md> --strict`，并取得退出码 0 后才可交付。门禁逐题检查题目/题干/问题分层、多小问逐行、答案边界、解析主体颜色一致性、逐行颜色密度、42 字行长、表格尺寸门禁与真实表头、至少 4 类辅助样式、至少 4 类结构载体、至少 3 个短背景色签，以及中等复杂度是否含可编辑 Mermaid、`div` 包裹 HTML、或带可视化替代文本的 SVG/PNG；不能用 `legal-marknote/scripts/validate_output.py`、仓库通用检查或无 `--strict` 的命令替代。缺少题目 ID、缺少考点引用、重复/非法考点 ID 或混入笔记提供方属性时，门禁必须失败。
+- 必须运行 `python -X utf8 skills/legal-goldquest/scripts/validate_output.py <output.md> --strict`，并取得退出码 0 后才可交付。门禁逐题检查题目/题干/问题分层、多小问逐行、答案边界、逐项辨析 `E630-E632`、解析主体颜色一致性、逐行颜色密度、42 字行长、表格尺寸门禁与真实表头、至少 4 类辅助样式、至少 4 类结构载体、至少 3 个短背景色签，以及中等复杂度是否含可编辑 Mermaid、`div` 包裹 HTML、或带可视化替代文本的 SVG/PNG；不能用 `legal-marknote/scripts/validate_output.py`、仓库通用检查或无 `--strict` 的命令替代。缺少题目 ID、缺少考点引用、重复/非法考点 ID 或混入笔记提供方属性时，门禁必须失败。
 - 有源材料文件时追加 `--source <source.md> --require-source`，检查图片、表格、标题和 SiYuan 合并属性。
 - 修复所有错误并复核告警；人工确认：题面未泄露答案、答案区 IAL 紧邻答案行、解析未删减、逐项辨析完整复写原选项且标记落在决定性破绽或破题点上、颜色只落在关键短词且词典一致、列表按语义分组、表格不超过 strict 门禁 2×2（或已按真实比较关系显式放宽/合理拆分）、Callout/图示确有内容依据。
 - 输出只包含整理后的内容，不添加开场白或结尾总结。

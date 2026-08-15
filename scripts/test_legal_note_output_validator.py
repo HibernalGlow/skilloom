@@ -32,6 +32,19 @@ def codes(
     }
 
 
+def goldquest_options(analysis: str, *, option_a: str = "要约一经发出，即不得撤回。") -> str:
+    return f"""##### 1.
+{{: custom-qb-id="civil-option-1" custom-qb-question-topic-ids="civil-offer" custom-qb-answer="B"}}
+* **问题**：关于要约与承诺，下列说法正确的是？
+    - [ ] A. {option_a}
+    - [ ] B. 承诺在到达要约人时生效。
+###### 答案与解析
+- 正确答案：B。
+{{: custom-qb-section="solution"}}
+{analysis}
+"""
+
+
 class LegalNoteOutputValidatorTests(unittest.TestCase):
     def test_flags_repeated_paragraph_plus_short_list_groups(self) -> None:
         text = """适用情形：
@@ -575,6 +588,74 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 **答案**为==选项甲==。
 """
         self.assertTrue({"604", "605"} <= codes(text, "legal-goldquest"))
+
+
+class GoldQuestOptionAnalysisGateTests(unittest.TestCase):
+    def test_rejects_summary_without_complete_option_or_reason(self) -> None:
+        text = goldquest_options("- ❌ A 项错误，因为要约可以撤回。")
+
+        self.assertTrue({"630", "631", "632"} <= codes(text, "legal-goldquest"))
+
+    def test_rejects_emoji_only_without_cue_inside_option(self) -> None:
+        text = goldquest_options(
+            "- ❌ A. 要约一经发出，即不得撤回。\n"
+            "    - **破绽**{: style=\"color: var(--b3-font-color13);\"}：规则并非绝对。"
+        )
+
+        result = codes(text, "legal-goldquest")
+        self.assertIn("631", result)
+        self.assertFalse({"630", "632"} & result)
+
+    def test_rejects_marked_option_without_immediate_reason(self) -> None:
+        text = goldquest_options(
+            '- ❌ A. **要约**{: style="color: var(--b3-font-color10);"}一经发出，~~即不得撤回~~。'
+        )
+
+        result = codes(text, "legal-goldquest")
+        self.assertIn("632", result)
+        self.assertFalse({"630", "631"} & result)
+
+    def test_accepts_complete_marked_options_with_reasons(self) -> None:
+        text = goldquest_options(
+            '- ❌ A. **要约**{: style="color: var(--b3-font-color10);"}一经发出，~~即不得撤回~~。\n'
+            '    - **破绽**{: style="color: var(--b3-font-color13);"}：撤回取决于通知到达时间。\n'
+            '- ✅ B. **承诺**{: style="color: var(--b3-font-color11);"}在==到达要约人时==生效。\n'
+            '    - **破题点**{: style="color: var(--b3-font-color8);"}：抓住承诺通知的到达时间。'
+        )
+
+        self.assertFalse({"630", "631", "632"} & codes(text, "legal-goldquest"))
+
+    def test_rejects_decision_emoji_that_disagrees_with_answer(self) -> None:
+        text = goldquest_options(
+            '- ✅ A. **要约**{: style="color: var(--b3-font-color10);"}一经发出，~~即不得撤回~~。\n'
+            '    - **破绽**{: style="color: var(--b3-font-color13);"}：撤回取决于通知到达时间。'
+        )
+
+        self.assertIn("631", codes(text, "legal-goldquest"))
+
+    def test_rejects_option_reference_without_replay_line(self) -> None:
+        text = goldquest_options(
+            '**判断**{: style="color: var(--b3-font-color13);"}：本题A项错误，因为要约可以撤回。'
+        )
+
+        self.assertIn("630", codes(text, "legal-goldquest"))
+
+    def test_ignores_option_words_inside_fenced_visual_source(self) -> None:
+        text = goldquest_options("```mermaid\nflowchart LR\n    A项规则 --> B项结论\n```")
+
+        self.assertNotIn("630", codes(text, "legal-goldquest"))
+
+    def test_long_complete_option_replay_is_not_subject_to_prose_line_limit(self) -> None:
+        option = "要约一经发出，无论撤回通知何时到达受要约人，也无论受要约人是否已经知悉，要约人均不得撤回。"
+        text = goldquest_options(
+            '- ❌ A. **要约**{: style="color: var(--b3-font-color10);"}一经发出，'
+            '~~无论撤回通知何时到达受要约人，也无论受要约人是否已经知悉，要约人均不得撤回~~。\n'
+            '    - **破绽**{: style="color: var(--b3-font-color13);"}：撤回仍取决于通知到达时间。',
+            option_a=option,
+        )
+
+        result = codes(text, "legal-goldquest")
+        self.assertFalse({"621", "630", "631", "632"} & result)
 
 
 if __name__ == "__main__":
