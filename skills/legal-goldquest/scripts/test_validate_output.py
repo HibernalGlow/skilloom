@@ -397,6 +397,25 @@ flowchart LR
 
         self.assertNotIn("623", codes(text))
 
+    def test_does_not_flag_colored_paired_subject_substring(self) -> None:
+        text = f"""##### 1.
+* 甲申请复议，乙为被申请人。
+{ANSWER_BLOCK}
+**申请人**{{: style="color: var(--b3-font-color11);"}}不依附**被申请人**{{: style="color: var(--b3-font-color11);"}}。
+"""
+
+        self.assertNotIn("623", codes(text))
+
+    def test_still_flags_truly_uncolored_paired_subject(self) -> None:
+        text = f"""##### 1.
+* 甲申请复议，乙为被申请人。
+{ANSWER_BLOCK}
+**申请人**{{: style="color: var(--b3-font-color11);"}}不依附**被申请人**{{: style="color: var(--b3-font-color11);"}}。
+申请人也可以撤回申请。
+"""
+
+        self.assertIn("623", codes(text))
+
     def test_requires_analysis_subject_to_have_a_color(self) -> None:
         text = f"""##### 1.
 * 甲实施行为。
