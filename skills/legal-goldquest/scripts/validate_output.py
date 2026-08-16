@@ -1048,11 +1048,22 @@ def validate_goldquest(text: str) -> list[Finding]:
                 and re.fullmatch(r"[\u4e00-\u9fff]+", match.group("term"))
             )
         }
+        all_styled_terms = {
+            match.group("term")
+            for match in STYLED_TERM_PATTERN.finditer(analysis_prose)
+        }
         for term in analysis_subject_styles:
             styled_form = re.compile(
                 rf'\*\*{re.escape(term)}\*\*\{{:\s*style="[^"]*b3-font-(?:color|background)\d+[^\"]*"\}}'
             )
-            remaining_prose = re.sub(r"(?:选项|第)[甲乙丙丁戊]|[甲乙丙丁戊]项", "", styled_form.sub("", analysis_prose))
+            remaining_prose = styled_form.sub("", analysis_prose)
+            for other in all_styled_terms:
+                if other != term and term in other:
+                    longer_form = re.compile(
+                        rf'\*\*{re.escape(other)}\*\*\{{:\s*style="[^"]*b3-font-(?:color|background)\d+[^\"]*"\}}'
+                    )
+                    remaining_prose = longer_form.sub("", remaining_prose)
+            remaining_prose = re.sub(r"(?:选项|第)[甲乙丙丁戊]|[甲乙丙丁戊]项", "", remaining_prose)
             if term in remaining_prose:
                 findings.append(Finding("E", "623", index + 1, f"Term '{term}' has uncolored occurrences in the analysis; reuse its established color every time."))
 
