@@ -184,6 +184,7 @@ def validate_emphasis_syntax(text: str) -> list[Finding]:
         if in_fence:
             continue
         searchable = re.sub(r"(?<!`)`[^`\n]+`(?!`)", "", line)
+        searchable = re.sub(r"\{:\s*[^}\n]*\}", "", searchable)
         if underscore_bold.search(searchable):
             findings.append(Finding("E", "105", number, "Double-underscore bold is disabled; use **text** for bold."))
         if asterisk_italic.search(searchable) or underscore_italic.search(searchable):
@@ -1304,10 +1305,11 @@ def validate_text(
     )
     findings.extend(validate_list_density(text))
     findings.extend(validate_general_density(text))
+    if profile in {"legal-marknote", "legal-goldquest"}:
+        findings.extend(Finding(item.level, item.code, item.line, item.message) for item in validate_marknote_prose_structure(text))
     if profile == "legal-marknote":
         findings.extend(validate_marknote_richness(text))
         findings.extend(validate_paragraph_parent_fragmentation(text))
-        findings.extend(Finding(item.level, item.code, item.line, item.message) for item in validate_marknote_prose_structure(text))
     findings.extend(validate_concept_headings(text, profile))
     findings.extend(validate_topic_ials(text, profile, require_note_topic))
     if profile == "legal-goldquest":
