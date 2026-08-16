@@ -1191,6 +1191,60 @@ def is_repairable_source_heading(title: str) -> bool:
     )
 
 
+def normalize_analysis_scaffold_label(value: str) -> str:
+    value = re.sub(r"\{:\s*[^}\n]*\}", "", value)
+    value = re.sub(r"!\[([^]]*)\]\([^)]+\)", r"\1", value)
+    value = re.sub(r"[`*_~=]", "", value)
+    value = re.sub(r"\s+", "", value).strip()
+    return value.rstrip("：:")
+
+
+def goldquest_analysis_sections(text: str) -> list[list[str]]:
+    lines = text.splitlines()
+    sections: list[list[str]] = []
+    for index, line in enumerate(lines):
+        if not re.fullmatch(r"######\s+答案与解析\s*", line):
+            continue
+        end = next(
+            (candidate for candidate in range(index + 1, len(lines)) if QUESTION_HEADING_PATTERN.fullmatch(lines[candidate])),
+            len(lines),
+        )
+        sections.append(lines[index + 1 : end])
+    return sections
+
+
+def goldquest_analysis_scaffold_labels(text: str) -> set[str]:
+    labels: set[str] = set()
+    list_item = re.compile(r"^(?P<indent>\s*)(?:[-+*]|\d+[.)])\s+(?P<body>.+?)\s*$")
+    for section in goldquest_analysis_sections(text):
+        for index, line in enumerate(section):
+            parent = list_item.match(line)
+            if not parent:
+                continue
+            child = next((candidate for candidate in section[index + 1 :] if candidate.strip()), "")
+            child_match = list_item.match(child)
+            if not child_match or len(child_match.group("indent").expandtabs(4)) <= len(parent.group("indent").expandtabs(4)):
+                continue
+            label = normalize_analysis_scaffold_label(parent.group("body"))
+            if 2 <= len(label) <= 24 and not label.startswith(("正确答案", "破绽", "破题点")):
+                labels.add(label)
+    return labels
+
+
+def goldquest_analysis_structural_labels(text: str) -> set[str]:
+    labels: set[str] = set()
+    list_item = re.compile(r"^\s*(?:[-+*]|\d+[.)])\s+(?P<body>.+?)\s*$")
+    for section in goldquest_analysis_sections(text):
+        for line in section:
+            heading = re.fullmatch(r"#{1,6}\s+(?P<body>.+?)\s*", line)
+            item = list_item.match(line)
+            if heading or item:
+                label = normalize_analysis_scaffold_label((heading or item).group("body"))
+                if label:
+                    labels.add(label)
+    return labels
+
+
 def validate_source_preservation(
     text: str,
     source_text: str,
@@ -1253,6 +1307,20 @@ def validate_source_preservation(
                 continue
             else:
                 findings.append(Finding("E", "704", 1, f"Source heading was not preserved: {heading}"))
+    if profile == "legal-goldquest":
+        source_scaffolds = goldquest_analysis_scaffold_labels(source_text)
+        if len(source_scaffolds) >= 2:
+            output_structures = goldquest_analysis_structural_labels(text)
+            missing = sorted(label for label in source_scaffolds if label not in output_structures)
+            if missing:
+                findings.append(
+                    Finding(
+                        "E",
+                        "633",
+                        1,
+                        "Source analysis has a semantic parent/child rule map that must remain a structural map alongside option replays; missing parents: " + ", ".join(missing),
+                    )
+                )
     return findings
 
 

@@ -751,6 +751,48 @@ class GoldQuestOptionAnalysisGateTests(unittest.TestCase):
         result = codes(text, "legal-goldquest")
         self.assertFalse({"505", "621", "630", "631", "632"} & result)
 
+    def test_source_rule_map_must_survive_option_replays(self) -> None:
+        source = goldquest_options(
+            "- **一高＝组成部门**\n"
+            "    - 设立、撤销由全国人大及其常委会决定。\n"
+            "- **中间层级＝直属机构**\n"
+            "    - 设撤并由国务院决定。\n"
+            "- **组织协调**\n"
+            "    - 跨机构协调由议事协调机构承担。"
+        )
+        output = goldquest_options(
+            '- ❌ A. **要约**{: style="color: var(--b3-font-color10);"}一经发出，~~即不得撤回~~。\n'
+            '    - **破绽**{: style="color: var(--b3-font-color13);"}：撤回取决于通知到达时间。\n'
+            '- ✅ B. **承诺**{: style="color: var(--b3-font-color11);"}在==到达要约人时==生效。\n'
+            '    - **破题点**{: style="color: var(--b3-font-color8);"}：抓住到达时间。'
+        )
+
+        self.assertIn("633", codes(output, "legal-goldquest", source=source))
+
+    def test_source_rule_map_can_coexist_with_option_replays(self) -> None:
+        source = goldquest_options(
+            "- **一高＝组成部门**\n"
+            "    - 设立、撤销由全国人大及其常委会决定。\n"
+            "- **中间层级＝直属机构**\n"
+            "    - 设撤并由国务院决定。\n"
+            "- **组织协调**\n"
+            "    - 跨机构协调由议事协调机构承担。"
+        )
+        output = goldquest_options(
+            '- **一高＝组成部门**\n'
+            '    - 设立、撤销由全国人大及其常委会决定。\n'
+            '- **中间层级＝直属机构**\n'
+            '    - 设撤并由国务院决定。\n'
+            '- **组织协调**\n'
+            '    - 跨机构协调由议事协调机构承担。\n\n'
+            '- ❌ A. **要约**{: style="color: var(--b3-font-color10);"}一经发出，~~即不得撤回~~。\n'
+            '    - **破绽**{: style="color: var(--b3-font-color13);"}：撤回取决于通知到达时间。\n'
+            '- ✅ B. **承诺**{: style="color: var(--b3-font-color11);"}在==到达要约人时==生效。\n'
+            '    - **破题点**{: style="color: var(--b3-font-color8);"}：抓住到达时间。'
+        )
+
+        self.assertNotIn("633", codes(output, "legal-goldquest", source=source))
+
 
 if __name__ == "__main__":
     unittest.main()
