@@ -155,6 +155,30 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 
         self.assertIn("505", codes(text))
 
+    def test_rejects_inline_enumeration_inside_a_list_item(self) -> None:
+        cases = (
+            "- **现场笔录**{: style=\"color: var(--b3-font-color10);\"}：1. 由执法人员和当事人签名。",
+            "- **审查顺序**。2) 再判断程序是否完备。",
+            "- **法定条件**（1）主体适格；（2）程序完备。",
+        )
+
+        for text in cases:
+            with self.subTest(text=text):
+                self.assertIn("507", codes(text))
+
+    def test_accepts_indented_ordered_sublist(self) -> None:
+        text = """- **现场笔录**{: style="color: var(--b3-font-color10);"}：
+    1. 由执法人员和当事人签名。
+    2. 当事人有异议时，执法人员应出庭。
+"""
+
+        self.assertNotIn("507", codes(text))
+
+    def test_allows_a_statutory_article_number_inside_a_list_item(self) -> None:
+        text = "- **法源**：依《行政处罚法》第1条适用。\n"
+
+        self.assertNotIn("507", codes(text))
+
     def test_goldquest_also_rejects_plain_soft_breaks(self) -> None:
         text = """第一句完整。
 第二句完整。

@@ -18,6 +18,9 @@ STRUCTURAL_PATTERN = re.compile(
     re.IGNORECASE,
 )
 LIST_ITEM_PATTERN = re.compile(r"^(?P<indent>\s*)(?:[-+*]|\d+[.)])\s+")
+INLINE_ENUMERATION_PATTERN = re.compile(
+    r"(?<![\w第])(?:\d{1,3}[.)、．]|[（(]\s*\d{1,3}\s*[）)]|[①-⑳])(?=\s*[^\d\s])"
+)
 
 
 @dataclass(frozen=True)
@@ -102,6 +105,15 @@ def validate_marknote_prose_structure(text: str) -> tuple[ProseGateFinding, ...]
                 )
             )
         list_match = LIST_ITEM_PATTERN.match(content)
+        if list_match and INLINE_ENUMERATION_PATTERN.search(content[list_match.end():]):
+            findings.append(
+                ProseGateFinding(
+                    "W",
+                    "507",
+                    number,
+                    "A list item contains an inline enumeration; give each child its own indented list line instead of keeping its marker in the parent text.",
+                )
+            )
         if list_match:
             flush()
             pending_list_line = number
