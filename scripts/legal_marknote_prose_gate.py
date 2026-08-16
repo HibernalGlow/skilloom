@@ -107,6 +107,7 @@ def validate_marknote_prose_structure(text: str) -> tuple[ProseGateFinding, ...]
             pending_list_line = number
             pending_list_quote_depth = quote_depth
             continue
+        # A Callout directive is structurally separate from its first body line.
         if content.startswith("[!") or STRUCTURAL_PATTERN.match(content):
             flush()
             pending_list_line = None
