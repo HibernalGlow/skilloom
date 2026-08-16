@@ -86,6 +86,15 @@ def validate_marknote_prose_structure(text: str) -> tuple[ProseGateFinding, ...]
             in_fence = not in_fence
             continue
         if in_fence:
+            if INLINE_IAL_PATTERN.search(_unwrap_quote(line)[1]):
+                findings.append(
+                    ProseGateFinding(
+                        "W",
+                        "508",
+                        number,
+                        "A SiYuan IAL appears inside a code fence; keep fenced content to standard Markdown or source text and attach the IAL to a rendered block outside the fence.",
+                    )
+                )
             continue
 
         quote_depth, content = _unwrap_quote(line)
