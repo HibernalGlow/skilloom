@@ -126,6 +126,13 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 
         self.assertIn("505", codes(text))
 
+    def test_accepts_callout_directive_then_one_body_line(self) -> None:
+        text = """> [!IMPORTANT] ❗ 一句话定案
+> 处罚看**制裁性**{: style="color: var(--b3-font-color12); background-color: var(--b3-font-background12);"}与**惩戒**{: style="color: var(--b3-font-color12);"}；**注销**{: style="color: var(--b3-font-color10);"}、**强制隔离**{: style="color: var(--b3-font-color10);"}、**责令召回**{: style="color: var(--b3-font-color10);"}均无制裁性。
+"""
+
+        self.assertNotIn("505", codes(text))
+
     def test_ignores_fragment_like_text_inside_fence(self) -> None:
         text = """```md
 行政强制执行，
