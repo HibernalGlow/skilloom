@@ -184,6 +184,7 @@ def validate_emphasis_syntax(text: str) -> list[Finding]:
         if in_fence:
             continue
         searchable = re.sub(r"(?<!`)`[^`\n]+`(?!`)", "", line)
+        searchable = re.sub(r"\{:\s*[^}\n]*\}", "", searchable)
         if underscore_bold.search(searchable):
             findings.append(Finding("E", "105", number, "Double-underscore bold is disabled; use **text** for bold."))
         if asterisk_italic.search(searchable) or underscore_italic.search(searchable):
@@ -1048,11 +1049,22 @@ def validate_goldquest(text: str) -> list[Finding]:
                 and re.fullmatch(r"[\u4e00-\u9fff]+", match.group("term"))
             )
         }
+        all_styled_terms = {
+            match.group("term")
+            for match in STYLED_TERM_PATTERN.finditer(analysis_prose)
+        }
         for term in analysis_subject_styles:
             styled_form = re.compile(
                 rf'\*\*{re.escape(term)}\*\*\{{:\s*style="[^"]*b3-font-(?:color|background)\d+[^\"]*"\}}'
             )
-            remaining_prose = re.sub(r"(?:选项|第)[甲乙丙丁戊]|[甲乙丙丁戊]项", "", styled_form.sub("", analysis_prose))
+            remaining_prose = styled_form.sub("", analysis_prose)
+            for other in all_styled_terms:
+                if other != term and term in other:
+                    longer_form = re.compile(
+                        rf'\*\*{re.escape(other)}\*\*\{{:\s*style="[^"]*b3-font-(?:color|background)\d+[^\"]*"\}}'
+                    )
+                    remaining_prose = longer_form.sub("", remaining_prose)
+            remaining_prose = re.sub(r"(?:选项|第)[甲乙丙丁戊]|[甲乙丙丁戊]项", "", remaining_prose)
             if term in remaining_prose:
                 findings.append(Finding("E", "623", index + 1, f"Term '{term}' has uncolored occurrences in the analysis; reuse its established color every time."))
 
@@ -1293,10 +1305,11 @@ def validate_text(
     )
     findings.extend(validate_list_density(text))
     findings.extend(validate_general_density(text))
+    if profile in {"legal-marknote", "legal-goldquest"}:
+        findings.extend(Finding(item.level, item.code, item.line, item.message) for item in validate_marknote_prose_structure(text))
     if profile == "legal-marknote":
         findings.extend(validate_marknote_richness(text))
         findings.extend(validate_paragraph_parent_fragmentation(text))
-        findings.extend(Finding(item.level, item.code, item.line, item.message) for item in validate_marknote_prose_structure(text))
     findings.extend(validate_concept_headings(text, profile))
     findings.extend(validate_topic_ials(text, profile, require_note_topic))
     if profile == "legal-goldquest":

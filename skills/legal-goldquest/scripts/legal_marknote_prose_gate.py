@@ -9,8 +9,6 @@ from dataclasses import dataclass
 
 INLINE_IAL_PATTERN = re.compile(r"\{:\s*[^}\n]*\}")
 HTML_TAG_PATTERN = re.compile(r"</?[^>]+>")
-TERMINAL_PATTERN = re.compile(r"[。！？；.!?;][\"'”’）》】\]]*$")
-CONTINUATION_PATTERN = re.compile(r"[，、：,,:]$")
 DANGLING_COLOR_ANCHOR_PATTERN = re.compile(
     r'[。！？；.!?;]\s*\*\*[^*\n]+\*\*\{:\s*style="[^"]*b3-font-(?:color|background)\d+[^"]*"\}\s*$'
 )
@@ -19,6 +17,7 @@ STRUCTURAL_PATTERN = re.compile(
     r"-{3,}\s*$|!\[[^]]*\]\([^)]+\)\s*$|</?(?:div|table|thead|tbody|tr|td|th|style|svg)\b)",
     re.IGNORECASE,
 )
+LIST_ITEM_PATTERN = re.compile(r"^(?P<indent>\s*)(?:[-+*]|\d+[.)])\s+")
 
 
 @dataclass(frozen=True)
@@ -47,15 +46,13 @@ def _plain_text(value: str) -> str:
     return value.strip()
 
 
-def _has_fragment_boundary(previous: str) -> bool:
-    return bool(CONTINUATION_PATTERN.search(previous)) or not TERMINAL_PATTERN.search(previous)
-
-
 def validate_marknote_prose_structure(text: str) -> tuple[ProseGateFinding, ...]:
     findings: list[ProseGateFinding] = []
     lines = text.splitlines()
     run: list[tuple[int, str]] = []
     run_quote_depth: int | None = None
+    pending_list_line: int | None = None
+    pending_list_quote_depth: int | None = None
     in_fence = False
     frontmatter_end = (
         next((index for index, line in enumerate(lines[1:], start=1) if line.strip() == "---"), None)
@@ -65,26 +62,13 @@ def validate_marknote_prose_structure(text: str) -> tuple[ProseGateFinding, ...]
 
     def flush() -> None:
         nonlocal run, run_quote_depth
-        found_fragment = False
-        for (number, previous), (_, _) in zip(run, run[1:]):
-            if _has_fragment_boundary(previous):
-                findings.append(
-                    ProseGateFinding(
-                        "W",
-                        "505",
-                        number,
-                        "Plain line breaks do not create semantic structure; merge one inseparable sentence or convert independent parts into a Markdown parent/child list.",
-                    )
-                )
-                found_fragment = True
-                break
-        if not found_fragment and run and re.search(r"[，、,]$", run[-1][1]):
+        if len(run) > 1:
             findings.append(
                 ProseGateFinding(
                     "W",
                     "505",
-                    run[-1][0],
-                    "A standalone prose fragment ends with continuation punctuation; complete it on one line or attach semantic list children.",
+                    run[0][0],
+                    "Consecutive plain-text lines are Markdown soft breaks, not semantic structure; use one paragraph, blank-separated paragraphs, or a Markdown parent/child list.",
                 )
             )
         run = []
@@ -105,6 +89,8 @@ def validate_marknote_prose_structure(text: str) -> tuple[ProseGateFinding, ...]
         content = content.strip()
         if not content:
             flush()
+            pending_list_line = None
+            pending_list_quote_depth = None
             continue
         if DANGLING_COLOR_ANCHOR_PATTERN.search(content):
             findings.append(
@@ -115,11 +101,30 @@ def validate_marknote_prose_structure(text: str) -> tuple[ProseGateFinding, ...]
                     "A color anchor is dangling after a completed sentence; integrate it into the sentence or remove the decorative duplicate.",
                 )
             )
+        list_match = LIST_ITEM_PATTERN.match(content)
+        if list_match:
+            flush()
+            pending_list_line = number
+            pending_list_quote_depth = quote_depth
+            continue
         if content.startswith("[!") or STRUCTURAL_PATTERN.match(content):
             flush()
+            pending_list_line = None
+            pending_list_quote_depth = None
             continue
         if run_quote_depth is not None and quote_depth != run_quote_depth:
             flush()
+        if pending_list_line is not None and quote_depth == pending_list_quote_depth:
+            findings.append(
+                ProseGateFinding(
+                    "W",
+                    "505",
+                    pending_list_line,
+                    "A list item continues as bare text; make the continuation a nested list item or a blank-separated paragraph.",
+                )
+            )
+        pending_list_line = None
+        pending_list_quote_depth = None
         run_quote_depth = quote_depth
         run.append((number, _plain_text(content)))
 

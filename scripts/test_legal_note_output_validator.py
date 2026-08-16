@@ -94,8 +94,16 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 
         self.assertFalse({"505", "506"} & codes(text))
 
-    def test_accepts_adjacent_complete_sentences(self) -> None:
+    def test_rejects_adjacent_complete_sentences_as_a_soft_break(self) -> None:
         text = """**行政机关**{: style="color: var(--b3-font-color10);"}依法作出决定。
+**相对人**{: style="color: var(--b3-font-color11);"}应当履行义务。
+"""
+
+        self.assertIn("505", codes(text))
+
+    def test_accepts_blank_separated_paragraphs(self) -> None:
+        text = """**行政机关**{: style="color: var(--b3-font-color10);"}依法作出决定。
+
 **相对人**{: style="color: var(--b3-font-color11);"}应当履行义务。
 """
 
@@ -128,12 +136,24 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 
         self.assertNotIn("505", codes(text))
 
-    def test_rejects_a_trailing_comma_fragment_after_a_complete_sentence(self) -> None:
-        text = """**行政机关**{: style="color: var(--b3-font-color10);"}依法作出决定。
-仍需继续说明的条件，
+    def test_allows_a_single_unpunctuated_prose_line(self) -> None:
+        text = "**行政机关**{: style=\"color: var(--b3-font-color10);\"}仍需继续说明的条件"
+
+        self.assertNotIn("505", codes(text))
+
+    def test_rejects_bare_list_continuation(self) -> None:
+        text = """- **执行路径**{: style="color: var(--b3-font-color10);"}
+    行政机关可以直接实施。
 """
 
         self.assertIn("505", codes(text))
+
+    def test_goldquest_also_rejects_plain_soft_breaks(self) -> None:
+        text = """第一句完整。
+第二句完整。
+"""
+
+        self.assertIn("505", codes(text, "legal-goldquest"))
 
     def test_ignores_yaml_frontmatter(self) -> None:
         text = """---
@@ -295,6 +315,7 @@ tags: 行政法, 强制执行
 | {: class='fn__none'} | 指定期间 | {: colspan='3'}法院依职权指定期间 | {: class='fn__none'} | {: class='fn__none'} |
 """
         self.assertFalse({"404", "406", "407", "408", "409", "410"} & codes(text))
+        self.assertNotIn("105", codes(text))
 
     def test_rejects_split_table_without_real_header(self) -> None:
         text = """| 本院启动 | 院长 | 提交审判委员会讨论 |
@@ -722,14 +743,13 @@ class GoldQuestOptionAnalysisGateTests(unittest.TestCase):
     def test_long_complete_option_replay_is_not_subject_to_prose_line_limit(self) -> None:
         option = "要约一经发出，无论撤回通知何时到达受要约人，也无论受要约人是否已经知悉，要约人均不得撤回。"
         text = goldquest_options(
-            '- ❌ A. **要约**{: style="color: var(--b3-font-color10);"}一经发出，'
-            '~~无论撤回通知何时到达受要约人，也无论受要约人是否已经知悉，要约人均不得撤回~~。\n'
+            '- ❌ A. **要约**{: style="color: var(--b3-font-color10);"}一经发出，~~无论撤回通知何时到达受要约人，也无论受要约人是否已经知悉，要约人均不得撤回~~。\n'
             '    - **破绽**{: style="color: var(--b3-font-color13);"}：撤回仍取决于通知到达时间。',
             option_a=option,
         )
 
         result = codes(text, "legal-goldquest")
-        self.assertFalse({"621", "630", "631", "632"} & result)
+        self.assertFalse({"505", "621", "630", "631", "632"} & result)
 
 
 if __name__ == "__main__":
