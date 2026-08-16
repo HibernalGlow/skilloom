@@ -143,6 +143,21 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 
         self.assertNotIn("505", codes(text))
 
+    def test_rejects_siyuan_ial_inside_plain_or_quoted_code_fence(self) -> None:
+        cases = (
+            "```md\n**行政机关**{: style=\"color: var(--b3-font-color10);\"}\n```",
+            "> ```md\n> {: custom-qb-section=\"solution\"}\n> ```",
+        )
+
+        for text in cases:
+            with self.subTest(text=text):
+                self.assertIn("508", codes(text))
+
+    def test_allows_standard_markdown_inside_a_code_fence(self) -> None:
+        text = "```md\n**行政机关**应当作出决定。\n```"
+
+        self.assertNotIn("508", codes(text))
+
     def test_allows_a_single_unpunctuated_prose_line(self) -> None:
         text = "**行政机关**{: style=\"color: var(--b3-font-color10);\"}仍需继续说明的条件"
 
