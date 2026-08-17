@@ -42,9 +42,12 @@ TABLE_SEPARATOR_PATTERN = re.compile(r"^:?-{3,}:?$")
 MERGE_SPAN_PATTERN = re.compile(r"\b(?P<name>colspan|rowspan)=['\"](?P<value>\d+)['\"]")
 MERGE_PLACEHOLDER_PATTERN = re.compile(r"\bclass=['\"]fn__none['\"]")
 CONTRAST_PAIRS = (("有效", "无效"), ("成立", "不成立"), ("原则", "例外"), ("允许", "禁止"))
+# W509 verifies a visible structural cue, not an emoji dictionary.  Meaning is
+# intentionally reviewed in the skill contract because a Unicode regex cannot
+# determine whether an icon fits the legal relationship it labels.
 SEMANTIC_EMOJI_LABEL_PATTERN = re.compile(
     r"(?m)^(?:\s*(?:[-+*]|\d+[.)])\s+|\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING)\]\s+)"
-    r"(?:[📚🧭🧩⚖️⚠️↔🔍⏳]\ufe0f?\s*)+(?=\S)"
+    r"(?![✅❌])[\U0001F000-\U0001FAFF\u2600-\u27BF](?:\ufe0f|\U0001F3FB-\U0001F3FF|\u200d[\U0001F000-\U0001FAFF\u2600-\u27BF])*\s*(?=\S)"
 )
 LEGACY_ANSWER_MASK_PATTERN = re.compile(
     r"<div><style>b\{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px\}b:hover\{background:#fff2c2;color:#c0392b\}</style>答案：<b>[^<]+</b></div>",
@@ -107,7 +110,7 @@ def prose_without_fenced_blocks(value: str) -> str:
 
 
 def has_semantic_emoji_label(value: str) -> bool:
-    """Return whether a controlled emoji leads a real structural label."""
+    """Return whether an open-set emoji leads a real structural label."""
     return SEMANTIC_EMOJI_LABEL_PATTERN.search(prose_without_fenced_blocks(value)) is not None
 
 
@@ -772,7 +775,7 @@ def validate_marknote_richness(text: str) -> list[Finding]:
     if medium_complexity and background_anchor_count < 3:
         findings.append(Finding("E", "627", 1, "Medium-or-higher complexity MarkNote needs at least three short background-color anchors for visual hierarchy."))
     if medium_complexity and not has_semantic_emoji_label(body):
-        findings.append(Finding("W", "509", 1, "Medium-or-higher complexity MarkNote needs at least one controlled semantic emoji leading a list or Callout label; decision emojis alone do not satisfy this cue."))
+        findings.append(Finding("W", "509", 1, "Medium-or-higher complexity MarkNote needs at least one semantic emoji leading a list or Callout label; decision emojis alone do not satisfy this cue."))
     findings.extend(validate_concept_list_palette(text))
     return findings
 
@@ -1181,7 +1184,7 @@ def validate_goldquest(text: str) -> list[Finding]:
         if medium_complexity and background_anchor_count < 3:
             findings.append(Finding("E", "627", analysis_start + 1, "Medium-or-higher complexity analysis needs at least three short background-color anchors for strong visual hierarchy."))
         if medium_complexity and not has_semantic_emoji_label(analysis_text):
-            findings.append(Finding("W", "509", analysis_start + 1, "Medium-or-higher complexity analysis needs at least one controlled semantic emoji leading a list or Callout label; option decision emojis do not satisfy this cue."))
+            findings.append(Finding("W", "509", analysis_start + 1, "Medium-or-higher complexity analysis needs at least one semantic emoji leading a list or Callout label; option decision emojis do not satisfy this cue."))
     return findings
 
 
