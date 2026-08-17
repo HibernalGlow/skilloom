@@ -97,12 +97,14 @@ When a finished SiYuan document already contains manual edits, references, or ba
 
 ## Rich visual contract
 
+- **Emoji 路由（`W509`）**：中等及以上复杂度的生成说明至少在一个真实列表父项或 Callout 标题前使用受控 emoji；它是结构标签而非句末点缀。按[详细指南](references/note-guide-original.md#emoji-语义路由)选择，允许两个直接相关角色组合；不得为保留标题、原题、代码围栏或题面强加 emoji。
+
 MarkNote is a reading aid, not a plain transcription. Apply this contract to generated explanations and summaries according to their real semantic complexity. 源/题目内容可以保持无色，但新增解析必须主动着色：
 
 - **Color mapping**: build a local vocabulary before writing. Repeated parties, institutions, objects, concepts, states, and aliases keep the same color. 概念列表先分槽：颜色映射到该概念在当前分类中的法律功能，不映射到笼统的“概念”词性；连续概念项应体现主体、门槛、程序、例外、结果或风险等真实差异。Use short bold anchors; foreground-only, background-only, and combined styles are all valid. 背景色：可以单独使用。Background-only example: `**诉讼中**{: style="background-color: var(--b3-font-background11);"}`.
 - **Dense reasoning**: 每条普通正文行最多 42 个可见字符。Turn independent conditions, branches, exceptions, and consequences into nested lists so the reader can scan the logic.
 - **Rich mode**: when a block is medium or complex, 至少四类辅助样式 from `==高亮==`, optional low-frequency `<em>斜体</em>`, `~~删除线~~`, inline code, and `<u>下划线</u>`; 至少四类结构载体 from nested lists, Callout, subheadings, tables, one suitable visual, and dividers; 至少三个短背景色锚点。斜体不是必选项。
 - **可视化路由**: medium or complex material needs one intentional visual when it contains procedures, sequences, branches, comparisons, or subject relationships, but the format follows the content. For in-note editability, use SiYuan's Mermaid.js and allow `%%{init}%%`, `classDef`, `style`, and `linkStyle`; do not call Beautiful Mermaid on this branch. For richer spatial/object composition, use HTML with exactly one outer `<div>`. For stable themed output, insert a rendered SVG/PNG with alt text containing 可视化、图解、流程图、关系图、决策图、时间线, or `diagram`. Beautiful Mermaid is only a static renderer for its supported Mermaid subset: it drops `%%{init}%%`, applies edge-label color globally, and cannot color edge labels individually. Check semantic colors, labels, direction, connectors, and mobile width for the chosen format.
-- **Audit**: run the MarkNote validator in strict mode, fix every E620-E627 finding, and fix `W503` concept-list monotony, `W504` paragraph-parent fragmentation, `W505` mechanical line breaks, and `W506` dangling color anchors before delivery.
+- **Audit**: run the MarkNote validator in strict mode, fix every E620-E627 finding, and fix `W503` concept-list monotony, `W504` paragraph-parent fragmentation, `W505` mechanical line breaks, `W506` dangling color anchors, and `W509` missing semantic emoji route before delivery.
 
 The reference guide contains the complete formatting contract, color syntax, templates, and examples.
