@@ -71,7 +71,7 @@ def validate_marknote_prose_structure(text: str) -> tuple[ProseGateFinding, ...]
                     "W",
                     "505",
                     run[0][0],
-                    "Consecutive plain-text lines are Markdown soft breaks, not semantic structure; use one paragraph, blank-separated paragraphs, or a Markdown parent/child list.",
+                    "Consecutive prose lines are Markdown soft breaks, not semantic structure; use one paragraph, blank-separated paragraphs, or a Markdown parent/child list while preserving every inline Markdown and SiYuan IAL anchor intact.",
                 )
             )
         run = []
@@ -120,7 +120,7 @@ def validate_marknote_prose_structure(text: str) -> tuple[ProseGateFinding, ...]
                     "W",
                     "507",
                     number,
-                    "A list item contains an inline enumeration; give each child its own indented list line instead of keeping its marker in the parent text.",
+                    "A list item contains an inline enumeration; give each child its own indented list line instead of keeping its marker in the parent text, preserving every inline Markdown and SiYuan IAL anchor intact.",
                 )
             )
         if list_match:
@@ -142,7 +142,7 @@ def validate_marknote_prose_structure(text: str) -> tuple[ProseGateFinding, ...]
                     "W",
                     "505",
                     pending_list_line,
-                    "A list item continues as bare text; make the continuation a nested list item or a blank-separated paragraph.",
+                    "A list item continues as bare text; make the continuation a nested list item or a blank-separated paragraph, preserving every inline Markdown and SiYuan IAL anchor intact.",
                 )
             )
         pending_list_line = None

@@ -163,6 +163,25 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 
         self.assertNotIn("505", codes(text))
 
+    def test_does_not_misclassify_color_or_block_ial_as_a_soft_break(self) -> None:
+        cases = (
+            "**行政机关**{: style=\"color: var(--b3-font-color10);\"}依法履职。",
+            "行政机关依法履职。\n{: style=\"color: var(--b3-font-color10);\"}",
+            "> [!NOTE] 提示\n> **行政机关**{: style=\"color: var(--b3-font-color10);\"}依法履职。",
+        )
+
+        for text in cases:
+            with self.subTest(text=text):
+                self.assertFalse({"505", "506", "508"} & codes(text))
+
+    def test_reports_a_real_soft_break_without_invalidating_color_anchors(self) -> None:
+        text = """**行政机关**{: style="color: var(--b3-font-color10);"}依法作出决定，
+**相对人**{: style="color: var(--b3-font-color11);"}应当履行义务。
+"""
+
+        self.assertIn("505", codes(text))
+        self.assertFalse({"506", "508"} & codes(text))
+
     def test_rejects_bare_list_continuation(self) -> None:
         text = """- **执行路径**{: style="color: var(--b3-font-color10);"}
     行政机关可以直接实施。
