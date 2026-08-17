@@ -598,6 +598,20 @@ tags: 行政法, 强制执行
 
         self.assertNotIn("624", codes(text))
 
+    def test_medium_marknote_requires_a_semantic_emoji_label(self) -> None:
+        text = """### 程序
+- **申请**{: style="color: var(--b3-font-color10);"}
+    - **法院**{: style="color: var(--b3-font-color8);"}审查。
+- **补正**{: style="background-color: var(--b3-font-background11);"}
+    - **申请人**{: style="color: var(--b3-font-color10);"}补充材料。
+- **驳回**{: style="background-color: var(--b3-font-background13);"}
+    - **申请人**{: style="color: var(--b3-font-color10);"}承担不利后果。
+"""
+
+        self.assertIn("509", codes(text))
+        self.assertNotIn("509", codes(text.replace("- **申请**", "- 🧭 **申请**")))
+        self.assertNotIn("509", codes(text.replace("- **申请**", "- 🧭⚠️ **申请**")))
+
     def test_ordinary_png_does_not_satisfy_visual_gate(self) -> None:
         text = """### 程序
 **申请人**{: style="color: var(--b3-font-color10);"}提出申请。
@@ -751,6 +765,18 @@ tags: 行政法, 强制执行
 
 
 class GoldQuestOptionAnalysisGateTests(unittest.TestCase):
+    def test_medium_goldquest_analysis_requires_a_non_decision_semantic_emoji(self) -> None:
+        analysis = (
+            '- ❌ A. **要约**{: style="color: var(--b3-font-color10);"}一经发出，~~即不得撤回~~。\n'
+            '    - **破绽**{: style="color: var(--b3-font-color13);"}：撤回取决于通知到达时间。\n'
+            '- ✅ B. **承诺**{: style="color: var(--b3-font-color11);"}在==到达要约人时==生效。\n'
+            '    - **破题点**{: style="color: var(--b3-font-color8);"}：抓住承诺通知的到达时间。\n'
+            '- **规则定位**{: style="color: var(--b3-font-color10);"}：要约与承诺分别适用不同生效规则。'
+        )
+
+        self.assertIn("509", codes(goldquest_options(analysis), "legal-goldquest"))
+        self.assertNotIn("509", codes(goldquest_options(analysis.replace("- **规则定位**", "- 🧭 **规则定位**")), "legal-goldquest"))
+
     def test_rejects_summary_without_complete_option_or_reason(self) -> None:
         text = goldquest_options("- ❌ A 项错误，因为要约可以撤回。")
 
