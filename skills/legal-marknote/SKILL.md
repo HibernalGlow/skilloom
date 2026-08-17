@@ -97,7 +97,7 @@ When a finished SiYuan document already contains manual edits, references, or ba
 
 ## Rich visual contract
 
-- **Emoji 路由（`W509`）**：中等及以上复杂度的生成说明至少在一个真实列表父项或 Callout 标题前使用与该节点关系相称的 emoji；它是结构标签而非句末点缀。emoji 选择开放，按[详细指南](references/note-guide-original.md#emoji-语义路由)从实际关系出发；可组合直接相关角色，不为保留标题、原题、代码围栏或题面强加 emoji。
+- **Emoji 路由（`W509`）**：中等及以上复杂度的生成说明至少使用一个与法律关系相称的 emoji；位置按其实际修饰范围决定，可以在标签前、关键短语旁或结论句末。emoji 选择开放，按[详细指南](references/note-guide-original.md#emoji-语义路由)从实际关系出发；可组合直接相关角色，不为保留标题、原题、代码围栏或题面强加 emoji。
 
 MarkNote is a reading aid, not a plain transcription. Apply this contract to generated explanations and summaries according to their real semantic complexity. 源/题目内容可以保持无色，但新增解析必须主动着色：
 
