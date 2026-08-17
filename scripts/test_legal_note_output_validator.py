@@ -611,6 +611,7 @@ tags: 行政法, 强制执行
         self.assertIn("509", codes(text))
         self.assertNotIn("509", codes(text.replace("- **申请**", "- 🧭 **申请**")))
         self.assertNotIn("509", codes(text.replace("- **申请**", "- 🧭⚠️ **申请**")))
+        self.assertNotIn("509", codes(text.replace("- **申请**", "- 🧱 **申请**")))
 
     def test_ordinary_png_does_not_satisfy_visual_gate(self) -> None:
         text = """### 程序
@@ -776,6 +777,7 @@ class GoldQuestOptionAnalysisGateTests(unittest.TestCase):
 
         self.assertIn("509", codes(goldquest_options(analysis), "legal-goldquest"))
         self.assertNotIn("509", codes(goldquest_options(analysis.replace("- **规则定位**", "- 🧭 **规则定位**")), "legal-goldquest"))
+        self.assertNotIn("509", codes(goldquest_options(analysis.replace("- **规则定位**", "- 📜 **规则定位**")), "legal-goldquest"))
 
     def test_rejects_summary_without_complete_option_or_reason(self) -> None:
         text = goldquest_options("- ❌ A 项错误，因为要约可以撤回。")
