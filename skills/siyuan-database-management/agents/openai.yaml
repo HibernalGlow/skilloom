@@ -1,0 +1,4 @@
+interface:
+  display_name: "SiYuan Database Management"
+  short_description: "Safely manage and update SiYuan Attribute View databases."
+  default_prompt: "Use $siyuan-database-management to create or update SiYuan AV databases without ghost rows, palette loss, or template arithmetic failures."
