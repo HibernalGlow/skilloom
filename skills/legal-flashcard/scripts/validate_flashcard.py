@@ -21,6 +21,8 @@ RUNTIME_RE = re.compile(
     r"(?:custom-riff-decks|\bdue\b|\binterval\b|review\s+log|\bsuspend\b|\bbury\b|device\s+state|srs\s+state)",
     re.IGNORECASE,
 )
+KNOWLEDGE_TAG_RE = re.compile(r"#法考/[^#\s]+#")
+PRIORITY_TAG_RE = re.compile(r"#闪卡/优先级/([^#\s]+)#")
 ALLOWED = {
     "custom-dm-source-key",
     "custom-dm-card-id",
@@ -162,6 +164,13 @@ def validate(
             findings.append(Finding(start + 1, "E014", "Runtime scheduling or Riff fields leaked into the card block."))
         root_index, card_body = _card_body(lines, start, renderer)
         root = lines[root_index].strip() if root_index is not None else ""
+        if not KNOWLEDGE_TAG_RE.search(card_body):
+            findings.append(Finding(start + 1, "E033", "Accepted cards need a source-grounded #法考/...# knowledge tag on the root line."))
+        for priority in PRIORITY_TAG_RE.findall(card_body):
+            if priority not in {"P1", "P2", "P3", "P4"}:
+                findings.append(Finding(start + 1, "E034", "Flashcard priority tag must be #闪卡/优先级/P1# through P4."))
+        if re.search(r"#闪卡/(?!优先级/)[^#\s]+#", card_body):
+            findings.append(Finding(start + 1, "E034", "Flashcard tags must use the #闪卡/优先级/P1# through P4 namespace."))
         if renderer in {"list", "mark"} and not re.match(r"^-\s+", root):
             findings.append(Finding(start + 1, "E015", "list renderer IAL must attach to a root list item."))
         if renderer == "mark" and "==" not in card_body:
