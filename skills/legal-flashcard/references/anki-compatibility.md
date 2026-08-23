@@ -1,6 +1,12 @@
-# Anki-like compatibility boundary
+# External flashcard-design boundary
 
-The local Skill Room index was queried read-only. It contains the installed `flashcards` skill from `CSlawyer1985/claude-for-legal-ZH`, whose useful generation heuristics are: one concept per card, source citation, split long answers, cloze only for a short target, and prefer fewer sourced cards over many guesses. No separate Anki skill was present in the local SQL cache.
+The external skill search was refreshed against dedicated creators rather than Anki runtime tools:
 
-Reuse those content heuristics only. A question front is plain recall text: do not use a reading highlight on a basic question. Reserve `==...==` for a short cloze target or for the explicitly named phrase and mapping of a mnemonic cue. DAMO owns portable Markdown semantics; the skill does not copy Anki note IDs, card IDs, deck names, due dates, intervals, review logs, suspend/bury state, or device state. `custom-dm-card-kind` is the semantic note/card kind; `custom-dm-card-renderer` remains the host container.
+- `anthropics/claude-for-legal@flashcards` treats one concept as one card, splits paragraph answers, cites the source, and prefers fewer verified cards over padded output.
+- `terkelg/anki-markdown@anki` requires atomic, simple, unambiguous prompts, one unique specific answer, short backs, preview before acceptance, and distinct retrieval directions for useful variants.
+- `blazewicz/claude-flashcards@flashcard-creator` usefully selects among direct recall, fill-in-the-blank, application, mistake-correction, and mnemonic forms according to the material.
+
+[card-design.md](card-design.md) is the local source of truth for the adapted rules. DAMO keeps the atomicity, prompt specificity, material-driven card-type choice, contextual hints, and preview step. It prunes AnkiConnect operations, `Front`/`Back` labels, fixed bulk targets, mandatory variant multiplication, deck names, note IDs, scheduling fields, review state, and conversion scripts.
+
+Completion criterion: an external heuristic changes recall quality without changing DAMO fields, IAL boundaries, renderer semantics, or the prohibition on runtime state.
 
