@@ -1,15 +1,19 @@
 ---
 name: legal-flashcard
-description: Generate DAMO-compatible legal flashcard Markdown in two explicit modes, and acquire source Markdown from online or offline SiYuan .sy documents. Use during ordinary legal-note organization to identify atomic flashcard candidates without emitting card containers, when exporting SiYuan source documents for card work, and when the user explicitly asks to make, generate, draft, export, or review flashcards/cards.
+description: Generate DAMO-compatible legal flashcard Markdown in two explicit modes, export online or offline SiYuan documents with three IAL ranges, and batch-paste Markdown back into SiYuan through a real Protyle paste. Use during ordinary legal-note organization, SiYuan Markdown export or import, and explicit flashcard generation or review.
 ---
 
 # Legal Flashcard
 
-Use this skill as a mode router. It outputs portable Markdown semantics only; it does not call Riff, write SiYuan runtime state, or implement DAMO.
+Use this skill as a mode router. Card generation outputs portable Markdown semantics and never writes Riff runtime state. The explicit SiYuan delivery route may create documents only through the bundled Protyle-paste script.
 
 ## Acquire SiYuan source
 
 When the source is one or more `.sy` files, a SiYuan document directory, or an offline workspace, read [siyuan-export.md](references/siyuan-export.md) and run `scripts/export_siyuan_markdown.py` before routing the resulting Markdown. Keep this acquisition step read-only and use portable IAL by default; use complete IAL when requested, and emit attribute-free Kramdown only when the user explicitly requests it. Completion criterion: each requested source document has one exported Markdown file or ZIP member, and the source `.sy` files are unchanged.
+
+## Deliver Markdown to SiYuan
+
+When the user asks to paste or import one or many Markdown files into a SiYuan directory, read [siyuan-paste.md](references/siyuan-paste.md) and run `scripts/paste_siyuan_markdown.py`. Use `--title` for one explicit title or `--title-map` for batch titles; otherwise prefer the first H1 before the filename. Never replace this route with direct document-content upload when IAL must survive, because the bundled script delegates each write to a real Protyle paste event. Completion criterion: one batch receipt names every created document and its target path, or the failure names the completed prefix and snapshot.
 
 ## Route the request
 
@@ -39,3 +43,4 @@ When the source is one or more `.sy` files, a SiYuan document directory, or an o
 - Repeatable path/title check (including the leading `⚡` H1 role marker): `python -X utf8 scripts/validate_naming.py <output.md> --source <source.md>`
 - External flashcard-skill audit: read [anki-compatibility.md](references/anki-compatibility.md) only when revising card-design rules or comparing another Anki/flashcard skill.
 - Offline SiYuan `.sy` and batch Markdown ZIP export: [siyuan-export.md](references/siyuan-export.md)
+- Real-Protyle single and batch Markdown paste: [siyuan-paste.md](references/siyuan-paste.md)

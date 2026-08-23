@@ -1,4 +1,4 @@
 interface:
   display_name: "Legal Flashcard"
-  short_description: "DAMO legal cards and offline SiYuan source export"
-  default_prompt: "Use $legal-flashcard for flashcard-aware notes, offline SiYuan source export, or validated card generation."
+  short_description: "DAMO legal cards and SiYuan Markdown round trips"
+  default_prompt: "Use $legal-flashcard to export, create, validate, or paste IAL-preserving legal flashcards."
