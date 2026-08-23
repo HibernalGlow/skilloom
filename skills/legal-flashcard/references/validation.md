@@ -7,6 +7,7 @@ Reject a candidate when one of these conditions is observed:
 - `unsupported`: a question, answer, citation, or cloze target is absent from supplied material.
 - `ambiguous-boundary`: the card root, answer boundary, source range, or variant parent cannot be determined.
 - `missing-topic`: no confirmed narrow `custom-qb-note-topic-id` value exists after the self-completion workflow in [topic-resolution.md](topic-resolution.md).
+- `missing-tag`: no source-grounded `#法考/...#` knowledge tag can be confirmed for an accepted card.
 - `duplicate`: normalized question or stable ID duplicates an existing card in the same source range.
 - `over-budget`: the card is valid but exceeds the requested card budget after priority ordering.
 - `uncertain-law`: a date, period, exception, case, or statute needs verification.
