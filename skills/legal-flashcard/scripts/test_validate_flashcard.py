@@ -62,6 +62,25 @@ class FlashcardValidatorTests(unittest.TestCase):
         )
         self.assertIn("E029", {finding.code for finding in validate(long_cloze)})
 
+    def test_basic_question_does_not_use_highlight(self):
+        highlighted = VALID.replace("成立要件**{: style", "成立==要件==**{: style")
+        self.assertIn("E036", {finding.code for finding in validate(highlighted)})
+
+    def test_mnemonic_is_a_cue_not_a_question(self):
+        mnemonic = VALID.replace(
+            'custom-dm-card-id="fc-civil-elements-v1"',
+            'custom-dm-card-id="fc-civil-mnemonic-v1"',
+        ).replace(
+            'custom-dm-card-kind="basic"',
+            'custom-dm-card-kind="mnemonic"',
+        ).replace(
+            '- 问题：**成立要件**{: style="color: var(--b3-font-color10);"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 答案：要件一。',
+            '- **口诀**{: style="color: var(--b3-font-color12);"}：==三分法定== #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 组合：==三分法定==',
+        )
+        self.assertEqual(validate(mnemonic), [])
+        question_mnemonic = mnemonic.replace("- **口诀**", "- 问题：**口诀**")
+        self.assertIn("E037", {finding.code for finding in validate(question_mnemonic)})
+
     def test_requires_knowledge_tag_and_valid_priority_namespace(self):
         missing = VALID.replace(" #法考/民法/债法/成立要件# #闪卡/优先级/P1#", "")
         self.assertIn("E033", {finding.code for finding in validate(missing)})
