@@ -40,6 +40,16 @@ When implementing a familiar capability, first locate a mature reference impleme
 8. When fixing a measured rendering regression, record the real SiYuan Web surface before and after the fix. Use the browser DevTools performance recorder on the same interaction, include an enabled/disabled A/B comparison, and compare style recalculation time, long tasks, and dropped frames before declaring success.
 9. Commit only this task's files after validation, using a functional commit message. Leave unrelated work unstaged and report it.
 
+## Native Mobile Review Rendering Gate
+
+For controls injected into SiYuan's native mobile flashcard toolbar, treat SVG painting as the completion criterion:
+
+- Create both the outer `<svg>` and its `<use>` child with `document.createElementNS("http://www.w3.org/2000/svg", ...)`. `document.createElement("svg")` creates an HTML-namespace element that can occupy space while rendering no icon.
+- Set both `href` and SVG 1.1 `xlink:href` on every `<use>` symbol. SiYuan 3.8.x mobile templates still use `xlink:href`.
+- Browser tests must assert the outer element's `namespaceURI`, both symbol attributes, and action dispatch. A selector count or accessible label alone is not rendering evidence.
+- After deployment, reload SiYuan/plugin code, open the native review surface, and capture a real browser screenshot at the affected mobile viewport (use 721x1011 when reproducing the compact mobile layout). Confirm every injected icon is visibly painted and the action group is contiguous with the native filter/more/close controls.
+- Record both DOM geometry and screenshot evidence. If an element has a nonzero box but its icon is not visible, the rendering gate is failed and the change is not complete.
+
 ## Data Rules
 
 Markdown and IAL remain the authoritative question-content source. Attribute View rows and other append-only events hold attempts and derived data is rebuildable. Plugin data files hold recoverable in-progress state, not the only copy of durable history. Add schema versions and migrations before writing new managed fields.
