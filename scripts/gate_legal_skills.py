@@ -21,6 +21,8 @@ SCRIPTS = (
     ROOT / "skills" / "legal-goldquest" / "scripts" / "legal_marknote_prose_gate.py",
     ROOT / "skills" / "legal-goldquest" / "scripts" / "validate_output.py",
     ROOT / "skills" / "legal-question-bank" / "scripts" / "validate_question_bank.py",
+    ROOT / "skills" / "legal-flashcard" / "scripts" / "validate_flashcard.py",
+    ROOT / "skills" / "legal-flashcard" / "scripts" / "validate_naming.py",
     ROOT / "skills" / "legal-marknote" / "scripts" / "siyuan_topic_manifest.py",
     ROOT / "skills" / "legal-marknote" / "scripts" / "audit_question_groups.py",
 )
@@ -29,6 +31,7 @@ TEST_SCRIPTS = (
     ROOT / "skills" / "legal-marknote" / "scripts" / "test_validate_output.py",
     ROOT / "skills" / "legal-goldquest" / "scripts" / "test_validate_output.py",
     ROOT / "skills" / "legal-question-bank" / "scripts" / "test_validate_question_bank.py",
+    ROOT / "skills" / "legal-flashcard" / "scripts" / "test_validate_flashcard.py",
     ROOT / "skills" / "legal-marknote" / "scripts" / "test_siyuan_topic_manifest.py",
     ROOT / "skills" / "legal-marknote" / "scripts" / "test_audit_question_groups.py",
 )

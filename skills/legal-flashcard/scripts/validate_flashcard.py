@@ -16,6 +16,7 @@ SOURCE_KEY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
 STYLE_ANCHOR_RE = re.compile(
     r'\*\*[^*\n]+\*\*\{:\s+style="[^"]*(?:color|background-color):\s*var\(--b3-font-(?:color|background)(?:[2-9]|1[0-3])\);?[^"]*"\}'
 )
+PROVIDER_IAL_RE = re.compile(r'^\{:[^\n]*custom-qb-note-topic-id="([^"]+)"[^\n]*\}$')
 REPORT_RE = re.compile(r"候选\s*(\d+)\D+接受\s*(\d+)\D+拒绝\s*(\d+)")
 RUNTIME_RE = re.compile(
     r"(?:custom-riff-decks|\bdue\b|\binterval\b|review\s+log|\bsuspend\b|\bbury\b|device\s+state|srs\s+state)",
@@ -122,9 +123,30 @@ def _mnemonic_label(root: str) -> str:
     return label
 
 
+def _source_style_maps(source_text: str) -> tuple[set[str], dict[str, set[str]]]:
+    global_fragments = set(STYLE_ANCHOR_RE.findall(source_text))
+    topic_fragments: dict[str, set[str]] = {}
+    current_topic: str | None = None
+    for line in source_text.splitlines():
+        provider = PROVIDER_IAL_RE.fullmatch(line.strip())
+        if provider:
+            current_topic = provider.group(1)
+            topic_fragments.setdefault(current_topic, set())
+            continue
+        if current_topic is not None:
+            topic_fragments[current_topic].update(STYLE_ANCHOR_RE.findall(line))
+    return global_fragments, topic_fragments
+
+
+def _style_text(fragment: str) -> str:
+    match = re.match(r"\*\*([^*\n]+)\*\*", fragment)
+    return _visible_text(match.group(1)) if match else ""
+
+
 def validate(
     text: str,
     *,
+    source_text: str | None = None,
     require_report: bool = False,
     max_cards_per_topic: int = 4,
     max_answer_items: int = 4,
@@ -135,6 +157,10 @@ def validate(
     seen: dict[str, int] = {}
     topic_lines: dict[str, list[int]] = {}
     accepted_card_lines: list[int] = []
+    source_global_styles: set[str] = set()
+    source_topic_styles: dict[str, set[str]] = {}
+    if source_text is not None:
+        source_global_styles, source_topic_styles = _source_style_maps(source_text)
     for start, end, attrs, raw, _keys in cards:
         if not any(key.startswith("custom-dm-") for key in attrs):
             continue
@@ -228,8 +254,25 @@ def validate(
             mapping_lines = [line for line in card_body.splitlines() if re.search(r"句|取字|首字|对应|组合|→", line)]
             if mapping_lines and any("==" not in line for line in mapping_lines):
                 findings.append(Finding(start + 1, "E021", "Every mnemonic source sentence or mapping line needs an explicit ==highlight==."))
-        if not STYLE_ANCHOR_RE.search(card_body):
-            findings.append(Finding(start + 1, "E030", "Every accepted card needs a valid MarkNote bold semantic color anchor."))
+        card_styles = set(STYLE_ANCHOR_RE.findall(card_body))
+        if source_text is None:
+            if not card_styles:
+                findings.append(Finding(start + 1, "E030", "Every accepted card needs a valid MarkNote bold semantic color anchor."))
+        else:
+            scoped_styles = source_topic_styles.get(topic_id, source_global_styles)
+            for fragment in sorted(card_styles - scoped_styles):
+                findings.append(Finding(start + 1, "E039", f"Styled fragment is not inherited byte-for-byte from the source provider range: {fragment}"))
+            if scoped_styles and not card_styles.intersection(scoped_styles):
+                findings.append(Finding(start + 1, "E040", "Card does not reuse any exact styled fragment from its source provider range."))
+            card_visible = _visible_text(card_body)
+            styles_by_text: dict[str, set[str]] = {}
+            for fragment in scoped_styles:
+                visible = _style_text(fragment)
+                if visible:
+                    styles_by_text.setdefault(visible, set()).add(fragment)
+            for visible, variants in sorted(styles_by_text.items()):
+                if visible in card_visible and not card_styles.intersection(variants):
+                    findings.append(Finding(start + 1, "E041", f"Source-styled text lost its provider-scoped style in the card: {visible}"))
     for topic_id, locations in topic_lines.items():
         if len(locations) > max_cards_per_topic:
             findings.append(Finding(locations[0], "E013", f"Topic ID {topic_id!r} is reused by {len(locations)} cards; confirm a narrower atomic topic mapping or raise the reviewed limit."))
@@ -262,6 +305,7 @@ def validate_ordinary(text: str) -> list[Finding]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--source", type=Path, help="Source note used to verify provider-scoped style inheritance.")
     parser.add_argument("--mode", choices=("ordinary", "dedicated"), default="dedicated")
     parser.add_argument("--require-report", action="store_true")
     parser.add_argument("--max-cards-per-topic", type=int, default=4)
@@ -269,8 +313,10 @@ def main() -> int:
     parser.add_argument("--max-answer-chars", type=int, default=84)
     args = parser.parse_args()
     text = args.output.read_text(encoding="utf-8")
+    source_text = args.source.read_text(encoding="utf-8") if args.source else None
     findings = validate_ordinary(text) if args.mode == "ordinary" else validate(
         text,
+        source_text=source_text,
         require_report=args.require_report,
         max_cards_per_topic=args.max_cards_per_topic,
         max_answer_items=args.max_answer_items,

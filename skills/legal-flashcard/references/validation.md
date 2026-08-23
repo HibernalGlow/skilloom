@@ -1,6 +1,6 @@
 # Validation and rejection taxonomy
 
-Run `python -X utf8 scripts/validate_flashcard.py <draft.md> --require-report` for dedicated mode. The checker is structural; legal accuracy and source truth remain human/source checks.
+Run `python -X utf8 scripts/validate_flashcard.py <draft.md> --source <source.md> --require-report` for dedicated mode when the source is a file. The checker is structural; legal accuracy and source truth remain human/source checks.
 
 Reject a candidate when one of these conditions is observed:
 
@@ -9,10 +9,11 @@ Reject a candidate when one of these conditions is observed:
 - `missing-topic`: no confirmed narrow `custom-qb-note-topic-id` value exists after the self-completion workflow in [topic-resolution.md](topic-resolution.md).
 - `missing-tag`: no source-grounded knowledge tag can be confirmed for an accepted card.
 - `missing-priority`: no single source-grounded flashcard priority from P1-P4 can be confirmed for an accepted card.
+- `missing-style-source`: the relevant provider range has no reusable style fragment; keep the card plain and report the gap instead of inventing a style.
 - `duplicate`: normalized question or stable ID duplicates an existing card in the same source range.
 - `over-budget`: the card is valid but exceeds the requested card budget after priority ordering.
 - `uncertain-law`: a date, period, exception, case, or statute needs verification.
 
-The checker must fail on invalid attribute names, multiline or malformed IALs, schema values, card IDs, renderer values, duplicate IDs, detached roots, code-fence IALs, malformed or over-reused note-topic IDs, unresolved broad-topic fallback, missing source-grounded knowledge tags, missing or multiple `#闪卡/优先级/P1#`-`P4` tags, invalid priority tags, basic roots that use `==...==`, mnemonic roots disguised as questions or missing a specific recall-subject label, missing MarkNote anchors, oversized answer items, excessive answer counts, report mismatches, runtime-field leakage, and missing required fields. A passing result is necessary but not sufficient for legal accuracy.
+The checker must fail on invalid attribute names, multiline or malformed IALs, schema values, card IDs, renderer values, duplicate IDs, detached roots, code-fence IALs, malformed or over-reused note-topic IDs, unresolved broad-topic fallback, missing source-grounded knowledge tags, missing or multiple `#闪卡/优先级/P1#`-`P4` tags, invalid priority tags, basic roots that use `==...==`, mnemonic roots disguised as questions or missing a specific recall-subject label, invented, mismatched, or dropped source styles when `--source` is supplied, missing MarkNote anchors when no source is supplied, oversized answer items, excessive answer counts, report mismatches, runtime-field leakage, and missing required fields. A passing result is necessary but not sufficient for legal accuracy.
 
 When a file path is part of the request, also run `scripts/validate_naming.py <output.md> --source <source.md>`. It checks the source-derived filename, dedicated sibling placement, and exact source-derived H1; a failure is a naming or placement rejection, not a reason to edit the source note.
