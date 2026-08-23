@@ -5,7 +5,7 @@ import unittest
 from validate_flashcard import validate, validate_ordinary
 
 
-VALID = """- 问题：**成立要件**{: style=\"color: var(--b3-font-color10);\"}是什么？
+VALID = """- 问题：**成立要件**{: style=\"color: var(--b3-font-color10);\"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#
     - 答案：要件一。
 {: custom-dm-source-key=\"civil-08\" custom-dm-card-id=\"fc-civil-elements-v1\" custom-dm-card-schema=\"1\" custom-dm-card-kind=\"basic\" custom-dm-card-renderer=\"list\" custom-qb-note-topic-id=\"civil-elements\"}
 """
@@ -47,8 +47,8 @@ class FlashcardValidatorTests(unittest.TestCase):
             'custom-dm-card-kind="basic"',
             'custom-dm-card-kind="mnemonic"',
         ).replace(
-            '- 问题：**成立要件**{: style="color: var(--b3-font-color10);"}是什么？\n    - 答案：要件一。',
-            '- **口诀**{: style="color: var(--b3-font-color12);"}：==三分法定、两步审查、先赔后补==\n    - 句一：==三==分法定\n    - 句二：==两==步审查\n    - 组合：==三两先==',
+            '- 问题：**成立要件**{: style="color: var(--b3-font-color10);"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 答案：要件一。',
+            '- **口诀**{: style="color: var(--b3-font-color12);"}：==三分法定、两步审查、先赔后补== #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 句一：==三==分法定\n    - 句二：==两==步审查\n    - 组合：==三两先==',
         )
         self.assertEqual(validate(mnemonic), [])
         unhighlighted = re.sub(r"==([^=]+)==", r"\1", mnemonic)
@@ -61,6 +61,12 @@ class FlashcardValidatorTests(unittest.TestCase):
             "要件一。", "==这是一个过长的完整结论句==。"
         )
         self.assertIn("E029", {finding.code for finding in validate(long_cloze)})
+
+    def test_requires_knowledge_tag_and_valid_priority_namespace(self):
+        missing = VALID.replace(" #法考/民法/债法/成立要件# #闪卡/优先级/P1#", "")
+        self.assertIn("E033", {finding.code for finding in validate(missing)})
+        invalid = VALID.replace("#闪卡/优先级/P1#", "#闪卡/P1#")
+        self.assertIn("E034", {finding.code for finding in validate(invalid)})
 
     def test_topic_reuse_and_report_reconciliation(self):
         cards = []

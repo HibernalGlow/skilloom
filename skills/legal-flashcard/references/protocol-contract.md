@@ -19,6 +19,8 @@
 #闪卡/优先级/P1#
 ```
 
+Tags are visible Markdown content, not portable card attributes. In a formal card they stay on the root question or mnemonic line, immediately before the line break that precedes the IAL. Preserve tags already present in the supplied note. When a confirmed topic catalog supplies a canonical display tag and the source has none, use that tag; otherwise report `missing-tag` rather than inventing taxonomy. A priority tag is optional unless the source or request assigns one.
+
 Topic resolution is a separate pre-render step. Use [topic-resolution.md](topic-resolution.md) to complete broad or incomplete provider maps before writing `custom-qb-note-topic-id`; the card protocol never treats a broad file provider as an acceptable child-card fallback.
 
 ## Root-container templates
@@ -26,7 +28,7 @@ Topic resolution is a separate pre-render step. Use [topic-resolution.md](topic-
 Default basic/list:
 
 ```markdown
-- 问题：**债权人代位权**{: style="color: var(--b3-font-color10);"}的成立要件是什么？
+- 问题：**债权人代位权**{: style="color: var(--b3-font-color10);"}的成立要件是什么？ #法考/民法/债法/债权人代位权/成立要件# #闪卡/优先级/P1#
     - 答案：债权人对债务人享有合法有效的到期债权。
     - 答案：债务人怠于行使权利并影响债权实现。
 {: custom-dm-source-key="civil-2026-lecture-08" custom-dm-card-id="fc-civil-subrogation-elements-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="civil-subrogation-elements"}
@@ -35,7 +37,7 @@ Default basic/list:
 Cloze/mark, only for a short term:
 
 ```markdown
-- 问题：**债权人代位权**{: style="color: var(--b3-font-color10);"}针对的是债务人的何种权利？==专属性权利==除外。
+- 问题：**债权人代位权**{: style="color: var(--b3-font-color10);"}针对的是债务人的何种权利？==专属性权利==除外。 #法考/民法/债法/债权人代位权/除外权利# #闪卡/优先级/P2#
 {: custom-dm-source-key="civil-2026-lecture-08" custom-dm-card-id="fc-civil-subrogation-excluded-rights-v1" custom-dm-card-schema="1" custom-dm-card-kind="cloze" custom-dm-card-renderer="mark" custom-qb-note-topic-id="civil-subrogation-excluded-rights"}
 ```
 
@@ -44,7 +46,7 @@ The IAL belongs immediately after the root list block. It must occupy one physic
 Mnemonic/list:
 
 ```markdown
-- **口诀**{: style="color: var(--b3-font-color12);"}：==三分法定、两步审查、先赔后补==
+- **口诀**{: style="color: var(--b3-font-color12);"}：==三分法定、两步审查、先赔后补== #法考/行政法/行政组织/审查程序/记忆口诀# #闪卡/优先级/P2#
     - 句一：==三==分法定（取首字）
     - 句二：==两==步审查（取首字）
     - 句三：==先==赔后补（取首字）
