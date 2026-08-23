@@ -10,7 +10,7 @@ Read this file only after the user explicitly requests flashcards. First invoke 
 4. Compare the same source range's existing card IDs and normalized question text. Reject near-duplicates before rendering. Completion criterion: every rejection names `duplicate`, `unsupported`, `ambiguous-boundary`, `missing-topic`, `over-budget`, or another listed reason in [validation.md](validation.md).
 5. Render accepted cards with the default `basic/list` container. Put source-grounded knowledge tags and flashcard priority tags inline at the end of the root question or mnemonic line so they remain inside the card boundary; keep them out of the IAL. For `basic`, style the legal anchor but leave the question unhighlighted. For `mnemonic`, name the specific recall subject in the root (for example, `立法审查主体口诀`), highlight the exact phrase to recall, and show its source-to-character/segment mapping; do not convert it into `问题：...` or use a bare `口诀` label. Use `cloze/mark`, `blockquote`, or `callout` only when the material's retrieval behavior requires it. Keep headings and superBlocks out of the default route. Write the complete root IAL on one physical line with exactly one ASCII space between attributes. Completion criterion: the root block contains the required tags, the basic question has no `==...==`, and the mnemonic root names both the specific cue subject and its recall target.
 6. Apply the MarkNote adapter from [marknote-integration.md](marknote-integration.md) and the source-style map from [style-inheritance.md](style-inheritance.md), then run `scripts/validate_flashcard.py <draft.md> --source <source.md> --require-report` when the source is a file. Preview and budget-filter the passing cards. Completion criterion: the checker exits 0, every colored/background fragment is exact source material from the provider range, and the report reconciles candidate, accepted, and rejected counts.
-7. Output only the accepted Markdown plus the count report; do not call Riff or mutate runtime state. Completion criterion: the final text contains no runtime scheduling fields and states the count and rejection reasons.
+7. Produce a clean delivery: H1, source-derived grouping headings only when useful, accepted card containers, one count line, an optional compact rejection line, and one final source/protocol line. Keep the source key, provider budget, tag rationale, card-kind mix, color legend, style-inheritance audit, source cleanup notes, and highlight policy in the working audit; their required values already live in card IALs or were consumed by validation. Do not call Riff or mutate runtime state. Completion criterion: the last nonblank line is exactly `原笔记：[[<源笔记路径>]] · 协议：DAMO 闪卡 schema 1`, and deleting the cards plus footer leaves only the H1 and useful source-derived grouping headings, with no audit preamble.
 
 ## Rendering rules
 
@@ -23,3 +23,22 @@ Read this file only after the user explicitly requests flashcards. First invoke 
 - A variant ID is the parent business ID plus a stable suffix such as `-v1`; variants share the parent prefix and never use a block ID, Riff ID, or database row ID.
 - `custom-qb-note-topic-id` is the card's one narrow atomic provider ID. If a broad file-level ID is the only direct attribute, first perform the self-completion workflow in [topic-resolution.md](topic-resolution.md); stop with `missing-topic` only after the confirmed catalog, sibling multi-provider patterns, and source headings fail to establish a stable mapping. Never attach the broad ID to every card merely to pass validation.
 - Keep tags as visible Markdown content on the root line, never as IAL attributes or detached paragraphs. Preserve the source's knowledge-tag vocabulary verbatim; do not require a particular namespace or hierarchy. Add exactly one priority tag: `#闪卡/优先级/P1#` through `#闪卡/优先级/P4#`; keep priority separate from knowledge tags. If the supplied material provides no source-grounded knowledge tag, report `missing-tag`; if no priority can be justified, report `missing-priority` instead of inventing one.
+
+## Clean delivery
+
+Default footer with no rejection:
+
+```text
+生成报告：候选 6；接受 6；拒绝 0。
+原笔记：[[客观/02-背诵卷/理论法/2026-马峰/20-整理/02-考点25-宪法的制定]] · 协议：DAMO 闪卡 schema 1
+```
+
+Footer with rejection:
+
+```text
+生成报告：候选 8；接受 6；拒绝 2。
+拒绝：duplicate 1；missing-topic 1。
+原笔记：[[客观/02-背诵卷/理论法/2026-马峰/20-整理/02-考点25-宪法的制定]] · 协议：DAMO 闪卡 schema 1
+```
+
+Do not precede the cards with a source/protocol/style manifest. The combined source/protocol line is the only default provenance note and must be the last nonblank line. Supply expanded provider allocation, style audit, or rejection diagnostics only when the user explicitly asks for them, and keep such diagnostics outside the saved flashcard Markdown unless the user asks to embed them.
