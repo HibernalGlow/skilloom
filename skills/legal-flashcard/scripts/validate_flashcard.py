@@ -185,6 +185,12 @@ def validate(
         if renderer == "callout" and not re.match(r"^>\s+\[![A-Z]+\]", root):
             findings.append(Finding(start + 1, "E018", "callout renderer IAL must attach to a callout root."))
         kind = attrs.get("custom-dm-card-kind")
+        if kind == "basic" and "==" in root:
+            findings.append(Finding(start + 1, "E036", "Basic question roots must use semantic style anchors, not ==...== highlights."))
+        if kind == "mnemonic" and "问题：" in root:
+            findings.append(Finding(start + 1, "E037", "Mnemonic cards are cue cards; do not render the root as a question."))
+        if kind == "mnemonic" and "口诀" not in root:
+            findings.append(Finding(start + 1, "E038", "Mnemonic roots must visibly identify the recall cue as 口诀."))
         if kind == "basic":
             if "问题：" not in root:
                 findings.append(Finding(start + 1, "E025", "basic cards require a root '- 问题：' item."))
