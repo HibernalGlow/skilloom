@@ -9,6 +9,12 @@ description: 将法考题目、选项和完整解析整理为适合思源闪卡�
 
 ## 工作流
 
+### Flashcard hand-off
+
+GoldQuest keeps its question, option, and solution contract. When the user explicitly requests formal DAMO flashcards, route to the separate legal-flashcard skill's dedicated-card mode after the source-preservation pass. For ordinary organization or candidate tagging, use only its ordinary-mode reference; GoldQuest itself does not emit card metadata, Riff deck fields, or runtime SRS fields.
+
+Use [legal-flashcard](../legal-flashcard/SKILL.md), [ordinary-mode.md](../legal-flashcard/references/ordinary-mode.md), and its dedicated mode only after the explicit request.
+
 1. **锁定边界**：分别识别题目、题干、问题、全部选项、出处、答案、解析、法条、表格和图片。题目的 H5 标题只承载题号与原有题型/考点标签；题干承载共同事实；问题承载需要作答的问句。建立“必须保留”清单；任何原文事实、推理链或法源都不能因精简而消失。为每题保留或生成稳定的 `custom-qb-id`，并确定一个或多个考点 ID。若对应 `20-整理` 内容旁存在 `.topic-map.json`，优先复用其中已经回读验证的 `current_topic_id`，不要为同一考点另造近义 ID。
 2. **先做语义色谱**：题面允许完全无色并应尽量保留原样；进入解析前，Agent 必须主动识别题目涉及的全部主体，建立主体色表，再建立概念/状态色表。不同主体使用可区分的中性色；同一主体在解析中的姓名、简称和角色称谓始终复用同一颜色。每条达到 14 个可见字符的实质推理行至少出现一个短颜色锚点；一行承载两个判断时使用两个以上锚点。颜色是阅读索引，不是装饰。详见 [`references/color-system.md`](references/color-system.md)。
 3. **选择内容结构**：保留原解析已清楚的顺序；只有在确实降低认知负荷时，才改成时间线、程序步骤、要件判断、主体关系、原则/例外、因果链或逐项判断。原解析已经有两个或以上“语义父项 + 子规则”的规则地图时，先保留或重建该地图，再添加逐项回放；A/B/C/D 回放是题面回查索引，不得替代原有的层级、比较轴、法条归属、交叉记忆钩子或组织框架。进入逐项判断后，每个被分析选项必须完整复写原选项，并把决定正误的破绽或破题点直接标在这份完整原文内；只写选项字母、概述选项或在后文孤立解释均未完成。具体标注、双层解析与复核标准见 [`references/format-playbook.md`](references/format-playbook.md) 的“逐项辨析契约”。中等及以上逻辑复杂度默认使用丰富型：从嵌套列表、Callout、阶段小标题、小表、可视化、分隔线中至少选择 4 类结构载体，并由内容与交付目标决定使用思源原生 Mermaid、单外层 `div` 的 HTML 或静态 SVG/PNG。Callout 不与法条、陷阱等固定类型绑定；不要固定生成“争点、规则与法源、事实涵摄、选项辨析、命题思路”，也不要用近义词伪装同一模板。`命题思路` 只有原文讨论出题意图时才保留。需要判断排版强度时读取 [`examples/style-calibration-145.md`](examples/style-calibration-145.md)，只参考阅读密度，不复制其结构。
