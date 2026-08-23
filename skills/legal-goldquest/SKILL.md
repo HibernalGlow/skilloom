@@ -11,9 +11,9 @@ description: 将法考题目、选项和完整解析整理为适合思源闪卡�
 
 ### Flashcard hand-off
 
-GoldQuest keeps its question, option, and solution contract. When the user explicitly requests formal DAMO flashcards, route to the separate legal-flashcard skill's dedicated-card mode after the source-preservation pass. For ordinary organization or candidate tagging, use only its ordinary-mode reference; GoldQuest itself does not emit card metadata, Riff deck fields, or runtime SRS fields.
+GoldQuest keeps its question, option, and solution contract. When the user explicitly requests formal DAMO flashcards, invoke the separately registered `legal-flashcard` skill by name and use its dedicated-card mode after the source-preservation pass. For ordinary organization or candidate tagging, let that skill load only ordinary mode; GoldQuest itself does not emit card metadata, Riff deck fields, or runtime SRS fields.
 
-Use [legal-flashcard](../legal-flashcard/SKILL.md), [ordinary-mode.md](../legal-flashcard/references/ordinary-mode.md), and its dedicated mode only after the explicit request.
+Do not assume separately deployed skills are sibling directories. The `legal-flashcard` router owns its internal references and loads dedicated mode only after an explicit card-generation request.
 
 1. **锁定边界**：分别识别题目、题干、问题、全部选项、出处、答案、解析、法条、表格和图片。题目的 H5 标题只承载题号与原有题型/考点标签；题干承载共同事实；问题承载需要作答的问句。建立“必须保留”清单；任何原文事实、推理链或法源都不能因精简而消失。为每题保留或生成稳定的 `custom-qb-id`，并确定一个或多个考点 ID。若对应 `20-整理` 内容旁存在 `.topic-map.json`，优先复用其中已经回读验证的 `current_topic_id`，不要为同一考点另造近义 ID。
 2. **先做语义色谱**：题面允许完全无色并应尽量保留原样；进入解析前，Agent 必须主动识别题目涉及的全部主体，建立主体色表，再建立概念/状态色表。不同主体使用可区分的中性色；同一主体在解析中的姓名、简称和角色称谓始终复用同一颜色。每条达到 14 个可见字符的实质推理行至少出现一个短颜色锚点；一行承载两个判断时使用两个以上锚点。颜色是阅读索引，不是装饰。详见 [`references/color-system.md`](references/color-system.md)。
