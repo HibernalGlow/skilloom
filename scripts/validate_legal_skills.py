@@ -142,6 +142,20 @@ CONTRACTS = (
         ),
     ),
     SkillContract(
+        "legal-flashcard",
+        (
+            ("ordinary mode", "## Route the request"),
+            ("dedicated-card mode", "## Route the request"),
+            ("style-inheritance.md", "dedicated-card mode"),
+            ("provider-scoped source-style inheritance", "dedicated-card mode"),
+            ("--source <source.md>", "## Shared hand-off"),
+            ("one physical line", "## Root-container templates"),
+            ("custom-qb-note-topic-id", "## Portable fields"),
+            ("custom-qb-question-topic-ids", "## Portable fields"),
+            ("missing-style-source", "# Validation and rejection taxonomy"),
+        ),
+    ),
+    SkillContract(
         "legal-question-bank",
         (
             ("custom-qb-note-topic-id", "### Topic directions"),

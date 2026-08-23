@@ -25,13 +25,14 @@ Topic resolution is a separate pre-render step. Use [topic-resolution.md](topic-
 
 ## Root-container templates
 
-Default basic/list:
+Default basic/list (the styled fragments below are copied from the source provider range):
 
 ```markdown
-- 问题：**债权人代位权**{: style="color: var(--b3-font-color10);"}的成立要件是什么？ #法考/民法/债法/债权人代位权/成立要件# #闪卡/优先级/P1#
-    - 答案：债权人对债务人享有合法有效的到期债权。
-    - 答案：债务人怠于行使权利并影响债权实现。
-{: custom-dm-source-key="civil-2026-lecture-08" custom-dm-card-id="fc-civil-subrogation-elements-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="civil-subrogation-elements"}
+- 问题：立法的三大**基本原则**{: style="color: var(--b3-font-color12);"}是什么？ #法考/理论法/立法法/基本原则# #闪卡/优先级/P1#
+    - 答案：**科学性原则**{: style="color: var(--b3-font-color10);"}。
+    - 答案：**民主性原则**{: style="color: var(--b3-font-color10);"}。
+    - 答案：**合法性原则**{: style="color: var(--b3-font-color10);"}。
+{: custom-dm-source-key="beisong-2026-mafeng-kd23-lifafa" custom-dm-card-id="fc-theory-lifafa-principles-three-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="theory-law-legislation-basic-principles"}
 ```
 
 Cloze/mark, only for a short term:

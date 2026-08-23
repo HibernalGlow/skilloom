@@ -10,10 +10,50 @@ VALID = """- 问题：**成立要件**{: style=\"color: var(--b3-font-color10);\
 {: custom-dm-source-key=\"civil-08\" custom-dm-card-id=\"fc-civil-elements-v1\" custom-dm-card-schema=\"1\" custom-dm-card-kind=\"basic\" custom-dm-card-renderer=\"list\" custom-qb-note-topic-id=\"civil-elements\"}
 """
 
+SOURCE = """#### 成立要件
+{: custom-qb-note-topic-id=\"civil-elements\"}
+
+- **成立要件**{: style=\"color: var(--b3-font-color10);\"}
+    - 要件一。
+
+#### 法律效果
+{: custom-qb-note-topic-id=\"civil-effects\"}
+
+- **法律效果**{: style=\"color: var(--b3-font-color12);\"}
+"""
+
 
 class FlashcardValidatorTests(unittest.TestCase):
     def test_valid_dedicated_card(self):
         self.assertEqual(validate(VALID), [])
+
+    def test_source_aware_style_inheritance(self):
+        self.assertEqual(validate(VALID, source_text=SOURCE), [])
+        recolored = VALID.replace("b3-font-color10", "b3-font-color12")
+        self.assertIn("E039", {finding.code for finding in validate(recolored, source_text=SOURCE)})
+        plain = VALID.replace('**成立要件**{: style="color: var(--b3-font-color10);"}', "成立要件")
+        self.assertIn("E040", {finding.code for finding in validate(plain, source_text=SOURCE)})
+
+    def test_source_style_must_come_from_matching_provider_range(self):
+        wrong_topic_style = VALID.replace(
+            '**成立要件**{: style="color: var(--b3-font-color10);"}',
+            '**法律效果**{: style="color: var(--b3-font-color12);"}',
+        )
+        self.assertIn("E039", {finding.code for finding in validate(wrong_topic_style, source_text=SOURCE)})
+
+    def test_source_styled_text_cannot_drop_its_style(self):
+        source = SOURCE.replace(
+            "    - 要件一。",
+            '    - **要件一**{: style="color: var(--b3-font-color5);"}。',
+        )
+        self.assertIn("E041", {finding.code for finding in validate(VALID, source_text=source)})
+
+    def test_plain_source_range_allows_plain_card(self):
+        source = SOURCE.replace('**成立要件**{: style="color: var(--b3-font-color10);"}', "成立要件")
+        plain = VALID.replace('**成立要件**{: style="color: var(--b3-font-color10);"}', "成立要件")
+        codes = {finding.code for finding in validate(plain, source_text=source)}
+        self.assertNotIn("E030", codes)
+        self.assertNotIn("E040", codes)
 
     def test_rejects_multiline_ial_and_question_topic_field(self):
         malformed = VALID.replace(
