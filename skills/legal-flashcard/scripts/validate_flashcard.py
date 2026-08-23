@@ -33,6 +33,7 @@ ALLOWED = {
 }
 KINDS = {"basic", "cloze", "mnemonic"}
 RENDERERS = {"list", "mark", "blockquote", "callout"}
+MNEMONIC_GENERIC_LABELS = {"口诀", "记忆口诀", "记忆线索", "线索", "提示", "记忆点", "口诀卡"}
 
 
 @dataclass(frozen=True)
@@ -106,6 +107,19 @@ def _card_body(lines: list[str], ial_start: int, renderer: str | None) -> tuple[
         start = cursor + 1
         return (start, "\n".join(lines[start:ial_start])) if start < ial_start else (None, "")
     return ial_start - 1, lines[ial_start - 1]
+
+
+def _mnemonic_label(root: str) -> str:
+    """Return the visible cue label before the mnemonic root's colon."""
+    label_source = re.sub(r"\{:\s*[^}]*\}", "", root)
+    match = re.match(r"^-\s+(.*?)\s*(?:：|:)", label_source)
+    if not match:
+        return ""
+    label = re.sub(r"[*_`~]", "", match.group(1))
+    label = re.sub(r"[（）()\[\]【】·\s]", "", label)
+    for generic in MNEMONIC_GENERIC_LABELS:
+        label = label.replace(generic, "")
+    return label
 
 
 def validate(
@@ -189,8 +203,8 @@ def validate(
             findings.append(Finding(start + 1, "E036", "Basic question roots must use semantic style anchors, not ==...== highlights."))
         if kind == "mnemonic" and "问题：" in root:
             findings.append(Finding(start + 1, "E037", "Mnemonic cards are cue cards; do not render the root as a question."))
-        if kind == "mnemonic" and "口诀" not in root:
-            findings.append(Finding(start + 1, "E038", "Mnemonic roots must visibly identify the recall cue as 口诀."))
+        if kind == "mnemonic" and not _mnemonic_label(root):
+            findings.append(Finding(start + 1, "E038", "Mnemonic roots must name the specific recall subject or relationship; a bare 口诀 label is insufficient."))
         if kind == "basic":
             if "问题：" not in root:
                 findings.append(Finding(start + 1, "E025", "basic cards require a root '- 问题：' item."))

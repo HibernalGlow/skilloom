@@ -46,7 +46,7 @@ The IAL belongs immediately after the root list block. It must occupy one physic
 Mnemonic/list:
 
 ```markdown
-- **口诀**{: style="color: var(--b3-font-color12);"}：==三分法定、两步审查、先赔后补== #法考/行政法/行政组织/审查程序/记忆口诀# #闪卡/优先级/P2#
+- **立法审查主体口诀**{: style="color: var(--b3-font-color12);"}：==三分法定、两步审查、先赔后补== #法考/行政法/行政组织/审查程序/记忆口诀# #闪卡/优先级/P2#
     - 句一：==三==分法定（取首字）
     - 句二：==两==步审查（取首字）
     - 句三：==先==赔后补（取首字）

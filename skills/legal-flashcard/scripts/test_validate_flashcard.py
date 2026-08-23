@@ -48,7 +48,7 @@ class FlashcardValidatorTests(unittest.TestCase):
             'custom-dm-card-kind="mnemonic"',
         ).replace(
             '- 问题：**成立要件**{: style="color: var(--b3-font-color10);"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 答案：要件一。',
-            '- **口诀**{: style="color: var(--b3-font-color12);"}：==三分法定、两步审查、先赔后补== #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 句一：==三==分法定\n    - 句二：==两==步审查\n    - 组合：==三两先==',
+            '- **立法审查主体口诀**{: style="color: var(--b3-font-color12);"}：==三分法定、两步审查、先赔后补== #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 句一：==三==分法定\n    - 句二：==两==步审查\n    - 组合：==三两先==',
         )
         self.assertEqual(validate(mnemonic), [])
         unhighlighted = re.sub(r"==([^=]+)==", r"\1", mnemonic)
@@ -75,11 +75,13 @@ class FlashcardValidatorTests(unittest.TestCase):
             'custom-dm-card-kind="mnemonic"',
         ).replace(
             '- 问题：**成立要件**{: style="color: var(--b3-font-color10);"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 答案：要件一。',
-            '- **口诀**{: style="color: var(--b3-font-color12);"}：==三分法定== #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 组合：==三分法定==',
+            '- **立法审查主体口诀**{: style="color: var(--b3-font-color12);"}：==三分法定== #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 组合：==三分法定==',
         )
         self.assertEqual(validate(mnemonic), [])
-        question_mnemonic = mnemonic.replace("- **口诀**", "- 问题：**口诀**")
+        question_mnemonic = mnemonic.replace("- **立法审查主体口诀**", "- 问题：**立法审查主体口诀**")
         self.assertIn("E037", {finding.code for finding in validate(question_mnemonic)})
+        bare_mnemonic = mnemonic.replace("立法审查主体口诀", "口诀")
+        self.assertIn("E038", {finding.code for finding in validate(bare_mnemonic)})
 
     def test_requires_knowledge_tag_and_valid_priority_namespace(self):
         missing = VALID.replace(" #法考/民法/债法/成立要件# #闪卡/优先级/P1#", "")
