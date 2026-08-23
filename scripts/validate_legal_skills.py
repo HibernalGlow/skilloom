@@ -154,6 +154,8 @@ CONTRACTS = (
             ("custom-qb-note-topic-id", "## Portable fields"),
             ("custom-qb-question-topic-ids", "## Portable fields"),
             ("missing-style-source", "# Validation and rejection taxonomy"),
+            ("clean delivery", "dedicated-card mode"),
+            ("no audit preamble", "clean delivery"),
         ),
     ),
     SkillContract(

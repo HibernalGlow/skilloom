@@ -18,6 +18,10 @@ STYLE_ANCHOR_RE = re.compile(
 )
 PROVIDER_IAL_RE = re.compile(r'^\{:[^\n]*custom-qb-note-topic-id="([^"]+)"[^\n]*\}$')
 REPORT_RE = re.compile(r"候选\s*(\d+)\D+接受\s*(\d+)\D+拒绝\s*(\d+)")
+AUDIT_PREAMBLE_RE = re.compile(
+    r"^-\s+(?:源笔记|协议|标签|构成|着色图例|章节|样式继承|源笔记说明|高亮职责)："
+)
+SOURCE_PROTOCOL_RE = re.compile(r"^原笔记：\[\[[^\]\n]+\]\] · 协议：DAMO 闪卡 schema 1$")
 RUNTIME_RE = re.compile(
     r"(?:custom-riff-decks|\bdue\b|\binterval\b|review\s+log|\bsuspend\b|\bbury\b|device\s+state|srs\s+state)",
     re.IGNORECASE,
@@ -285,9 +289,20 @@ def validate(
             if candidate != accepted + rejected or accepted != len(accepted_card_lines):
                 line = text[:reports[0].start()].count("\n") + 1
                 findings.append(Finding(line, "E032", "Report counts must reconcile and accepted must equal rendered card count."))
+        source_protocol_lines = [
+            number for number, line in enumerate(lines, start=1) if SOURCE_PROTOCOL_RE.fullmatch(line.strip())
+        ]
+        if len(source_protocol_lines) != 1:
+            findings.append(Finding(max(1, len(lines)), "E043", "Dedicated output requires exactly one final source/protocol line."))
+        else:
+            last_nonblank = max((number for number, line in enumerate(lines, start=1) if line.strip()), default=1)
+            if source_protocol_lines[0] != last_nonblank:
+                findings.append(Finding(source_protocol_lines[0], "E043", "Source/protocol line must be the last nonblank line."))
     for number, line in enumerate(lines, start=1):
         if RUNTIME_RE.search(line):
             findings.append(Finding(number, "E014", "Runtime scheduling or Riff field leaked into output."))
+        if AUDIT_PREAMBLE_RE.match(line):
+            findings.append(Finding(number, "E042", "Internal source/protocol/style audit must not be emitted as a top-level card-deck preamble."))
     return sorted(set(findings), key=lambda item: (item.line, item.code, item.message))
 
 

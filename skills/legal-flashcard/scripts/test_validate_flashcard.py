@@ -137,10 +137,33 @@ class FlashcardValidatorTests(unittest.TestCase):
         cards = []
         for number in range(1, 6):
             cards.append(VALID.replace("fc-civil-elements-v1", f"fc-civil-elements-v{number}"))
-        deck = "\n".join(cards) + "\n生成报告：候选 5；接受 5；拒绝 0。\n"
+        deck = "\n".join(cards) + "\n生成报告：候选 5；接受 5；拒绝 0。\n原笔记：[[民法/成立要件]] · 协议：DAMO 闪卡 schema 1\n"
         self.assertIn("E013", {finding.code for finding in validate(deck, require_report=True)})
         self.assertNotIn("E032", {finding.code for finding in validate(deck, require_report=True)})
         self.assertIn("E032", {finding.code for finding in validate(deck.replace("接受 5", "接受 4"), require_report=True)})
+
+    def test_rejects_internal_audit_preamble(self):
+        preamble = """- 源笔记：[[20-整理/考点25]]
+- 协议：DAMO schema 1
+- 标签：取自源笔记
+- 构成：1 张 = basic 1
+- 着色图例：color10＝主体
+- 章节：沿用源笔记
+- 样式继承：逐字复用
+- 源笔记说明：残留单字挖空
+- 高亮职责：basic 不挖空
+
+"""
+        findings = validate(preamble + VALID)
+        self.assertEqual(sum(finding.code == "E042" for finding in findings), 9)
+
+    def test_requires_one_final_source_protocol_line(self):
+        report = "生成报告：候选 1；接受 1；拒绝 0。\n"
+        footer = "原笔记：[[民法/成立要件]] · 协议：DAMO 闪卡 schema 1\n"
+        self.assertNotIn("E043", {finding.code for finding in validate(VALID + report + footer, require_report=True)})
+        self.assertIn("E043", {finding.code for finding in validate(VALID + report, require_report=True)})
+        misplaced = footer + VALID + report
+        self.assertIn("E043", {finding.code for finding in validate(misplaced, require_report=True)})
 
 
 if __name__ == "__main__":
