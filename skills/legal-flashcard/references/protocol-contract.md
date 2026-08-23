@@ -19,7 +19,7 @@
 #闪卡/优先级/P1#
 ```
 
-Tags are visible Markdown content, not portable card attributes. In a formal card they stay on the root question or mnemonic line, immediately before the line break that precedes the IAL. Preserve tags already present in the supplied note. When a confirmed topic catalog supplies a canonical display tag and the source has none, use that tag; otherwise report `missing-tag` rather than inventing taxonomy. A priority tag is optional unless the source or request assigns one.
+Tags are visible Markdown content, not portable card attributes. In a formal card they stay on the root question or mnemonic line, immediately before the line break that precedes the IAL. Preserve tags already present in the supplied note. When a confirmed topic catalog supplies a canonical display tag and the source has none, use that tag; otherwise report `missing-tag` rather than inventing taxonomy. Every accepted formal card must carry exactly one priority tag from `#闪卡/优先级/P1#` through `#闪卡/优先级/P4#`; report `missing-priority` when the source or request does not justify one.
 
 Topic resolution is a separate pre-render step. Use [topic-resolution.md](topic-resolution.md) to complete broad or incomplete provider maps before writing `custom-qb-note-topic-id`; the card protocol never treats a broad file provider as an acceptable child-card fallback.
 
