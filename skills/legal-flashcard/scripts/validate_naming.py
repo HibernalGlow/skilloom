@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 
 FLASH_MARKER_RE = re.compile(r"(?:闪卡|flash[- ]?cards?)", re.IGNORECASE)
+TITLE_MARKER = "⚡"
 HEADING_RE = re.compile(r"^(?P<marks>#{1,6})\s+(?P<title>.+?)\s*$")
 H1_RE = re.compile(r"^#\s+(?P<title>.+?)\s*$")
 
@@ -25,6 +26,13 @@ def expected_stem(source: Path) -> str:
     return stem if FLASH_MARKER_RE.search(stem) else f"{stem}-闪卡"
 
 
+def expected_title(source: Path, source_heading: tuple[int, str] | None) -> str:
+    title = source_heading[1] if source_heading is not None else source.stem
+    title = FLASH_MARKER_RE.sub("", title).strip(" -·") if source_heading is None else title
+    title = title.removeprefix(TITLE_MARKER).lstrip()
+    return f"{TITLE_MARKER}{title}"
+
+
 def validate(output: Path, source: Path) -> list[str]:
     findings: list[str] = []
     if output.parent == source.parent:
@@ -37,16 +45,14 @@ def validate(output: Path, source: Path) -> list[str]:
     source_heading = first_heading(source.read_text(encoding="utf-8"))
     output_text = output.read_text(encoding="utf-8")
     output_heading = H1_RE.match(output_text.splitlines()[0]) if output_text.splitlines() else None
-    if source_heading is None:
-        if output_heading is None:
-            findings.append("N004 fallback-title: source has no heading and output has no derived H1.")
+    if output_heading is None:
+        code = "N004 fallback-title" if source_heading is None else "N005 title-mismatch"
+        findings.append(f"{code}: output must start with a source-derived H1 prefixed by {TITLE_MARKER!r}.")
     else:
-        if output_heading is None:
-            findings.append("N005 title-mismatch: output must start with an H1 derived from the source heading.")
-        expected_title = f"{source_heading[1]} · 闪卡"
-        if output_heading is not None and output_heading.group("title").strip() != expected_title:
+        title = expected_title(source, source_heading)
+        if output_heading.group("title").strip() != title:
             findings.append(
-                f"N005 title-mismatch: expected H1 {expected_title!r}, observed {output_heading.group('title').strip()!r}."
+                f"N005 title-mismatch: expected H1 {title!r}, observed {output_heading.group('title').strip()!r}."
             )
     return findings
 
