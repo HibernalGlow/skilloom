@@ -43,9 +43,10 @@ def validate(output: Path, source: Path) -> list[str]:
     else:
         if output_heading is None:
             findings.append("N005 title-mismatch: output must start with an H1 derived from the source heading.")
-        elif output_heading.group("title").strip() != source_heading[1]:
+        expected_title = f"{source_heading[1]} · 闪卡"
+        if output_heading is not None and output_heading.group("title").strip() != expected_title:
             findings.append(
-                f"N005 title-mismatch: expected H1 {source_heading[1]!r}, observed {output_heading.group('title').strip()!r}."
+                f"N005 title-mismatch: expected H1 {expected_title!r}, observed {output_heading.group('title').strip()!r}."
             )
     return findings
 

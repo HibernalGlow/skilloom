@@ -11,9 +11,9 @@ Read this reference only in dedicated-card mode when the user asks for a Markdow
 ## Derive the name and headings
 
 - Start the output filename from the source basename, preserving its number, title, punctuation, and extension semantics. Add one role suffix only when needed to distinguish the artifact: `01-考点23-立法法.md` -> `01-考点23-立法法-闪卡.md`. If the source basename already contains `闪卡`, `flashcard`, or an established equivalent, do not add a second suffix.
-- Use the source note's first meaningful heading text as the output's H1 exactly, after removing only the Markdown heading marker and an attached IAL. Do not append `· 闪卡`, rename the subject, translate it, or replace the source numbering. The artifact role is conveyed by its dedicated directory and filename suffix.
+- Use the source note's first meaningful heading text as the output's H1, after removing only the Markdown heading marker and an attached IAL, then append the exact role marker ` · 闪卡`. Preserve the source wording, numbering, and punctuation before that marker; do not rename or translate the subject. This keeps the source identity visible while distinguishing the generated artifact.
 - Preserve source section headings and numbering in the card file when headings are needed for grouping. A card container's explicit boundary and topic IAL remain authoritative; headings never implicitly define card answers.
-- If the source has no meaningful heading, derive both the filename stem and H1 from the source basename after removing only the extension and one existing flashcard role suffix. Record `fallback-title` in the delivery report.
+- If the source has no meaningful heading, derive both the filename stem and the H1 from the source basename after removing only the extension and one existing flashcard role suffix, then append ` · 闪卡` to the H1. Record `fallback-title` in the delivery report.
 
 ## Existing-file and collision rules
 
@@ -34,7 +34,7 @@ Destination:
 First heading in both files:
 
 ```markdown
-# 考点23 立法法
+# 考点23 立法法 · 闪卡
 ```
 
-The source note's original headings may be reused below that H1, but the flashcard file does not invent a new top-level title merely to advertise that it contains cards.
+The source note's original headings may be reused below that H1. The ` · 闪卡` suffix is the only generated title decoration.

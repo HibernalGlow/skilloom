@@ -30,5 +30,5 @@ Use this skill as a mode router. It outputs portable Markdown semantics only; it
 - Validation findings and rejection taxonomy: [validation.md](references/validation.md)
 - Dedicated-card MarkNote adapter: [marknote-integration.md](references/marknote-integration.md)
 - Filename, H1, destination folder, and collision routing: [naming-and-placement.md](references/naming-and-placement.md)
-- Repeatable path/title check: `python -X utf8 scripts/validate_naming.py <output.md> --source <source.md>`
+- Repeatable path/title check (including the ` · 闪卡` H1 role marker): `python -X utf8 scripts/validate_naming.py <output.md> --source <source.md>`
 - Anki-like compatibility boundary and local search result: [anki-compatibility.md](references/anki-compatibility.md)
