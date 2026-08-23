@@ -1,6 +1,6 @@
 # Ordinary mode
 
-This mode supplements `legal-marknote`; it does not replace any MarkNote rule. Keep its legal-content, source, title, table, image, color, and structure contract unchanged. Read the existing MarkNote references for those rules instead of copying them here.
+This mode supplements `legal-marknote`; it does not replace any MarkNote rule. Keep its legal-content, source, title, table, image, color, and structure contract unchanged. Read the existing MarkNote references for those rules instead of copying them here. When a provider is broad or incomplete, load [topic-resolution.md](topic-resolution.md) and complete the candidate mapping before recording candidates.
 
 Load only this ordinary reference on the ordinary path. Do not load the dedicated-card, protocol, or mnemonic references unless the user explicitly requests formal cards.
 

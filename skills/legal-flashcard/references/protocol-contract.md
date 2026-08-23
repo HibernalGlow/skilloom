@@ -19,6 +19,8 @@
 #闪卡/优先级/P1#
 ```
 
+Topic resolution is a separate pre-render step. Use [topic-resolution.md](topic-resolution.md) to complete broad or incomplete provider maps before writing `custom-qb-note-topic-id`; the card protocol never treats a broad file provider as an acceptable child-card fallback.
+
 ## Root-container templates
 
 Default basic/list:
