@@ -14,3 +14,5 @@ Reject a candidate when one of these conditions is observed:
 - `uncertain-law`: a date, period, exception, case, or statute needs verification.
 
 The checker must fail on invalid attribute names, multiline or malformed IALs, schema values, card IDs, renderer values, duplicate IDs, detached roots, code-fence IALs, malformed or over-reused note-topic IDs, unresolved broad-topic fallback, missing source-grounded knowledge tags, missing or multiple `#闪卡/优先级/P1#`-`P4` tags, invalid priority tags, basic roots that use `==...==`, mnemonic roots disguised as questions or missing a specific recall-subject label, missing MarkNote anchors, oversized answer items, excessive answer counts, report mismatches, runtime-field leakage, and missing required fields. A passing result is necessary but not sufficient for legal accuracy.
+
+When a file path is part of the request, also run `scripts/validate_naming.py <output.md> --source <source.md>`. It checks the source-derived filename, dedicated sibling placement, and exact source-derived H1; a failure is a naming or placement rejection, not a reason to edit the source note.
