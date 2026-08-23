@@ -32,6 +32,7 @@ TEST_SCRIPTS = (
     ROOT / "skills" / "legal-goldquest" / "scripts" / "test_validate_output.py",
     ROOT / "skills" / "legal-question-bank" / "scripts" / "test_validate_question_bank.py",
     ROOT / "skills" / "legal-flashcard" / "scripts" / "test_validate_flashcard.py",
+    ROOT / "skills" / "legal-flashcard" / "scripts" / "test_validate_naming.py",
     ROOT / "skills" / "legal-marknote" / "scripts" / "test_siyuan_topic_manifest.py",
     ROOT / "skills" / "legal-marknote" / "scripts" / "test_audit_question_groups.py",
 )

@@ -149,6 +149,7 @@ CONTRACTS = (
             ("style-inheritance.md", "dedicated-card mode"),
             ("provider-scoped source-style inheritance", "dedicated-card mode"),
             ("--source <source.md>", "## Shared hand-off"),
+            ("leading `⚡` H1 role marker", "Filename, H1, destination folder"),
             ("one physical line", "## Root-container templates"),
             ("custom-qb-note-topic-id", "## Portable fields"),
             ("custom-qb-question-topic-ids", "## Portable fields"),
