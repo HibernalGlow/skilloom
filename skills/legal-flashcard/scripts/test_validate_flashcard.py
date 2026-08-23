@@ -65,6 +65,10 @@ class FlashcardValidatorTests(unittest.TestCase):
     def test_requires_knowledge_tag_and_valid_priority_namespace(self):
         missing = VALID.replace(" #法考/民法/债法/成立要件# #闪卡/优先级/P1#", "")
         self.assertIn("E033", {finding.code for finding in validate(missing)})
+        generic = VALID.replace("#法考/民法/债法/成立要件#", "#立法程序#")
+        self.assertNotIn("E033", {finding.code for finding in validate(generic)})
+        no_priority = VALID.replace(" #闪卡/优先级/P1#", "")
+        self.assertIn("E035", {finding.code for finding in validate(no_priority)})
         invalid = VALID.replace("#闪卡/优先级/P1#", "#闪卡/P1#")
         self.assertIn("E034", {finding.code for finding in validate(invalid)})
 
