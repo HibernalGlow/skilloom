@@ -19,43 +19,24 @@
 #闪卡/优先级/P1#
 ```
 
-Tags are visible Markdown content, not portable card attributes. In a formal card they stay on the root question or mnemonic line, immediately before the line break that precedes the IAL. Preserve tags already present in the supplied note. When a confirmed topic catalog supplies a canonical display tag and the source has none, use that tag; otherwise report `missing-tag` rather than inventing taxonomy. Every accepted formal card must carry exactly one priority tag from `#闪卡/优先级/P1#` through `#闪卡/优先级/P4#`; report `missing-priority` when the source or request does not justify one.
+Tags are visible Markdown content, not portable card attributes. In a formal card they stay on the root question or mnemonic line, immediately before the line break that precedes the IAL.
+
+- Preserve existing knowledge tags first. If none exist, compose one stable knowledge tag from source-owned vocabulary in the path, H1, and nearest heading/label. Do not require a hardcoded knowledge namespace and do not introduce a legal category absent from those source locators. Report `missing-tag` only when those locators cannot identify the knowledge scope.
+- Every accepted card carries exactly one priority tag from `#闪卡/优先级/P1#` through `#闪卡/优先级/P4#`. Assign it from source evidence: P1 for an explicit mnemonic, 点睛/core rule, or directly tested trap; P2 for a main definition, condition, procedure, distinction, or legal effect; P3 for explanation and supporting detail; P4 for peripheral background. Prefer an explicit source priority when present. Report `missing-priority` only when the source boundary itself is unresolved, not merely because the source omitted a priority tag.
 
 Topic resolution is a separate pre-render step. Use [topic-resolution.md](topic-resolution.md) to complete broad or incomplete provider maps before writing `custom-qb-note-topic-id`; the card protocol never treats a broad file provider as an acceptable child-card fallback.
 
-## Root-container templates
+## Root-container boundary
 
-Default basic/list (the styled fragments below are copied from the source provider range):
+Read [card-design.md](card-design.md) for the normative `basic`, `cloze`, `mnemonic`, `blockquote`, and `callout` examples. Those examples are the sole template source; this file owns only the portable boundary contract.
 
-```markdown
-- 问题：立法的三大**基本原则**{: style="color: var(--b3-font-color12);"}是什么？ #法考/理论法/立法法/基本原则# #闪卡/优先级/P1#
-    - 答案：**科学性原则**{: style="color: var(--b3-font-color10);"}。
-    - 答案：**民主性原则**{: style="color: var(--b3-font-color10);"}。
-    - 答案：**合法性原则**{: style="color: var(--b3-font-color10);"}。
-{: custom-dm-source-key="beisong-2026-mafeng-kd23-lifafa" custom-dm-card-id="fc-theory-lifafa-principles-three-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="theory-law-legislation-basic-principles"}
-```
+- The IAL belongs immediately after the complete card root container. It is outside the list, blockquote, Callout, and any code fence.
+- The IAL occupies one physical line, uses exactly one ASCII space after `{:`, uses exactly one ASCII space between attributes, and has no space before `}`.
+- A `basic/list` root is the direct question and its indented list children are the answers. Generated roots and children carry no `问题：` or `答案：` label.
+- Tags stay on the visible front or cue line inside the root container. Metadata stays in the adjacent IAL; neither may be detached into an ordinary paragraph.
+- Heading scope never determines the answer boundary. Headings and superBlocks are not default card roots.
 
-Cloze/mark, only for a short term:
-
-```markdown
-- 问题：**债权人代位权**{: style="color: var(--b3-font-color10);"}针对的是债务人的何种权利？==专属性权利==除外。 #法考/民法/债法/债权人代位权/除外权利# #闪卡/优先级/P2#
-{: custom-dm-source-key="civil-2026-lecture-08" custom-dm-card-id="fc-civil-subrogation-excluded-rights-v1" custom-dm-card-schema="1" custom-dm-card-kind="cloze" custom-dm-card-renderer="mark" custom-qb-note-topic-id="civil-subrogation-excluded-rights"}
-```
-
-The IAL belongs immediately after the root list block. It must occupy one physical line, use exactly one ASCII space after `{:`, use exactly one ASCII space between attributes, and have no space before `}`. It must not be placed inside a question code fence, in a detached paragraph, or after an unrelated heading.
-
-Mnemonic/list:
-
-```markdown
-- **立法审查主体口诀**{: style="color: var(--b3-font-color12);"}：==三分法定、两步审查、先赔后补== #法考/行政法/行政组织/审查程序/记忆口诀# #闪卡/优先级/P2#
-    - 句一：==三==分法定（取首字）
-    - 句二：==两==步审查（取首字）
-    - 句三：==先==赔后补（取首字）
-    - 组合：==三两先==
-{: custom-dm-source-key="admin-2026-lecture-12" custom-dm-card-id="fc-admin-review-mnemonic-v1" custom-dm-card-schema="1" custom-dm-card-kind="mnemonic" custom-dm-card-renderer="list" custom-qb-note-topic-id="admin-review-order"}
-```
-
-The mnemonic phrase and every source sentence's contributing character or segment are retrieval content, not decoration. If the source does not show the sentence-to-character mapping, stop and report `ambiguous-boundary` or `unsupported` instead of reconstructing it.
+Completion criterion: removing the single adjacent IAL leaves one self-contained visible card container, while removing that container leaves no detached card metadata or tags.
 
 ## Version route
 

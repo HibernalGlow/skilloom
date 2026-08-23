@@ -16,7 +16,7 @@ Include bold color/background anchors, highlight, underline, italic, strikethrou
 ## Inherit, then adapt the boundary
 
 1. Copy every source-derived styled fragment byte-for-byte when its text is reused in a card. Preserve the original foreground/background variable and compound style. Do not recolor it from a generic deck palette.
-2. Leave generated scaffolding such as `问题：`、`答案：` and connective wording unstyled. A question may contain an exact source-styled concept, but it does not receive a new color merely because it is the root.
+2. Write the question directly on the root and answers directly on its child items. Leave generated connective wording unstyled. A question may contain an exact source-styled concept, but it does not receive a new color merely because it is the root.
 3. Preserve the source's meaningful child-list relationships inside the card. Preserve a Callout role only when the warning, exception, mnemonic, or conclusion itself is the retrieval unit; otherwise retain its styled content inside the default list card.
 4. Treat source `==...==` separately from visual inheritance. Carry it into a formal card only when that exact span is intentionally selected as the card's short `cloze` target or explicit `mnemonic` target. Other source reading highlights remain source evidence and are not copied as active deletions.
 5. Keep tables, images, Mermaid, and headings in the source note unless the whole object is required to answer one card. Link or cite the source instead of flattening a large visual into an answer list.

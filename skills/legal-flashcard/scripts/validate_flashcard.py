@@ -28,6 +28,7 @@ RUNTIME_RE = re.compile(
 )
 KNOWLEDGE_TAG_RE = re.compile(r"#(?!闪卡/优先级/)[^#\s]+#")
 PRIORITY_TAG_RE = re.compile(r"#闪卡/优先级/([^#\s]+)#")
+GENERATED_LABEL_RE = re.compile(r"^\s*(?:>\s*)?(?:-\s+)?(?:问题|答案)[：:]")
 ALLOWED = {
     "custom-dm-source-key",
     "custom-dm-card-id",
@@ -127,24 +128,71 @@ def _mnemonic_label(root: str) -> str:
     return label
 
 
-def _source_style_maps(source_text: str) -> tuple[set[str], dict[str, set[str]]]:
+def _front_line(card_body: str, renderer: str | None) -> str:
+    lines = card_body.splitlines()
+    if renderer in {"list", "mark"}:
+        return lines[0].strip() if lines else ""
+    for line in lines:
+        candidate = line.lstrip()
+        if not candidate.startswith(">"):
+            continue
+        candidate = candidate[1:].strip()
+        if not candidate or re.match(r"^\[![A-Z]+\]", candidate) or candidate.startswith("-"):
+            continue
+        return candidate
+    return ""
+
+
+def _is_question_front(front: str) -> bool:
+    without_tags = re.sub(r"\s+#[^#\s]+#", "", front).strip()
+    return without_tags.endswith(("？", "?"))
+
+
+def _basic_answer_lines(card_body: str, renderer: str | None) -> list[str]:
+    if renderer == "list":
+        return [line for line in card_body.splitlines() if re.match(r"^ {4}-\s+\S", line)]
+    if renderer in {"blockquote", "callout"}:
+        return [line for line in card_body.splitlines() if re.match(r"^\s*>\s+-\s+\S", line)]
+    return []
+
+
+def _answer_text(line: str) -> str:
+    return re.sub(r"^\s*(?:>\s*)?-\s+", "", line, count=1)
+
+
+def _source_maps(
+    source_text: str,
+) -> tuple[set[str], dict[str, set[str]], list[str], dict[str, list[str]]]:
     global_fragments = set(STYLE_ANCHOR_RE.findall(source_text))
     topic_fragments: dict[str, set[str]] = {}
+    global_visible_lines = [_visible_text(line) for line in source_text.splitlines() if _visible_text(line)]
+    topic_visible_lines: dict[str, list[str]] = {}
     current_topic: str | None = None
     for line in source_text.splitlines():
         provider = PROVIDER_IAL_RE.fullmatch(line.strip())
         if provider:
             current_topic = provider.group(1)
             topic_fragments.setdefault(current_topic, set())
+            topic_visible_lines.setdefault(current_topic, [])
             continue
         if current_topic is not None:
             topic_fragments[current_topic].update(STYLE_ANCHOR_RE.findall(line))
-    return global_fragments, topic_fragments
+            visible = _visible_text(line)
+            if visible:
+                topic_visible_lines[current_topic].append(visible)
+    return global_fragments, topic_fragments, global_visible_lines, topic_visible_lines
 
 
 def _style_text(fragment: str) -> str:
     match = re.match(r"\*\*([^*\n]+)\*\*", fragment)
     return _visible_text(match.group(1)) if match else ""
+
+
+def _source_scope_topic(topic_id: str, known_topics: set[str]) -> str | None:
+    if topic_id in known_topics:
+        return topic_id
+    parents = [known for known in known_topics if topic_id.startswith(f"{known}-")]
+    return max(parents, key=len) if parents else None
 
 
 def validate(
@@ -163,8 +211,15 @@ def validate(
     accepted_card_lines: list[int] = []
     source_global_styles: set[str] = set()
     source_topic_styles: dict[str, set[str]] = {}
+    source_global_visible_lines: list[str] = []
+    source_topic_visible_lines: dict[str, list[str]] = {}
     if source_text is not None:
-        source_global_styles, source_topic_styles = _source_style_maps(source_text)
+        (
+            source_global_styles,
+            source_topic_styles,
+            source_global_visible_lines,
+            source_topic_visible_lines,
+        ) = _source_maps(source_text)
     for start, end, attrs, raw, _keys in cards:
         if not any(key.startswith("custom-dm-") for key in attrs):
             continue
@@ -204,10 +259,16 @@ def validate(
             findings.append(Finding(start + 1, "E012", "custom-qb-note-topic-id must be one lowercase ASCII kebab-case ID."))
         elif topic_id:
             topic_lines.setdefault(topic_id, []).append(start + 1)
+        source_scope_topic = _source_scope_topic(topic_id, set(source_topic_styles) | set(source_topic_visible_lines))
         if RUNTIME_RE.search(raw) or RUNTIME_RE.search("\n".join(lines[max(0, start - 8): min(len(lines), end + 8)])):
             findings.append(Finding(start + 1, "E014", "Runtime scheduling or Riff fields leaked into the card block."))
         root_index, card_body = _card_body(lines, start, renderer)
         root = lines[root_index].strip() if root_index is not None else ""
+        front = _front_line(card_body, renderer)
+        for body_line in card_body.splitlines():
+            if GENERATED_LABEL_RE.match(body_line):
+                findings.append(Finding(start + 1, "E044", "Write the front and answer items directly; generated 问题：/答案： prefixes are forbidden."))
+                break
         if not KNOWLEDGE_TAG_RE.search(card_body):
             findings.append(Finding(start + 1, "E033", "Accepted cards need a source-grounded knowledge tag on the root line."))
         for priority in PRIORITY_TAG_RE.findall(card_body):
@@ -229,22 +290,22 @@ def validate(
         if renderer == "callout" and not re.match(r"^>\s+\[![A-Z]+\]", root):
             findings.append(Finding(start + 1, "E018", "callout renderer IAL must attach to a callout root."))
         kind = attrs.get("custom-dm-card-kind")
-        if kind == "basic" and "==" in root:
+        if kind == "basic" and "==" in front:
             findings.append(Finding(start + 1, "E036", "Basic question roots must use semantic style anchors, not ==...== highlights."))
-        if kind == "mnemonic" and "问题：" in root:
-            findings.append(Finding(start + 1, "E037", "Mnemonic cards are cue cards; do not render the root as a question."))
+        if kind == "mnemonic" and _is_question_front(front):
+            findings.append(Finding(start + 1, "E037", "Mnemonic cards are named cue cards; do not render the front as a question."))
         if kind == "mnemonic" and not _mnemonic_label(root):
             findings.append(Finding(start + 1, "E038", "Mnemonic roots must name the specific recall subject or relationship; a bare 口诀 label is insufficient."))
         if kind == "basic":
-            if "问题：" not in root:
-                findings.append(Finding(start + 1, "E025", "basic cards require a root '- 问题：' item."))
-            answer_lines = [line for line in card_body.splitlines() if re.match(r"^\s{4,}-\s+答案：", line)]
+            if not _is_question_front(front):
+                findings.append(Finding(start + 1, "E025", "Basic card fronts must state the question directly and end in ？ or ?."))
+            answer_lines = _basic_answer_lines(card_body, renderer)
             if not answer_lines:
-                findings.append(Finding(start + 1, "E026", "basic cards require at least one indented '- 答案：' item."))
+                findings.append(Finding(start + 1, "E026", "Basic cards require at least one unlabeled direct answer child."))
             if len(answer_lines) > max_answer_items:
                 findings.append(Finding(start + 1, "E027", f"Card has {len(answer_lines)} answer items; split above {max_answer_items}."))
             for answer in answer_lines:
-                if len(_visible_text(answer.split("答案：", 1)[1])) > max_answer_chars:
+                if len(_visible_text(_answer_text(answer))) > max_answer_chars:
                     findings.append(Finding(start + 1, "E028", f"Answer item exceeds {max_answer_chars} visible characters; split or reject it."))
         if attrs.get("custom-dm-card-kind") == "cloze" and "==" not in card_body:
             findings.append(Finding(start + 1, "E019", "cloze cards need an explicit short ==term== target."))
@@ -258,12 +319,26 @@ def validate(
             mapping_lines = [line for line in card_body.splitlines() if re.search(r"句|取字|首字|对应|组合|→", line)]
             if mapping_lines and any("==" not in line for line in mapping_lines):
                 findings.append(Finding(start + 1, "E021", "Every mnemonic source sentence or mapping line needs an explicit ==highlight==."))
+        if source_text is not None and kind in {"cloze", "mnemonic"}:
+            scoped_visible_lines = (
+                source_topic_visible_lines[source_scope_topic]
+                if source_scope_topic in source_topic_visible_lines
+                else source_global_visible_lines
+            )
+            for highlight in re.findall(r"==([^=\n]+)==", card_body):
+                visible_highlight = _visible_text(highlight)
+                if visible_highlight and not any(visible_highlight in line for line in scoped_visible_lines):
+                    findings.append(Finding(start + 1, "E045", f"Cloze or mnemonic highlight is absent from the source provider range: {highlight}"))
         card_styles = set(STYLE_ANCHOR_RE.findall(card_body))
         if source_text is None:
             if not card_styles:
                 findings.append(Finding(start + 1, "E030", "Every accepted card needs a valid MarkNote bold semantic color anchor."))
         else:
-            scoped_styles = source_topic_styles.get(topic_id, source_global_styles)
+            scoped_styles = (
+                source_topic_styles[source_scope_topic]
+                if source_scope_topic in source_topic_styles
+                else source_global_styles
+            )
             for fragment in sorted(card_styles - scoped_styles):
                 findings.append(Finding(start + 1, "E039", f"Styled fragment is not inherited byte-for-byte from the source provider range: {fragment}"))
             if scoped_styles and not card_styles.intersection(scoped_styles):

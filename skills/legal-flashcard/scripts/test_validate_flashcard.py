@@ -5,8 +5,8 @@ import unittest
 from validate_flashcard import validate, validate_ordinary
 
 
-VALID = """- 问题：**成立要件**{: style=\"color: var(--b3-font-color10);\"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#
-    - 答案：要件一。
+VALID = """- **成立要件**{: style=\"color: var(--b3-font-color10);\"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#
+    - 要件一。
 {: custom-dm-source-key=\"civil-08\" custom-dm-card-id=\"fc-civil-elements-v1\" custom-dm-card-schema=\"1\" custom-dm-card-kind=\"basic\" custom-dm-card-renderer=\"list\" custom-qb-note-topic-id=\"civil-elements\"}
 """
 
@@ -27,6 +27,16 @@ class FlashcardValidatorTests(unittest.TestCase):
     def test_valid_dedicated_card(self):
         self.assertEqual(validate(VALID), [])
 
+    def test_rejects_generated_question_and_answer_prefixes(self):
+        prefixed = VALID.replace("- **成立要件**", "- 问题：**成立要件**").replace(
+            "    - 要件一。", "    - 答案：要件一。"
+        )
+        self.assertIn("E044", {finding.code for finding in validate(prefixed)})
+
+    def test_basic_front_requires_question_mark(self):
+        declarative = VALID.replace("是什么？ #法考", "的规则 #法考")
+        self.assertIn("E025", {finding.code for finding in validate(declarative)})
+
     def test_source_aware_style_inheritance(self):
         self.assertEqual(validate(VALID, source_text=SOURCE), [])
         recolored = VALID.replace("b3-font-color10", "b3-font-color12")
@@ -40,6 +50,10 @@ class FlashcardValidatorTests(unittest.TestCase):
             '**法律效果**{: style="color: var(--b3-font-color12);"}',
         )
         self.assertIn("E039", {finding.code for finding in validate(wrong_topic_style, source_text=SOURCE)})
+
+    def test_inferred_child_topic_uses_nearest_confirmed_parent_source_range(self):
+        child = VALID.replace('custom-qb-note-topic-id="civil-elements"', 'custom-qb-note-topic-id="civil-elements-definition"')
+        self.assertEqual(validate(child, source_text=SOURCE), [])
 
     def test_source_styled_text_cannot_drop_its_style(self):
         source = SOURCE.replace(
@@ -87,7 +101,7 @@ class FlashcardValidatorTests(unittest.TestCase):
             'custom-dm-card-kind="basic"',
             'custom-dm-card-kind="mnemonic"',
         ).replace(
-            '- 问题：**成立要件**{: style="color: var(--b3-font-color10);"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 答案：要件一。',
+            '- **成立要件**{: style="color: var(--b3-font-color10);"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 要件一。',
             '- **立法审查主体口诀**{: style="color: var(--b3-font-color12);"}：==三分法定、两步审查、先赔后补== #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 句一：==三==分法定\n    - 句二：==两==步审查\n    - 组合：==三两先==',
         )
         self.assertEqual(validate(mnemonic), [])
@@ -114,14 +128,38 @@ class FlashcardValidatorTests(unittest.TestCase):
             'custom-dm-card-kind="basic"',
             'custom-dm-card-kind="mnemonic"',
         ).replace(
-            '- 问题：**成立要件**{: style="color: var(--b3-font-color10);"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 答案：要件一。',
+            '- **成立要件**{: style="color: var(--b3-font-color10);"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 要件一。',
             '- **立法审查主体口诀**{: style="color: var(--b3-font-color12);"}：==三分法定== #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n    - 组合：==三分法定==',
         )
         self.assertEqual(validate(mnemonic), [])
-        question_mnemonic = mnemonic.replace("- **立法审查主体口诀**", "- 问题：**立法审查主体口诀**")
+        question_mnemonic = mnemonic.replace(
+            "：==三分法定== #法考/民法/债法/成立要件#",
+            "是什么？ #法考/民法/债法/成立要件#",
+        )
         self.assertIn("E037", {finding.code for finding in validate(question_mnemonic)})
         bare_mnemonic = mnemonic.replace("立法审查主体口诀", "口诀")
         self.assertIn("E038", {finding.code for finding in validate(bare_mnemonic)})
+
+    def test_source_aware_cloze_and_mnemonic_targets_must_be_verbatim(self):
+        source = SOURCE.replace("    - 要件一。", "    - 要件一：法定。")
+        cloze = VALID.replace('custom-dm-card-kind="basic"', 'custom-dm-card-kind="cloze"').replace(
+            "    - 要件一。", "    - 要件一：==法定==。"
+        )
+        self.assertNotIn("E045", {finding.code for finding in validate(cloze, source_text=source)})
+        invented = cloze.replace("==法定==", "==法定先行==")
+        self.assertIn("E045", {finding.code for finding in validate(invented, source_text=source)})
+
+    def test_prefixless_basic_blockquote_and_callout_are_valid(self):
+        blockquote = """> **成立要件**{: style=\"color: var(--b3-font-color10);\"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#
+>
+> - 要件一。
+{: custom-dm-source-key=\"civil-08\" custom-dm-card-id=\"fc-civil-elements-quote-v1\" custom-dm-card-schema=\"1\" custom-dm-card-kind=\"basic\" custom-dm-card-renderer=\"blockquote\" custom-qb-note-topic-id=\"civil-elements\"}
+"""
+        self.assertEqual(validate(blockquote), [])
+        callout = blockquote.replace(
+            "> **成立要件**", "> [!WARNING] 成立要件陷阱\n> **成立要件**"
+        ).replace("quote-v1", "warning-v1").replace('renderer="blockquote"', 'renderer="callout"')
+        self.assertEqual(validate(callout), [])
 
     def test_requires_knowledge_tag_and_valid_priority_namespace(self):
         missing = VALID.replace(" #法考/民法/债法/成立要件# #闪卡/优先级/P1#", "")

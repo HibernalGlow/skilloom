@@ -36,6 +36,13 @@ When implementing a familiar capability, first locate a mature reference impleme
 2. Reuse existing types, schemas, adapters, and UI primitives before adding abstractions.
 3. For UI work, search the shadcn-svelte registry and compatible Svelte libraries before designing markup. If the required primitive is missing locally, install or generate it with the repository's package manager, update the lockfile, and document the selection; do not silently downgrade to an existing business widget.
 
+### SiYuan 3.8.x mobile flashcard entry
+
+- SiYuan 3.8.2 mobile's public `openTab()` is a no-op (`vendor/siyuan/app/src/plugin/API.ts`), so mobile settings and review surfaces must go through a replaceable adapter. Do not call desktop `openTab()` from mobile menu callbacks.
+- Reuse the native mobile flashcard dialog rather than creating a third review renderer. For current-document review, open the document title menu with `button[data-type="doc"]`, then wait for the asynchronously generated `[data-id="spaceRepetition"]` item before clicking it; a zero-delay lookup races the title-menu attribute request and silently falls back to the file menu.
+- Keep global and scoped review separate: global review should use native `#menuCard` (or a marked bottom-bar fallback), while current-document review uses the title-menu entry. DAMO's bottom-bar interception must not reroute an explicitly global action.
+- Validate the complete mobile flow in the real embedded browser after deployment: workbench dialog, current-document count, global count, and at least one filtered/grouped count. Check `document.documentElement.dataset.frontend`, both official mobile editor roots, visible card dialog state, and console errors. A menu closing without a card dialog is a failure.
+
 4. Add or update focused tests with the change. Keep core tests independent of SiYuan and keep browser tests for user-visible workflows.
 5. For UI or styling work, assume the emitted plugin stylesheet affects the entire SiYuan document. Express descendant-dependent layout through component state, `data-*` attributes, or stable layout rules; do not add relational selectors such as `:has()` to globally injected CSS.
 6. Inspect the diff for accidental content mutation, duplicated state, stale imports, oversized Svelte logic, raw foundational controls, replacement SVGs, and unrelated formatting.
