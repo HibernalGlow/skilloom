@@ -1,11 +1,15 @@
 ---
 name: legal-flashcard
-description: Generate DAMO-compatible legal flashcard Markdown in two explicit modes. Use during ordinary legal-note organization to identify atomic flashcard candidates without emitting card containers, and use when the user explicitly asks to make, generate, draft, or export flashcards/cards to produce validated formal cards.
+description: Generate DAMO-compatible legal flashcard Markdown in two explicit modes, and acquire source Markdown from online or offline SiYuan .sy documents. Use during ordinary legal-note organization to identify atomic flashcard candidates without emitting card containers, when exporting SiYuan source documents for card work, and when the user explicitly asks to make, generate, draft, export, or review flashcards/cards.
 ---
 
 # Legal Flashcard
 
 Use this skill as a mode router. It outputs portable Markdown semantics only; it does not call Riff, write SiYuan runtime state, or implement DAMO.
+
+## Acquire SiYuan source
+
+When the source is one or more `.sy` files, a SiYuan document directory, or an offline workspace, read [siyuan-export.md](references/siyuan-export.md) and run `scripts/export_siyuan_markdown.py` before routing the resulting Markdown. Keep this acquisition step read-only and use portable IAL by default; use complete IAL when requested, and emit attribute-free Kramdown only when the user explicitly requests it. Completion criterion: each requested source document has one exported Markdown file or ZIP member, and the source `.sy` files are unchanged.
 
 ## Route the request
 
@@ -34,3 +38,4 @@ Use this skill as a mode router. It outputs portable Markdown semantics only; it
 - Filename, H1, destination folder, and collision routing: [naming-and-placement.md](references/naming-and-placement.md)
 - Repeatable path/title check (including the leading `⚡` H1 role marker): `python -X utf8 scripts/validate_naming.py <output.md> --source <source.md>`
 - External flashcard-skill audit: read [anki-compatibility.md](references/anki-compatibility.md) only when revising card-design rules or comparing another Anki/flashcard skill.
+- Offline SiYuan `.sy` and batch Markdown ZIP export: [siyuan-export.md](references/siyuan-export.md)

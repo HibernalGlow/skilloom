@@ -1,4 +1,4 @@
 interface:
   display_name: "Legal Flashcard"
-  short_description: "DAMO legal cards with ordinary and dedicated modes"
-  default_prompt: "Use $legal-flashcard for ordinary flashcard-aware notes or explicit validated card generation."
+  short_description: "DAMO legal cards and offline SiYuan source export"
+  default_prompt: "Use $legal-flashcard for flashcard-aware notes, offline SiYuan source export, or validated card generation."
