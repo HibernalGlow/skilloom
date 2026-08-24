@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import sys
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +17,7 @@ SOURCE_KEY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
 STYLE_ANCHOR_RE = re.compile(
     r'\*\*[^*\n]+\*\*\{:\s+style="[^"]*(?:color|background-color):\s*var\(--b3-font-(?:color|background)(?:[2-9]|1[0-3])\);?[^"]*"\}'
 )
+STYLE_PROPERTY_RE = re.compile(r"(?:^|;)\s*(background-color|color):\s*([^;]+)")
 PROVIDER_IAL_RE = re.compile(r'^\{:[^\n]*custom-qb-note-topic-id="([^"]+)"[^\n]*\}$')
 REPORT_RE = re.compile(r"候选\s*(\d+)\D+接受\s*(\d+)\D+拒绝\s*(\d+)")
 AUDIT_PREAMBLE_RE = re.compile(
@@ -29,6 +31,7 @@ RUNTIME_RE = re.compile(
 KNOWLEDGE_TAG_RE = re.compile(r"#(?!闪卡/优先级/)[^#\s]+#")
 PRIORITY_TAG_RE = re.compile(r"#闪卡/优先级/([^#\s]+)#")
 GENERATED_LABEL_RE = re.compile(r"^\s*(?:>\s*)?(?:-\s+)?(?:问题|答案)[：:]")
+ORDER_CUE_RE = re.compile(r"顺序|次序|步骤|阶段|程序|流程|先后|依次|优先|第[一二三四五六七八九十0-9]+步")
 ALLOWED = {
     "custom-dm-source-key",
     "custom-dm-card-id",
@@ -47,6 +50,10 @@ class Finding:
     line: int
     code: str
     message: str
+
+
+def has_blocking_findings(findings: list[Finding]) -> bool:
+    return any(not finding.code.startswith("W") for finding in findings)
 
 
 def parse_ial_blocks(
@@ -150,14 +157,86 @@ def _is_question_front(front: str) -> bool:
 
 def _basic_answer_lines(card_body: str, renderer: str | None) -> list[str]:
     if renderer == "list":
-        return [line for line in card_body.splitlines() if re.match(r"^ {4}-\s+\S", line)]
+        return [line for line in card_body.splitlines() if re.match(r"^ {4}(?:-|\d+\.)\s+\S", line)]
     if renderer in {"blockquote", "callout"}:
-        return [line for line in card_body.splitlines() if re.match(r"^\s*>\s+-\s+\S", line)]
+        return [line for line in card_body.splitlines() if re.match(r"^\s*>\s+(?:-|\d+\.)\s+\S", line)]
     return []
 
 
+def _has_nested_answer_items(card_body: str, renderer: str | None) -> bool:
+    if renderer == "list":
+        return any(re.match(r"^ {8,}(?:-|\d+\.)\s+\S", line) for line in card_body.splitlines())
+    if renderer in {"blockquote", "callout"}:
+        for line in card_body.splitlines():
+            match = re.match(r"^\s*>\s?(?P<indent> *)(?:-|\d+\.)\s+\S", line)
+            if match and len(match.group("indent")) >= 4:
+                return True
+    return False
+
+
 def _answer_text(line: str) -> str:
-    return re.sub(r"^\s*(?:>\s*)?-\s+", "", line, count=1)
+    return re.sub(r"^\s*(?:>\s*)?(?:-|\d+\.)\s+", "", line, count=1)
+
+
+def _obviously_complex_flat_back(front: str, answer_lines: list[str], has_nested_items: bool) -> bool:
+    if has_nested_items or len(answer_lines) < 3:
+        return False
+    visible_front = _visible_text(front)
+    explicit_closed_set = re.search(
+        r"(?:[0-9一二三四五六七八九十两]+(?:大|项|类|种|个|条|方面|原则|要件|情形|条件|步骤|阶段))",
+        visible_front,
+    )
+    total_answer_chars = sum(len(_visible_text(_answer_text(line))) for line in answer_lines)
+    return explicit_closed_set is None and total_answer_chars > 72
+
+
+def _style_profile(card_body: str, kind: str | None) -> tuple[set[tuple[tuple[str, str], ...]], bool, bool]:
+    signatures: set[tuple[tuple[str, str], ...]] = set()
+    has_foreground = False
+    has_background = False
+    for fragment in STYLE_ANCHOR_RE.findall(card_body):
+        style = re.search(r'style="([^"]+)"', fragment)
+        if not style:
+            continue
+        properties = tuple(sorted((name, value.strip()) for name, value in STYLE_PROPERTY_RE.findall(style.group(1))))
+        if not properties:
+            continue
+        signatures.add(properties)
+        has_foreground = has_foreground or any(name == "color" for name, _value in properties)
+        has_background = has_background or any(name == "background-color" for name, _value in properties)
+    if kind in {"cloze", "mnemonic"} and re.search(r"==[^=\n]+==", card_body):
+        signatures.add((("mark", "highlight"),))
+        has_background = True
+    return signatures, has_foreground, has_background
+
+
+def _has_table(card_body: str) -> bool:
+    return bool(re.search(r"^\s*(?:>\s*)?\|[^\n]+\|\s*$", card_body, re.MULTILINE))
+
+
+def _has_mermaid(card_body: str) -> bool:
+    return bool(re.search(r"^\s*(?:>\s*)?```mermaid\s*$", card_body, re.MULTILINE))
+
+
+def _has_ordered_answers(card_body: str, renderer: str | None) -> bool:
+    if renderer == "list":
+        return bool(re.search(r"^ {4}\d+\.\s+\S", card_body, re.MULTILINE))
+    if renderer in {"blockquote", "callout"}:
+        return bool(re.search(r"^\s*>\s+\d+\.\s+\S", card_body, re.MULTILINE))
+    return False
+
+
+def _front_names_order(front: str) -> bool:
+    without_tags = re.sub(r"#[^#\s]+#", "", front)
+    return bool(ORDER_CUE_RE.search(_visible_text(without_tags)))
+
+
+def _source_names_order(visible_lines: list[str]) -> bool:
+    return any(ORDER_CUE_RE.search(re.sub(r"#[^#\s]+#", "", line)) for line in visible_lines)
+
+
+def _normalized_answer_fact(line: str) -> str:
+    return _visible_text(_answer_text(line)).strip("。；;，,")
 
 
 def _source_maps(
@@ -209,6 +288,7 @@ def validate(
     seen: dict[str, int] = {}
     topic_lines: dict[str, list[int]] = {}
     accepted_card_lines: list[int] = []
+    basic_records: list[tuple[int, str, str, set[str]]] = []
     source_global_styles: set[str] = set()
     source_topic_styles: dict[str, set[str]] = {}
     source_global_visible_lines: list[str] = []
@@ -290,6 +370,9 @@ def validate(
         if renderer == "callout" and not re.match(r"^>\s+\[![A-Z]+\]", root):
             findings.append(Finding(start + 1, "E018", "callout renderer IAL must attach to a callout root."))
         kind = attrs.get("custom-dm-card-kind")
+        has_nested_items = _has_nested_answer_items(card_body, renderer)
+        has_table = _has_table(card_body)
+        has_mermaid = _has_mermaid(card_body)
         if kind == "basic" and "==" in front:
             findings.append(Finding(start + 1, "E036", "Basic question roots must use semantic style anchors, not ==...== highlights."))
         if kind == "mnemonic" and _is_question_front(front):
@@ -307,6 +390,37 @@ def validate(
             for answer in answer_lines:
                 if len(_visible_text(_answer_text(answer))) > max_answer_chars:
                     findings.append(Finding(start + 1, "E028", f"Answer item exceeds {max_answer_chars} visible characters; split or reject it."))
+            basic_records.append(
+                (
+                    start + 1,
+                    source_key,
+                    card_id,
+                    {fact for line in answer_lines if (fact := _normalized_answer_fact(line))},
+                )
+            )
+            if _obviously_complex_flat_back(front, answer_lines, has_nested_items):
+                findings.append(Finding(start + 1, "E046", "Complex basic backs need a source-shaped structure; nest dependent branches, preserve a meaningful order, or select another eligible carrier."))
+            total_answer_chars = sum(len(_visible_text(_answer_text(line))) for line in answer_lines)
+            if (
+                len(answer_lines) >= 2
+                and not has_nested_items
+                and not has_table
+                and not has_mermaid
+                and total_answer_chars > 36
+                and not re.search(r"[0-9一二三四五六七八九十两]+(?:大|项|类|种|个|条|方面|原则|要件|情形|条件)", _visible_text(front))
+            ):
+                findings.append(Finding(start + 1, "W102", "Review this flat multi-item back for a semantic parent/child relation or separate recall axes."))
+            if _has_ordered_answers(card_body, renderer):
+                if not _front_names_order(front):
+                    findings.append(Finding(start + 1, "W103", "Ordered answers need an explicit sequence, procedure, chronology, or priority cue; source numbering alone is insufficient."))
+                if source_text is not None:
+                    scoped_visible_lines = (
+                        source_topic_visible_lines[source_scope_topic]
+                        if source_scope_topic in source_topic_visible_lines
+                        else source_global_visible_lines
+                    )
+                    if not _source_names_order(scoped_visible_lines):
+                        findings.append(Finding(start + 1, "W106", "The supplied source range has no sequence semantics; keep source order but use unordered peers unless order changes the rule."))
         if attrs.get("custom-dm-card-kind") == "cloze" and "==" not in card_body:
             findings.append(Finding(start + 1, "E019", "cloze cards need an explicit short ==term== target."))
         if kind != "mnemonic":
@@ -330,6 +444,22 @@ def validate(
                 if visible_highlight and not any(visible_highlight in line for line in scoped_visible_lines):
                     findings.append(Finding(start + 1, "E045", f"Cloze or mnemonic highlight is absent from the source provider range: {highlight}"))
         card_styles = set(STYLE_ANCHOR_RE.findall(card_body))
+        style_signatures, has_foreground, has_background = _style_profile(card_body, kind)
+        if len(style_signatures) == 1:
+            findings.append(Finding(start + 1, "E047", "A styled card must use more than one source-grounded color/background style signature."))
+        if style_signatures and (not has_foreground or not has_background):
+            missing = "foreground color" if not has_foreground else "background/highlight"
+            findings.append(Finding(start + 1, "W101", f"Style balance: this card has no {missing}; inherit one only when the source range supplies it."))
+        advanced = [name for name, present in (("table", has_table), ("Mermaid", has_mermaid)) if present]
+        if len(advanced) > 1:
+            findings.append(Finding(start + 1, "W105", "A card uses both a table and Mermaid; choose one primary carrier unless both are necessary for one scoring axis."))
+        if advanced:
+            source_has_carrier = source_text is not None and all(
+                (name == "table" and _has_table(source_text)) or (name == "Mermaid" and _has_mermaid(source_text))
+                for name in advanced
+            )
+            if not source_has_carrier:
+                findings.append(Finding(start + 1, "W104", f"Advanced carrier ({', '.join(advanced)}) is not directly inherited from the supplied source; audit every mapping."))
         if source_text is None:
             if not card_styles:
                 findings.append(Finding(start + 1, "E030", "Every accepted card needs a valid MarkNote bold semantic color anchor."))
@@ -352,6 +482,19 @@ def validate(
             for visible, variants in sorted(styles_by_text.items()):
                 if visible in card_visible and not card_styles.intersection(variants):
                     findings.append(Finding(start + 1, "E041", f"Source-styled text lost its provider-scoped style in the card: {visible}"))
+    for line, source_key, card_id, answer_facts in basic_records:
+        if len(answer_facts) < 2:
+            continue
+        repeated = {
+            fact
+            for fact in answer_facts
+            if any(
+                other_source_key == source_key and other_card_id != card_id and fact in other_facts
+                for _other_line, other_source_key, other_card_id, other_facts in basic_records
+            )
+        }
+        if len(repeated) >= 2:
+            findings.append(Finding(line, "W107", "This multi-answer card repeats facts already tested by sibling cards; reject a duplicate summary unless it adds a new relation or scoring axis."))
     for topic_id, locations in topic_lines.items():
         if len(locations) > max_cards_per_topic:
             findings.append(Finding(locations[0], "E013", f"Topic ID {topic_id!r} is reused by {len(locations)} cards; confirm a narrower atomic topic mapping or raise the reviewed limit."))
@@ -394,7 +537,7 @@ def validate_ordinary(text: str) -> list[Finding]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("output", type=Path)
+    parser.add_argument("output", help="Draft Markdown path, or - to read the draft from standard input.")
     parser.add_argument("--source", type=Path, help="Source note used to verify provider-scoped style inheritance.")
     parser.add_argument("--mode", choices=("ordinary", "dedicated"), default="dedicated")
     parser.add_argument("--require-report", action="store_true")
@@ -402,7 +545,8 @@ def main() -> int:
     parser.add_argument("--max-answer-items", type=int, default=4)
     parser.add_argument("--max-answer-chars", type=int, default=84)
     args = parser.parse_args()
-    text = args.output.read_text(encoding="utf-8")
+    output_label = "<stdin>" if args.output == "-" else args.output
+    text = sys.stdin.read() if args.output == "-" else Path(args.output).read_text(encoding="utf-8")
     source_text = args.source.read_text(encoding="utf-8") if args.source else None
     findings = validate_ordinary(text) if args.mode == "ordinary" else validate(
         text,
@@ -414,9 +558,12 @@ def main() -> int:
     )
     if findings:
         for item in findings:
-            print(f"{args.output}:{item.line}: {item.code}: {item.message}")
-        return 1
-    print(f"PASS legal-flashcard {args.mode} validation: {args.output}")
+            print(f"{output_label}:{item.line}: {item.code}: {item.message}")
+        if has_blocking_findings(findings):
+            return 1
+        print(f"PASS legal-flashcard {args.mode} validation with {len(findings)} warning(s): {output_label}")
+        return 0
+    print(f"PASS legal-flashcard {args.mode} validation: {output_label}")
     return 0
 
 

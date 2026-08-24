@@ -27,7 +27,7 @@ When the user asks to paste or import one or many Markdown files into a SiYuan d
 - Resolve incomplete provider maps before card drafting. The agent should self-complete from confirmed repository providers and existing multi-provider mounting patterns; only an evidence-backed unresolved mapping becomes a reported gap.
 - Build the source-fact ledger, then draft candidates before acceptance. Apply `python -X utf8 scripts/validate_flashcard.py <draft.md> --source <source.md> --require-report` when the source is a file; omit only `--source` when no source file exists. Then report candidate, accepted, rejected counts and rejection reasons. Completion criterion: every ledger row has one disposition, the report reconciles to the candidate records and accepted cards, and the source-aware check passes whenever a source file exists.
 - Keep `custom-dm-card-kind` (semantic card kind) separate from `custom-dm-card-renderer` (host container). Schema routing is explicit: read the versioned contract when a schema other than `1` is requested. Completion criterion: no card mixes schema versions or invents future runtime attributes.
-- Use the card-unit standard from [card-design.md](references/card-design.md): one scoring axis, one specific expected answer or fixed closed set, short clozes, source traceability, and non-duplicative sibling variants. DAMO Markdown never emits Anki scheduling fields or runtime state. Completion criterion: the output contains semantic card content only and no generated `问题：` or `答案：` prefix.
+- Use the card-unit standard from [card-design.md](references/card-design.md): one scoring axis, one specific expected answer or fixed closed set, a source-shaped back structure, short clozes, source traceability, and non-duplicative sibling variants. DAMO Markdown never emits Anki scheduling fields or runtime state. Completion criterion: the output contains semantic card content only, every complex back preserves its visible legal relationship, and no generated `问题：` or `答案：` prefix appears.
 
 ## References
 
@@ -35,6 +35,7 @@ When the user asks to paste or import one or many Markdown files into a SiYuan d
 - Atomic topic mapping: [topic-resolution.md](references/topic-resolution.md)
 - Dedicated mode: [dedicated-mode.md](references/dedicated-mode.md)
 - Recall-unit gate, card kinds, normative examples, variants, and semantic deduplication: [card-design.md](references/card-design.md)
+- Complex card backs: read [answer-structure.md](references/answer-structure.md) only when the source range contains hierarchy, order, a warning/exception, a true comparison matrix, or a recall-sized diagram.
 - Portable fields, IAL boundary, and schema routing: [protocol-contract.md](references/protocol-contract.md)
 - Validation findings and rejection taxonomy: [validation.md](references/validation.md)
 - Dedicated-card MarkNote adapter: [marknote-integration.md](references/marknote-integration.md)

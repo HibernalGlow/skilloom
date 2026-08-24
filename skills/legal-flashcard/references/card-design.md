@@ -29,8 +29,9 @@ A card is atomic when all of these checks pass:
 4. **Closed-list exception.** Multiple child items may remain together only when the front names the closed class or cardinality and every item is a peer on the same axis, such as “三大基本原则”. Four items is a ceiling, not evidence of atomicity.
 5. **Prompt sufficiency.** The front supplies enough legal context to identify one answer without leaking it. Avoid vague prompts such as “有哪些要点？” when several dimensions are possible.
 6. **Answer economy.** Keep the direct answer before optional context. If an answer needs explanation from another axis, make another card.
+7. **Semantic back structure.** Reuse the source note's wording, hierarchy, order, and suitable containers. A simple answer may stay as first-level children. Route a non-simple back through [answer-structure.md](answer-structure.md) when the source contains hierarchy, sequence, warning/exception, a true comparison matrix, or a recall-sized relationship diagram.
 
-Completion criterion: for every accepted card, write one short expected-answer statement; no other accepted card has the same statement or a superset that merely summarizes it.
+Completion criterion: for every accepted card, write one short expected-answer statement; no other accepted card has the same statement or a superset that merely summarizes it, and every non-simple back uses the source-grounded structure selected by [answer-structure.md](answer-structure.md).
 
 ## Choose the semantic kind
 
@@ -43,6 +44,8 @@ Completion criterion: for every accepted card, write one short expected-answer s
 Use `blockquote` only when the quotation itself is the retrieval unit. Use `callout` only for an inherent warning, exception, or trap. Changing renderer never changes `custom-dm-card-kind`.
 
 ## Normative schema 1 examples
+
+Apply the per-card gate in [style-inheritance.md](style-inheritance.md#card-unit-style-gate) to every example shape: a styled accepted card needs at least two exact source-grounded signatures, while a missing foreground or background/highlight dimension remains advisory.
 
 ### Basic/list
 
@@ -82,7 +85,7 @@ Every highlighted cue and decoded segment must occur verbatim in the source prov
 ```markdown
 > 社会主义公共财产的宪法保护表述是什么？ #法考/理论法/宪法/公共财产保护# #闪卡/优先级/P2#
 >
-> - 社会主义的**公共财产**{: style="color: var(--b3-font-color10);"}神圣不可侵犯。
+> - **社会主义**{: style="background-color: var(--b3-font-background11);"}的**公共财产**{: style="color: var(--b3-font-color10);"}神圣不可侵犯。
 {: custom-dm-source-key="beisong-2026-mafeng-kd31-jiben-jingji-zhidu" custom-dm-card-id="fc-theory-xianfa-public-property-quote-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="blockquote" custom-qb-note-topic-id="theory-law-economic-system-public-property"}
 ```
 
@@ -90,7 +93,7 @@ Every highlighted cue and decoded segment must occur verbatim in the source prov
 > [!WARNING] 土地权利转让
 > 土地所有权能否转让？ #法考/理论法/宪法/土地权利转让# #闪卡/优先级/P1#
 >
-> - 土地**所有权不得转让**{: style="color: var(--b3-font-color10);"}；可以转让的是土地使用权。
+> - 土地**所有权不得转让**{: style="color: var(--b3-font-color10);"}；可以转让的是**土地使用权**{: style="background-color: var(--b3-font-background11);"}。
 {: custom-dm-source-key="beisong-2026-mafeng-kd31-jiben-jingji-zhidu" custom-dm-card-id="fc-theory-xianfa-land-transfer-warning-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="callout" custom-qb-note-topic-id="theory-law-economic-system-prediction-quiz-land-transfer"}
 ```
 

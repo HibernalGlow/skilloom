@@ -32,7 +32,7 @@ Read [card-design.md](card-design.md) for the normative `basic`, `cloze`, `mnemo
 
 - The IAL belongs immediately after the complete card root container. It is outside the list, blockquote, Callout, and any code fence.
 - The IAL occupies one physical line, uses exactly one ASCII space after `{:`, uses exactly one ASCII space between attributes, and has no space before `}`.
-- A `basic/list` root is the direct question and its indented list children are the answers. Generated roots and children carry no `问题：` or `答案：` label.
+- A `basic/list` root is the direct question and its indented back structure stays inside that root. First-level children state the direct answer or governing propositions; they may contain source-grounded unordered/ordered detail, a small table, or Mermaid. Generated roots and children carry no `问题：` or `答案：` label.
 - Tags stay on the visible front or cue line inside the root container. Metadata stays in the adjacent IAL; neither may be detached into an ordinary paragraph.
 - Heading scope never determines the answer boundary. Headings and superBlocks are not default card roots.
 
