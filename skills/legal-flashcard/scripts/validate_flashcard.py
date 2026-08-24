@@ -334,16 +334,24 @@ def _is_rich_complex_card(card_body: str, kind: str | None, renderer: str | None
 
 
 def _substantive_answer_lines(card_body: str, renderer: str | None) -> list[str]:
-    """Return answer prose lines eligible for GoldQuest-style color density."""
-    if renderer == "list":
-        lines = _basic_answer_lines(card_body, renderer)
-    elif renderer in {"blockquote", "callout"}:
-        lines = _basic_answer_lines(card_body, renderer)
-    else:
-        lines = []
+    """Return all answer prose lines eligible for GoldQuest-style density."""
+    lines = card_body.splitlines()[1:]
     substantive: list[str] = []
+    in_fence = False
     for line in lines:
-        if re.match(r"^\s*(?:>|[-\d.])", line) and len(_visible_text(_answer_text(line))) >= 14:
+        if re.match(r"^\s*(?:>|)?```", line):
+            in_fence = not in_fence
+            continue
+        if in_fence or not line.strip() or line.lstrip().startswith("{: "):
+            continue
+        stripped = line.strip()
+        if re.match(r"^#{1,6}\s+", stripped) or re.match(r"^\|.*\|$", stripped):
+            continue
+        tag_candidate = re.sub(r"^>\s*", "", stripped)
+        if re.match(r"^>\s+\[![A-Z]+\]", stripped) or re.fullmatch(r"#[^#]+#(?:\s+#[^#]+#)*", tag_candidate):
+            continue
+        visible = _visible_text(line)
+        if len(visible) >= 14:
             substantive.append(line)
     return substantive
 
@@ -732,8 +740,13 @@ def validate(
             if not _auxiliary_style_families(card_body):
                 findings.append(Finding(start + 1, "W117", "Complex card has no auxiliary style family; add only a source-grounded highlight, underline, code, strike, or italic when it marks a real boundary or retrieval cue."))
             for answer_line in _substantive_answer_lines(card_body, renderer):
-                if not STYLE_ANCHOR_RE.search(answer_line):
-                    findings.append(Finding(start + 1, "W118", "A substantive answer line of fourteen or more visible characters lacks a short semantic color/background anchor; review it against GoldQuest analysis density."))
+                anchor_count = len(STYLE_ANCHOR_RE.findall(answer_line))
+                mnemonic_or_cloze_mark = kind in {"cloze", "mnemonic"} and "==" in answer_line
+                if anchor_count == 0 and not mnemonic_or_cloze_mark:
+                    findings.append(Finding(start + 1, "E074", "Every substantive answer line of fourteen or more visible characters needs a short semantic color/background anchor in rich mode, matching GoldQuest's E622 density rule."))
+                sentence_count = len(re.findall(r"[。！？；]", _visible_text(answer_line)))
+                if sentence_count >= 3 and anchor_count * 2 < sentence_count:
+                    findings.append(Finding(start + 1, "E075", "A multi-sentence answer line needs at least one semantic color anchor per one or two sentences, matching GoldQuest's E616 rule."))
         if style_signatures and (not has_foreground or not has_background):
             missing = "foreground color" if not has_foreground else "background/highlight"
             findings.append(Finding(start + 1, "W101", f"Style balance: this card has no {missing}; inherit one only when the source range supplies it."))
@@ -757,7 +770,7 @@ def validate(
                 else source_global_styles
             )
             for fragment in sorted(card_styles - scoped_styles):
-                generated_rich_style = rich_style and "background-color" in fragment
+                generated_rich_style = rich_style and bool(re.search(r"(?:color|background-color):\s*var\(--b3-font-(?:color|background)(?:[2-9]|1[0-3])\)", fragment))
                 if generated_rich_style:
                     continue
                 findings.append(Finding(start + 1, "E039", f"Styled fragment is not inherited byte-for-byte from the source provider range: {fragment}"))
