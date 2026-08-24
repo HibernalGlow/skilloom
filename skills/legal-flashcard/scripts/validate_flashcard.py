@@ -311,6 +311,43 @@ def _is_rich_complex_deck(text: str, card_count: int) -> bool:
     return len(visible) >= 160 or sentence_count >= 4 or branch_count >= 3 or card_count >= 3
 
 
+def _is_rich_complex_card(card_body: str, kind: str | None, renderer: str | None) -> bool:
+    """Identify cards that need the GoldQuest per-card visual floor.
+
+    A short one-fact card can remain visually restrained. Once a card carries
+    a substantial answer, several direct children, or an advanced carrier, it
+    is an explanation surface rather than a single recall cue and needs local
+    semantic color density.
+    """
+    visible = _visible_text(re.sub(r"```.*?```", "", card_body, flags=re.DOTALL))
+    answer_lines = _basic_answer_lines(card_body, renderer)
+    cue = re.search(r"区别|对照|比较|例外|后果|陷阱|原则上|能否|是否|不得|错误|分别", visible)
+    return (
+        renderer == "callout"
+        or len(answer_lines) >= 3
+        or (len(answer_lines) >= 2 and len(visible) >= 130)
+        or _has_table(card_body)
+        or _has_mermaid(card_body)
+        or bool(cue and len(visible) >= 130)
+        or kind == "mnemonic" and len(visible) >= 70
+    )
+
+
+def _substantive_answer_lines(card_body: str, renderer: str | None) -> list[str]:
+    """Return answer prose lines eligible for GoldQuest-style color density."""
+    if renderer == "list":
+        lines = _basic_answer_lines(card_body, renderer)
+    elif renderer in {"blockquote", "callout"}:
+        lines = _basic_answer_lines(card_body, renderer)
+    else:
+        lines = []
+    substantive: list[str] = []
+    for line in lines:
+        if re.match(r"^\s*(?:>|[-\d.])", line) and len(_visible_text(_answer_text(line))) >= 14:
+            substantive.append(line)
+    return substantive
+
+
 def _validate_style_anchor_bounds(text: str) -> list[Finding]:
     findings: list[Finding] = []
     for match in STYLE_ANCHOR_TEXT_RE.finditer(text):
@@ -687,6 +724,16 @@ def validate(
         deck_card_styles.append(style_signatures)
         if len(style_signatures) == 1:
             findings.append(Finding(start + 1, "E047", "A styled card must use more than one source-grounded color/background style signature."))
+        if rich_style and _is_rich_complex_card(card_body, kind, renderer):
+            if len(style_signatures) == 2:
+                findings.append(Finding(start + 1, "W110", "Complex card uses exactly two color/background signatures; review whether a third source or MarkNote role is available instead of stopping at E047."))
+            if not has_foreground or not has_background:
+                findings.append(Finding(start + 1, "W116", "Complex card is missing one visual dimension: keep a semantic foreground role and a background/highlight peak when the source or approved style plan supplies both."))
+            if not _auxiliary_style_families(card_body):
+                findings.append(Finding(start + 1, "W117", "Complex card has no auxiliary style family; add only a source-grounded highlight, underline, code, strike, or italic when it marks a real boundary or retrieval cue."))
+            for answer_line in _substantive_answer_lines(card_body, renderer):
+                if not STYLE_ANCHOR_RE.search(answer_line):
+                    findings.append(Finding(start + 1, "W118", "A substantive answer line of fourteen or more visible characters lacks a short semantic color/background anchor; review it against GoldQuest analysis density."))
         if style_signatures and (not has_foreground or not has_background):
             missing = "foreground color" if not has_foreground else "background/highlight"
             findings.append(Finding(start + 1, "W101", f"Style balance: this card has no {missing}; inherit one only when the source range supplies it."))

@@ -49,6 +49,9 @@ When `--rich-style` is supplied for a medium/complex dedicated deck, these GoldQ
 - `W109`: a Mermaid lacks explicit semantic classes; use source classes or generated `known`/`recall`/`answer` roles instead of default styling.
 - `W110`: a complex card uses exactly two style signatures; review whether three or more source/MarkNote roles are available instead of stopping at the minimum `E047` gate.
 - `W111`: a styled deck uses two or fewer unique signatures overall; the deck is visually monotone even though no single card triggers `E047`.
+- `W116`: a complex card is missing either a semantic foreground color or a background/highlight peak; resolve only when the source/style plan supplies both dimensions.
+- `W117`: a complex card has no auxiliary style family with a semantic job; add highlight, underline, code, strike, or italic only for a real boundary or retrieval cue.
+- `W118`: a substantive answer line of at least fourteen visible characters lacks a short semantic color/background anchor; review it against GoldQuest's analysis density rule.
 - `W112`: a medium/complex process, branch, role mapping, comparison, or many-to-one card has no Mermaid, inherited image, or documented primary visual carrier.
 - `W114`: an answer line combines multiple semantic clauses without a governing parent and child structure; split conditions, actions, effects, exceptions, or alternatives.
 - `W115`: Callout tags are embedded in the title; move knowledge and priority tags to the immediately following quoted line.
