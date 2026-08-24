@@ -2,11 +2,12 @@
 import re
 import unittest
 
-from validate_flashcard import validate, validate_ordinary
+from validate_flashcard import has_blocking_findings, validate, validate_ordinary
 
 
 VALID = """- **成立要件**{: style=\"color: var(--b3-font-color10);\"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#
     - 要件一。
+        - **适用边界**{: style=\"background-color: var(--b3-font-background11);\"}明确。
 {: custom-dm-source-key=\"civil-08\" custom-dm-card-id=\"fc-civil-elements-v1\" custom-dm-card-schema=\"1\" custom-dm-card-kind=\"basic\" custom-dm-card-renderer=\"list\" custom-qb-note-topic-id=\"civil-elements\"}
 """
 
@@ -15,6 +16,7 @@ SOURCE = """#### 成立要件
 
 - **成立要件**{: style=\"color: var(--b3-font-color10);\"}
     - 要件一。
+        - **适用边界**{: style=\"background-color: var(--b3-font-background11);\"}明确。
 
 #### 法律效果
 {: custom-qb-note-topic-id=\"civil-effects\"}
@@ -37,11 +39,139 @@ class FlashcardValidatorTests(unittest.TestCase):
         declarative = VALID.replace("是什么？ #法考", "的规则 #法考")
         self.assertIn("E025", {finding.code for finding in validate(declarative)})
 
+    def test_complex_basic_back_requires_semantic_child_level(self):
+        flat = VALID.replace(
+            '        - **适用边界**{: style="background-color: var(--b3-font-background11);"}明确。\n',
+            "",
+        ).replace(
+            "    - 要件一。",
+            "    - 不同法律规范从不同角度对社会关系加以调整，并形成规范适用范围的交叉。\n"
+            "    - 法律规范具有抽象性，社会关系具有复杂性，二者共同造成调整范围重合。\n"
+            "    - 一个行为可能同时触犯不同法律规范，因而面临数种相互冲突的法律责任。",
+        )
+        self.assertIn("E046", {finding.code for finding in validate(flat)})
+        nested = flat.replace(
+            "    - 法律规范具有抽象性",
+            "        - 法律规范具有抽象性",
+        ).replace(
+            "    - 一个行为可能同时触犯",
+            "        - 一个行为可能同时触犯",
+        )
+        self.assertNotIn("E046", {finding.code for finding in validate(nested)})
+
+    def test_explicit_closed_set_may_remain_flat(self):
+        closed = VALID.replace("成立要件", "三项成立要件").replace(
+            "    - 要件一。",
+            "    - 要件一。\n    - 要件二。\n    - 要件三。",
+        )
+        self.assertNotIn("E046", {finding.code for finding in validate(closed)})
+
+    def test_style_diversity_error_and_nonblocking_balance_warning(self):
+        one_style = VALID.replace(
+            '        - **适用边界**{: style="background-color: var(--b3-font-background11);"}明确。\n',
+            "",
+        )
+        findings = validate(one_style)
+        codes = {finding.code for finding in findings}
+        self.assertIn("E047", codes)
+        self.assertIn("W101", codes)
+        self.assertTrue(has_blocking_findings(findings))
+
+        foreground_only = VALID.replace("background-color: var(--b3-font-background11)", "color: var(--b3-font-color12)")
+        findings = validate(foreground_only)
+        codes = {finding.code for finding in findings}
+        self.assertNotIn("E047", codes)
+        self.assertIn("W101", codes)
+        self.assertFalse(has_blocking_findings(findings))
+
+        reordered_same_signature = VALID.replace(
+            '**成立要件**{: style="color: var(--b3-font-color10);"}',
+            '**成立要件**{: style="color: var(--b3-font-color10); background-color: var(--b3-font-background11);"}',
+        ).replace(
+            '**适用边界**{: style="background-color: var(--b3-font-background11);"}',
+            '**适用边界**{: style="background-color: var(--b3-font-background11); color: var(--b3-font-color10);"}',
+        )
+        self.assertIn("E047", {finding.code for finding in validate(reordered_same_signature)})
+
+        basic_reading_highlight = one_style.replace("要件一。", "要件一：==法定==。")
+        basic_codes = {finding.code for finding in validate(basic_reading_highlight)}
+        self.assertIn("E047", basic_codes)
+        self.assertIn("W101", basic_codes)
+
+    def test_mark_highlight_counts_as_background_style_dimension(self):
+        cloze = VALID.replace(
+            '        - **适用边界**{: style="background-color: var(--b3-font-background11);"}明确。\n',
+            "",
+        ).replace("要件一。", "要件一：==法定==。").replace(
+            'custom-dm-card-kind="basic"', 'custom-dm-card-kind="cloze"'
+        ).replace('custom-dm-card-renderer="list"', 'custom-dm-card-renderer="mark"')
+        codes = {finding.code for finding in validate(cloze)}
+        self.assertNotIn("E047", codes)
+        self.assertNotIn("W101", codes)
+
+    def test_ordered_answers_and_advanced_back_content_stay_inside_root(self):
+        ordered = VALID.replace(
+            "    - 要件一。",
+            "    1. 第一步。\n    2. 第二步。",
+        )
+        ordered_codes = {finding.code for finding in validate(ordered)}
+        self.assertNotIn("E026", ordered_codes)
+        self.assertIn("W103", ordered_codes)
+        self.assertIn("W106", {finding.code for finding in validate(ordered, source_text=SOURCE)})
+        ordered_source = SOURCE.replace("    - 要件一。", "    - 要件一。\n    - 依次执行。")
+        self.assertNotIn("W106", {finding.code for finding in validate(ordered, source_text=ordered_source)})
+        advanced = VALID.replace(
+            "    - 要件一。",
+            "    - 对应关系：\n"
+            "        | 主体 | 规则 |\n"
+            "        | --- | --- |\n"
+            "        | 甲 | 规则一 |\n"
+            "        | 乙 | 规则二 |\n"
+            "        ```mermaid\n"
+            "        flowchart LR\n"
+            "            A[规则一] --> B[规则二]\n"
+            "        ```",
+        )
+        codes = {finding.code for finding in validate(advanced)}
+        self.assertNotIn("E008", codes)
+        self.assertNotIn("E026", codes)
+        self.assertIn("W104", codes)
+        self.assertIn("W105", codes)
+
+    def test_borderline_flat_back_gets_advisory(self):
+        borderline = VALID.replace(
+            "    - 要件一。\n"
+            '        - **适用边界**{: style="background-color: var(--b3-font-background11);"}明确。',
+            "    - 不同法律规范分别调整同一社会关系，可能形成适用范围交叉。\n"
+            '    - **适用边界**{: style="background-color: var(--b3-font-background11);"}需要结合规范对象判断。',
+        )
+        codes = {finding.code for finding in validate(borderline)}
+        self.assertIn("W102", codes)
+        self.assertNotIn("E046", codes)
+
+    def test_duplicate_summary_gets_advisory(self):
+        summary = VALID.replace(
+            "    - 要件一。\n"
+            '        - **适用边界**{: style="background-color: var(--b3-font-background11);"}明确。',
+            "    - 规则甲。\n"
+            '    - **规则乙**{: style="background-color: var(--b3-font-background11);"}。',
+        ).replace("fc-civil-elements-v1", "fc-civil-summary-v1")
+        detail_a = VALID.replace("要件一", "规则甲").replace(
+            "fc-civil-elements-v1", "fc-civil-rule-a-v1"
+        )
+        detail_b = VALID.replace("要件一", "规则乙").replace(
+            "fc-civil-elements-v1", "fc-civil-rule-b-v1"
+        )
+        codes = {finding.code for finding in validate("\n".join((summary, detail_a, detail_b)))}
+        self.assertIn("W107", codes)
+
     def test_source_aware_style_inheritance(self):
         self.assertEqual(validate(VALID, source_text=SOURCE), [])
         recolored = VALID.replace("b3-font-color10", "b3-font-color12")
         self.assertIn("E039", {finding.code for finding in validate(recolored, source_text=SOURCE)})
-        plain = VALID.replace('**成立要件**{: style="color: var(--b3-font-color10);"}', "成立要件")
+        plain = VALID.replace('**成立要件**{: style="color: var(--b3-font-color10);"}', "成立要件").replace(
+            '**适用边界**{: style="background-color: var(--b3-font-background11);"}', "适用边界"
+        )
         self.assertIn("E040", {finding.code for finding in validate(plain, source_text=SOURCE)})
 
     def test_source_style_must_come_from_matching_provider_range(self):
@@ -63,8 +193,12 @@ class FlashcardValidatorTests(unittest.TestCase):
         self.assertIn("E041", {finding.code for finding in validate(VALID, source_text=source)})
 
     def test_plain_source_range_allows_plain_card(self):
-        source = SOURCE.replace('**成立要件**{: style="color: var(--b3-font-color10);"}', "成立要件")
-        plain = VALID.replace('**成立要件**{: style="color: var(--b3-font-color10);"}', "成立要件")
+        source = SOURCE.replace('**成立要件**{: style="color: var(--b3-font-color10);"}', "成立要件").replace(
+            '**适用边界**{: style="background-color: var(--b3-font-background11);"}', "适用边界"
+        )
+        plain = VALID.replace('**成立要件**{: style="color: var(--b3-font-color10);"}', "成立要件").replace(
+            '**适用边界**{: style="background-color: var(--b3-font-background11);"}', "适用边界"
+        )
         codes = {finding.code for finding in validate(plain, source_text=source)}
         self.assertNotIn("E030", codes)
         self.assertNotIn("E040", codes)
@@ -109,7 +243,9 @@ class FlashcardValidatorTests(unittest.TestCase):
         self.assertIn("E020", {finding.code for finding in validate(unhighlighted)})
 
     def test_requires_marknote_anchor_and_short_non_mnemonic_highlight(self):
-        no_style = VALID.replace('**成立要件**{: style="color: var(--b3-font-color10);"}', "成立要件")
+        no_style = VALID.replace('**成立要件**{: style="color: var(--b3-font-color10);"}', "成立要件").replace(
+            '**适用边界**{: style="background-color: var(--b3-font-background11);"}', "适用边界"
+        )
         self.assertIn("E030", {finding.code for finding in validate(no_style)})
         long_cloze = VALID.replace('custom-dm-card-kind="basic"', 'custom-dm-card-kind="cloze"').replace(
             "要件一。", "==这是一个过长的完整结论句==。"
@@ -152,7 +288,7 @@ class FlashcardValidatorTests(unittest.TestCase):
     def test_prefixless_basic_blockquote_and_callout_are_valid(self):
         blockquote = """> **成立要件**{: style=\"color: var(--b3-font-color10);\"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#
 >
-> - 要件一。
+> - **要件一**{: style="background-color: var(--b3-font-background11);"}。
 {: custom-dm-source-key=\"civil-08\" custom-dm-card-id=\"fc-civil-elements-quote-v1\" custom-dm-card-schema=\"1\" custom-dm-card-kind=\"basic\" custom-dm-card-renderer=\"blockquote\" custom-qb-note-topic-id=\"civil-elements\"}
 """
         self.assertEqual(validate(blockquote), [])

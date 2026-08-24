@@ -2,6 +2,8 @@
 
 Run `python -X utf8 scripts/validate_flashcard.py <draft.md> --source <source.md> --require-report` for dedicated mode when the source is a file. The checker is structural; legal accuracy and source truth remain human/source checks.
 
+For an unsaved draft, pipe the Markdown to `python -X utf8 scripts/validate_flashcard.py - --require-report`. This stdin pass still enforces schema, identity, card boundaries, style diversity, duplicate-summary heuristics, and report reconciliation; run a second pass with `--source` when a source file is available. Completion criterion: an in-memory draft is validated rather than exempted because it lacks a path.
+
 Reject a candidate when one of these conditions is observed:
 
 - `unsupported`: a question, answer, citation, or cloze target is absent from supplied material.
@@ -16,8 +18,20 @@ Reject a candidate when one of these conditions is observed:
 - `over-budget`: the card is valid but exceeds an explicitly requested numerical card budget after priority ordering. Do not use this reason when no budget was supplied.
 - `uncertain-law`: a date, period, exception, case, or statute needs verification.
 
-The checker must fail on invalid attribute names, multiline or malformed IALs, schema values, card IDs, renderer values, duplicate IDs, detached roots, code-fence IALs, malformed or over-reused note-topic IDs, unresolved broad-topic fallback, missing source-grounded knowledge tags, missing or multiple `#闪卡/优先级/P1#`-`P4` tags, invalid priority tags, generated `问题：`/`答案：` prefixes, basic fronts without a final question mark, basic fronts that use `==...==`, missing direct answer children, mnemonic roots disguised as questions or missing a specific recall-subject label, cloze or mnemonic highlights absent from the source provider range, invented, mismatched, or dropped source styles when `--source` is supplied, missing MarkNote anchors when no source is supplied, oversized answer items, excessive answer counts, report mismatches, top-level source/protocol/style audit preambles, a missing, duplicated, malformed, or non-final source/protocol line, runtime-field leakage, and missing required fields.
+The checker must fail on invalid attribute names, multiline or malformed IALs, schema values, card IDs, renderer values, duplicate IDs, detached roots, code-fence IALs, malformed or over-reused note-topic IDs, unresolved broad-topic fallback, missing source-grounded knowledge tags, missing or multiple `#闪卡/优先级/P1#`-`P4` tags, invalid priority tags, generated `问题：`/`答案：` prefixes, basic fronts without a final question mark, basic fronts that use `==...==`, missing direct answer children, obviously complex flat backs without a source-shaped structure, mnemonic roots disguised as questions or missing a specific recall-subject label, cloze or mnemonic highlights absent from the source provider range, invented, mismatched, or dropped source styles when `--source` is supplied, one-signature styled cards (`E047`), missing MarkNote anchors when no source is supplied, oversized answer items, excessive answer counts, report mismatches, top-level source/protocol/style audit preambles, a missing, duplicated, malformed, or non-final source/protocol line, runtime-field leakage, and missing required fields. Read [style-inheritance.md](style-inheritance.md#card-unit-style-gate) for the authoritative style-counting rule.
 
-The checker cannot infer legal recall axes, broad-provider misuse, or complete source coverage. Manually apply [card-design.md](card-design.md) and [topic-resolution.md](topic-resolution.md) after it passes: verify one expected-answer statement per card, reject definition/status/policy mixtures and duplicate summaries, require a narrow provider per independent axis, and reconcile every source-fact ledger row. A passing result is necessary but not sufficient for card quality or legal accuracy.
+Warnings are advisory: print each finding, but return success when every finding begins with `W`. Review all warnings before acceptance:
+
+- `W101`: foreground color and background/highlight are not both represented; inherit the missing dimension only when the provider range supplies it.
+- `W102`: a borderline flat multi-item back may hide a parent/child relation or mixed recall axes.
+- `W103`: ordered answers lack an explicit sequence, procedure, chronology, or priority cue on the front.
+- `W104`: a table or Mermaid carrier is not directly inherited from the supplied source; audit every mapping.
+- `W105`: one card uses both a table and Mermaid; confirm that both are necessary for one scoring axis.
+- `W106`: ordered answers have no sequence semantics in the supplied source range; source numbering alone remains unordered peers.
+- `W107`: a multi-answer card repeats at least two exact answer facts already tested by sibling cards and is probably a duplicate summary.
+
+Completion criterion: every warning has an explicit keep, revise, split, or reject disposition, and running the checker on a warning-only file exits `0` while any `E` finding exits nonzero.
+
+The checker cannot fully infer legal recall axes, carrier equivalence, source-semantic hierarchy, broad-provider misuse, or complete source coverage. Manually apply [card-design.md](card-design.md), [answer-structure.md](answer-structure.md), and [topic-resolution.md](topic-resolution.md) after it passes: compare each back with the source, keep shared-action clauses intact, verify one primary carrier per expected answer, reject definition/status/policy mixtures and duplicate summaries, require a narrow provider per independent axis, and reconcile every source-fact ledger row. A passing result is necessary but not sufficient for card quality or legal accuracy.
 
 When a file path is part of the request, also run `scripts/validate_naming.py <output.md> --source <source.md>`. It checks the source-derived filename, dedicated sibling placement, and exact source-derived H1; a failure is a naming or placement rejection, not a reason to edit the source note.
