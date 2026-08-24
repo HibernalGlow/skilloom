@@ -30,5 +30,7 @@ report:
   accepted: 1
   rejected: 0
   rejection_reasons: {}
+source:
+  note: "示例/司法三段论"
+  protocol: "DAMO 闪卡 schema 1"
 ```
-原笔记：[[示例/司法三段论]] · 协议：DAMO 闪卡 schema 1

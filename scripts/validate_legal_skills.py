@@ -169,6 +169,8 @@ CONTRACTS = (
             ("E067", "## Validation and rejection taxonomy"),
             ("E068", "## Validation and rejection taxonomy"),
             ("E069", "## Validation and rejection taxonomy"),
+            ("E070", "## Validation and rejection taxonomy"),
+            ("E071", "## Validation and rejection taxonomy"),
             ("rich-visual-mode.md", "## Shared hand-off"),
             ("--source <source.md>", "## Shared hand-off"),
             ("leading `⚡` H1 role marker", "Filename, H1, destination folder"),

@@ -27,7 +27,6 @@ REPORT_KEY_RE = re.compile(r"^  (?P<key>candidates|accepted|rejected):\s*(?P<val
 AUDIT_PREAMBLE_RE = re.compile(
     r"^-\s+(?:源笔记|协议|标签|构成|着色图例|章节|样式继承|源笔记说明|高亮职责)："
 )
-SOURCE_PROTOCOL_RE = re.compile(r"^原笔记：\[\[[^\]\n]+\]\] · 协议：DAMO 闪卡 schema 1$")
 RUNTIME_RE = re.compile(
     r"(?:custom-riff-decks|\bdue\b|\binterval\b|review\s+log|\bsuspend\b|\bbury\b|device\s+state|srs\s+state)",
     re.IGNORECASE,
@@ -112,7 +111,7 @@ def _visible_text(text: str) -> str:
     return re.sub(r"\s+", "", text)
 
 
-def _parse_report_yaml(text: str) -> tuple[int, int, int] | None:
+def _parse_report_yaml(text: str) -> tuple[int, int, int, str] | None:
     blocks = list(REPORT_YAML_RE.finditer(text))
     if len(blocks) != 1:
         return None
@@ -124,7 +123,10 @@ def _parse_report_yaml(text: str) -> tuple[int, int, int] | None:
         return None
     if not re.search(r"^  rejection_reasons:\s*(?:\{\})?\s*$", body, re.MULTILINE):
         return None
-    return values["candidates"], values["accepted"], values["rejected"]
+    note = re.search(r'^source:\s*\n  note:\s*"(?P<note>[^"\n]+)"\s*\n  protocol:\s*"(?P<protocol>DAMO 闪卡 schema 1)"\s*$', body, re.MULTILINE)
+    if not note:
+        return None
+    return values["candidates"], values["accepted"], values["rejected"], note.group("note")
 
 
 def _card_body(lines: list[str], ial_start: int, renderer: str | None) -> tuple[int | None, str]:
@@ -746,19 +748,15 @@ def validate(
         if report_values is None:
             findings.append(Finding(max(1, len(lines)), "E070", "Dedicated output requires exactly one valid ```yaml report block with report.candidates, report.accepted, report.rejected, and report.rejection_reasons."))
         else:
-            candidate, accepted, rejected = report_values
+            candidate, accepted, rejected, _source_note = report_values
             if candidate != accepted + rejected or accepted != len(accepted_card_lines):
                 line = next((number for number, line in enumerate(lines, start=1) if line.strip() == "```yaml"), max(1, len(lines)))
                 findings.append(Finding(line, "E032", "Report counts must reconcile and accepted must equal rendered card count."))
-        source_protocol_lines = [
-            number for number, line in enumerate(lines, start=1) if SOURCE_PROTOCOL_RE.fullmatch(line.strip())
-        ]
-        if len(source_protocol_lines) != 1:
-            findings.append(Finding(max(1, len(lines)), "E043", "Dedicated output requires exactly one final source/protocol line."))
-        else:
+            report_block = next((match for match in REPORT_YAML_RE.finditer(text)), None)
             last_nonblank = max((number for number, line in enumerate(lines, start=1) if line.strip()), default=1)
-            if source_protocol_lines[0] != last_nonblank:
-                findings.append(Finding(source_protocol_lines[0], "E043", "Source/protocol line must be the last nonblank line."))
+            report_end = text[:report_block.end()].rstrip("\n").count("\n") + 1 if report_block else 1
+            if report_end != last_nonblank:
+                findings.append(Finding(report_end, "E071", "The YAML report and source/protocol fields must be the final nonblank block."))
     for number, line in enumerate(lines, start=1):
         if RUNTIME_RE.search(line):
             findings.append(Finding(number, "E014", "Runtime scheduling or Riff field leaked into output."))

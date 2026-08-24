@@ -241,8 +241,10 @@ report:
   accepted: 3
   rejected: 0
   rejection_reasons: {}
+source:
+  note: "示例/专题六 共同诉讼"
+  protocol: "DAMO 闪卡 schema 1"
 ```
-原笔记：[[示例/专题六 共同诉讼]] · 协议：DAMO 闪卡 schema 1
 """
         findings = validate(rich, require_report=True, rich_style=True)
         self.assertFalse([finding for finding in findings if not finding.code.startswith("W")])
@@ -469,7 +471,7 @@ report:
         cards = []
         for number in range(1, 6):
             cards.append(VALID.replace("fc-civil-elements-v1", f"fc-civil-elements-v{number}"))
-        deck = "\n".join(cards) + "\n```yaml\nreport:\n  candidates: 5\n  accepted: 5\n  rejected: 0\n  rejection_reasons: {}\n```\n原笔记：[[民法/成立要件]] · 协议：DAMO 闪卡 schema 1\n"
+        deck = "\n".join(cards) + "\n```yaml\nreport:\n  candidates: 5\n  accepted: 5\n  rejected: 0\n  rejection_reasons: {}\nsource:\n  note: \"民法/成立要件\"\n  protocol: \"DAMO 闪卡 schema 1\"\n```\n"
         self.assertIn("E013", {finding.code for finding in validate(deck, require_report=True)})
         self.assertNotIn("E032", {finding.code for finding in validate(deck, require_report=True)})
         self.assertIn("E032", {finding.code for finding in validate(deck.replace("accepted: 5", "accepted: 4"), require_report=True)})
@@ -490,12 +492,11 @@ report:
         self.assertEqual(sum(finding.code == "E042" for finding in findings), 9)
 
     def test_requires_one_final_source_protocol_line(self):
-        report = "```yaml\nreport:\n  candidates: 1\n  accepted: 1\n  rejected: 0\n  rejection_reasons: {}\n```\n"
-        footer = "原笔记：[[民法/成立要件]] · 协议：DAMO 闪卡 schema 1\n"
-        self.assertNotIn("E043", {finding.code for finding in validate(VALID + report + footer, require_report=True)})
-        self.assertIn("E043", {finding.code for finding in validate(VALID + report, require_report=True)})
-        misplaced = footer + VALID + report
-        self.assertIn("E043", {finding.code for finding in validate(misplaced, require_report=True)})
+        report = "```yaml\nreport:\n  candidates: 1\n  accepted: 1\n  rejected: 0\n  rejection_reasons: {}\nsource:\n  note: \"民法/成立要件\"\n  protocol: \"DAMO 闪卡 schema 1\"\n```\n"
+        self.assertNotIn("E071", {finding.code for finding in validate(VALID + report, require_report=True)})
+        self.assertIn("E070", {finding.code for finding in validate(VALID, require_report=True)})
+        misplaced = report + VALID
+        self.assertIn("E071", {finding.code for finding in validate(misplaced, require_report=True)})
 
     def test_plain_text_report_is_rejected(self):
         plain = "生成报告：候选 1；接受 1；拒绝 0。\n"
