@@ -34,6 +34,7 @@ RUNTIME_RE = re.compile(
 KNOWLEDGE_TAG_RE = re.compile(r"#(?!闪卡/优先级/)[^#\s]+#")
 PRIORITY_TAG_RE = re.compile(r"#闪卡/优先级/([^#\s]+)#")
 GENERATED_LABEL_RE = re.compile(r"^\s*(?:>\s*)?(?:-\s+)?(?:问题|答案)[：:]")
+CALL_OUT_TITLE_STYLE_RE = re.compile(r"\{:\s*style=|\*\*|==|~~|`|<\/?(?:em|u)(?:\s|>)", re.IGNORECASE)
 ORDER_CUE_RE = re.compile(r"顺序|次序|步骤|阶段|程序|流程|先后|依次|优先|第[一二三四五六七八九十0-9]+步")
 MERMAID_TYPE_RE = re.compile(
     r"^(?:flowchart|graph|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|journey|gantt|pie|"
@@ -581,6 +582,8 @@ def validate(
             findings.append(Finding(start + 1, "E037", "Mnemonic cards are named cue cards; do not render the front as a question."))
         if renderer == "callout" and not _is_question_front(front):
             findings.append(Finding(start + 1, "E067", "Callout titles are the card front; the title must be a complete source-grounded question ending in ？ or ?."))
+        if renderer == "callout" and CALL_OUT_TITLE_STYLE_RE.search(front):
+            findings.append(Finding(start + 1, "E068", "Callout titles must be plain-text questions without inline styling; keep style anchors in the answer body."))
         if kind == "mnemonic" and not _mnemonic_label(root):
             findings.append(Finding(start + 1, "E038", "Mnemonic roots must name the specific recall subject or relationship; a bare 口诀 label is insufficient."))
         if kind == "basic":
