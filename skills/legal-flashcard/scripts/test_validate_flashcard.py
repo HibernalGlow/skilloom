@@ -98,6 +98,14 @@ class FlashcardValidatorTests(unittest.TestCase):
         self.assertIn("E047", basic_codes)
         self.assertIn("W101", basic_codes)
 
+    def test_rich_style_plan_allows_generated_foreground_role_anchor(self):
+        generated = VALID.replace(
+            '**成立要件**{: style="color: var(--b3-font-color10);"}',
+            '**成立要件**{: style="color: var(--b3-font-color6);"}',
+        )
+        findings = validate(generated, source_text=SOURCE, rich_style=True)
+        self.assertNotIn("E039", {finding.code for finding in findings})
+
     def test_mark_highlight_counts_as_background_style_dimension(self):
         cloze = VALID.replace(
             '        - **适用边界**{: style="background-color: var(--b3-font-background11);"}明确。\n',
@@ -195,7 +203,7 @@ class FlashcardValidatorTests(unittest.TestCase):
     - **必要共同诉讼**{: style="color: var(--b3-font-color10);"}：诉讼标的是**共同**{: style="background-color: var(--b3-font-background11);"}的。
         - 处理结果：<em>合一审理、合一判决</em>，最终**统一裁判**{: style="color: var(--b3-font-color8);"}。
     - **普通共同诉讼**{: style="color: var(--b3-font-color12);"}：诉讼标的是<u>同一种类</u>的。
-        - 审理方式：可以`合并审理`，也可以分开审理。
+        - 审理方式：可以`合并审理`，也可以**分开审理**{: style="color: var(--b3-font-color9);"}。
         | 制度 | 标的关系 |
         | --- | --- |
         | 必要 | 共同 |
@@ -222,8 +230,8 @@ class FlashcardValidatorTests(unittest.TestCase):
             class B,C,D answer;
         ```
     > [!IMPORTANT] 核心边界
-    > - <em>起诉时人数尚未确定</em>。
-    > - ~~跳过公告、登记直接裁判~~不是启动方式。
+    > - <em>起诉时</em>**人数尚未确定**{: style="color: var(--b3-font-color12);"}。
+    > - ~~跳过公告、登记直接裁判~~不是**启动方式**{: style="color: var(--b3-font-color13);"}。
 {: custom-dm-source-key="example-rich" custom-dm-card-id="fc-example-rich-process-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="example-rich-process"}
 
 ## 区分口诀
@@ -274,7 +282,7 @@ source:
         codes = {finding.code for finding in validate(complex_card, rich_style=True)}
         self.assertIn("W110", codes)
         self.assertIn("W117", codes)
-        self.assertIn("W118", codes)
+        self.assertIn("E074", codes)
 
     def test_borderline_flat_back_gets_advisory(self):
         borderline = VALID.replace(

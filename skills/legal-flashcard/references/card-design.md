@@ -45,7 +45,7 @@ Use `blockquote` only when the quotation itself is the retrieval unit. Use `call
 
 ## Normative schema 1 examples
 
-Apply the per-card gate in [style-inheritance.md](style-inheritance.md#card-unit-style-gate) to every example shape: a styled accepted card needs at least two exact source-grounded signatures, while a missing foreground or background/highlight dimension remains advisory.
+Apply the per-card gate in [style-inheritance.md](style-inheritance.md#card-unit-style-gate) to every example shape: a styled accepted card needs at least two exact source-grounded signatures, and a medium/complex rich card must satisfy GoldQuest line-level semantic color density. A missing foreground or background/highlight dimension remains advisory only when the source/style plan genuinely lacks that dimension.
 
 ### Basic/list
 
