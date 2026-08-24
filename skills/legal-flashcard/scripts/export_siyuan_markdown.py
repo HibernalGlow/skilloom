@@ -416,13 +416,13 @@ def _sanitize_segment(value: str) -> str:
     return sanitized or "Untitled"
 
 
-def _archive_path(path: Path, workspace: Path, notebook: str) -> PurePosixPath:
-    relative = path.resolve().relative_to(workspace / "data" / notebook)
+def _archive_path(path: Path, workspace: Path, notebook: str, source_root: Path) -> PurePosixPath:
+    relative = path.resolve().relative_to(source_root.resolve())
     ids = [*relative.parts[:-1], path.stem]
     titles: list[str] = []
-    cursor = workspace / "data" / notebook
+    cursor = source_root.resolve()
     for index, document_id in enumerate(ids):
-        doc_file = (cursor / f"{document_id}.sy") if index == 0 else (cursor / f"{document_id}.sy")
+        doc_file = cursor / f"{document_id}.sy"
         titles.append(_sanitize_segment(_document_title(doc_file) if doc_file.is_file() else document_id))
         cursor /= document_id
     titles[-1] = f"{titles[-1]}.md"
@@ -430,19 +430,23 @@ def _archive_path(path: Path, workspace: Path, notebook: str) -> PurePosixPath:
 
 
 def collect_sources(values: Sequence[Path], workspace: Path | None = None) -> list[SourceDocument]:
-    files: list[Path] = []
+    files: dict[Path, Path] = {}
     for value in values:
         if value.is_file() and value.suffix.lower() == ".sy":
-            files.append(value.resolve())
+            resolved = value.resolve()
+            files.setdefault(resolved, resolved.parent)
         elif value.is_dir():
-            files.extend(path.resolve() for path in value.rglob("*.sy") if path.is_file())
+            root = value.resolve()
+            for path in root.rglob("*.sy"):
+                if path.is_file():
+                    files.setdefault(path.resolve(), root)
         else:
             raise ExportError(f"Source is not a .sy file or directory: {value}")
-    unique = sorted(set(files), key=lambda item: str(item).casefold())
-    if not unique:
+    ordered = sorted(files.items(), key=lambda item: str(item[0]).casefold())
+    if not ordered:
         raise ExportError("No .sy files were found")
     documents: list[SourceDocument] = []
-    for path in unique:
+    for path, source_root in ordered:
         source_workspace, notebook = find_workspace(path, workspace)
         documents.append(
             SourceDocument(
@@ -450,7 +454,7 @@ def collect_sources(values: Sequence[Path], workspace: Path | None = None) -> li
                 workspace=source_workspace,
                 notebook=notebook,
                 document_id=path.stem,
-                archive_path=_archive_path(path, source_workspace, notebook),
+                archive_path=_archive_path(path, source_workspace, notebook, source_root),
             )
         )
     return documents
@@ -494,11 +498,11 @@ def export_with_kernel(kernel: Path, documents: Sequence[SourceDocument], option
     return markdown
 
 
-def _unique_paths(documents: Sequence[SourceDocument]) -> dict[Path, PurePosixPath]:
+def _unique_paths(documents: Sequence[SourceDocument], flat: bool = False) -> dict[Path, PurePosixPath]:
     result: dict[Path, PurePosixPath] = {}
     occupied: set[str] = set()
     for document in documents:
-        candidate = document.archive_path
+        candidate = PurePosixPath(document.archive_path.name) if flat else document.archive_path
         key = str(candidate).casefold()
         if key in occupied:
             candidate = candidate.with_name(f"{candidate.stem} [{document.document_id}].md")
@@ -513,8 +517,9 @@ def write_output(
     output: Path | None,
     zip_path: Path | None,
     force: bool,
+    flat: bool = False,
 ) -> list[Path]:
-    paths = _unique_paths(documents)
+    paths = _unique_paths(documents, flat)
     if zip_path:
         if zip_path.exists() and not force:
             raise ExportError(f"Output already exists: {zip_path}; pass --force to replace it")
@@ -554,6 +559,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--ial", choices=("portable", "all", "none"), default="portable")
     parser.add_argument("--include", default="", help="Comma-separated IAL names or * patterns to keep")
     parser.add_argument("--exclude", default="", help="Comma-separated IAL names or * patterns to remove")
+    parser.add_argument(
+        "--flat",
+        action="store_true",
+        help="Flatten nested source documents into the output root instead of preserving their relative folders",
+    )
     parser.add_argument("--force", action="store_true", help="Replace existing output files")
     return parser.parse_args(argv)
 
@@ -565,7 +575,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         kernel = discover_kernel(args.kernel)
         options = IalOptions(args.ial, _patterns(args.include), _patterns(args.exclude))
         markdown = export_with_kernel(kernel, documents, options)
-        outputs = write_output(documents, markdown, args.output, args.zip_path, args.force)
+        outputs = write_output(documents, markdown, args.output, args.zip_path, args.force, args.flat)
     except ExportError as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
