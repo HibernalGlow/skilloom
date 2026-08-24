@@ -584,6 +584,8 @@ def validate(
             findings.append(Finding(start + 1, "E067", "Callout titles are the card front; the title must be a complete source-grounded question ending in ？ or ?."))
         if renderer == "callout" and CALL_OUT_TITLE_STYLE_RE.search(front):
             findings.append(Finding(start + 1, "E068", "Callout titles must be plain-text questions without inline styling; keep style anchors in the answer body."))
+        if renderer == "callout" and re.search(r"#[^#\s]+#", front):
+            findings.append(Finding(start + 1, "W115", "Keep Callout knowledge and priority tags on their own immediately following quote line, not in the question title."))
         if kind == "mnemonic" and not _mnemonic_label(root):
             findings.append(Finding(start + 1, "E038", "Mnemonic roots must name the specific recall subject or relationship; a bare 口诀 label is insufficient."))
         if kind == "basic":
@@ -597,6 +599,16 @@ def validate(
             for answer in answer_lines:
                 if len(_visible_text(_answer_text(answer))) > max_answer_chars:
                     findings.append(Finding(start + 1, "E028", f"Answer item exceeds {max_answer_chars} visible characters; split or reject it."))
+                answer_text = _visible_text(_answer_text(answer))
+                if len(answer_text) > 42 or re.search(r"，(?:并|但|或者|或|且)|；|条件为|分别|不成|否则", answer_text):
+                    answer_indent = len(answer) - len(answer.lstrip())
+                    has_child = any(
+                        len(line) - len(line.lstrip()) > answer_indent
+                        and re.match(r"^\s+(?:-|\d+\.)\s+\S", line)
+                        for line in card_body.splitlines()
+                    )
+                    if not has_child:
+                        findings.append(Finding(start + 1, "W114", "Answer line combines multiple semantic clauses; split it into a governing parent and source-shaped child items."))
             basic_records.append(
                 (
                     start + 1,

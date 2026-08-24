@@ -157,6 +157,8 @@ CONTRACTS = (
             ("W110", "## Validation and rejection taxonomy"),
             ("W111", "## Validation and rejection taxonomy"),
             ("W112", "## Validation and rejection taxonomy"),
+            ("W114", "## Validation and rejection taxonomy"),
+            ("W115", "## Validation and rejection taxonomy"),
             ("E060", "## Validation and rejection taxonomy"),
             ("E061", "## Validation and rejection taxonomy"),
             ("E062", "## Validation and rejection taxonomy"),
