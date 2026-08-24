@@ -53,5 +53,7 @@ report:
   accepted: 3
   rejected: 0
   rejection_reasons: {}
+source:
+  note: "示例/专题六 共同诉讼"
+  protocol: "DAMO 闪卡 schema 1"
 ```
-原笔记：[[示例/专题六 共同诉讼]] · 协议：DAMO 闪卡 schema 1

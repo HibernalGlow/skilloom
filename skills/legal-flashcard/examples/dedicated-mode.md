@@ -12,5 +12,7 @@ report:
   accepted: 1
   rejected: 0
   rejection_reasons: {}
+source:
+  note: "客观/02-背诵卷/理论法/2026-马峰/20-整理/01-考点23-立法法"
+  protocol: "DAMO 闪卡 schema 1"
 ```
-原笔记：[[客观/02-背诵卷/理论法/2026-马峰/20-整理/01-考点23-立法法]] · 协议：DAMO 闪卡 schema 1
