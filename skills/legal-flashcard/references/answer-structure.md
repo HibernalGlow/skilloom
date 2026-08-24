@@ -1,6 +1,6 @@
 # Source-shaped card backs
 
-Read this reference only in dedicated-card mode when a back is not a single short fact, direct contrast, or explicit closed set, or when its source range contains meaningful hierarchy, order, Callout, table, or Mermaid. This file selects the back carrier; [card-design.md](card-design.md) remains authoritative for atomicity and [protocol-contract.md](protocol-contract.md) for the root IAL.
+Read this reference only in dedicated-card mode when a back is not a single short fact, direct contrast, or explicit closed set, or when its source range contains meaningful hierarchy, order, Callout, table, or Mermaid. This file selects the back carrier; [question-side-mermaid.md](question-side-mermaid.md) separately owns front retrieval skeletons, [card-design.md](card-design.md) remains authoritative for atomicity, and [protocol-contract.md](protocol-contract.md) owns the root IAL.
 
 ## Build the source slice
 
@@ -65,7 +65,7 @@ Use Markdown `1.` numbering. Preserve a legally or mnemonically significant sour
 
 Keep a table only when both axes matter during recall. Preserve every relevant header, row label, cell, and mapping. If each row is merely a name plus a self-contained rule, use a semantic list. Follow MarkNote's table-size and real-header rules; a reviewed size exception belongs in working audit, not the saved deck.
 
-### Mermaid inside a list root
+### Answer-side Mermaid inside a list root
 
 ```markdown
 - **司法三段论**{: style="color: var(--b3-font-color10);"}中规范、事实与裁判如何对应？ #法考/理论法/法理学/法适用/司法三段论# #闪卡/优先级/P1#
@@ -79,7 +79,7 @@ Keep a table only when both axes matter during recall. Preserve every relevant h
 {: custom-dm-source-key="beisong-2026-mafeng-kd15-fa-shiyong" custom-dm-card-id="fc-theory-judicial-syllogism-mapping-diagram-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="theory-law-application-judicial-syllogism"}
 ```
 
-Copy a suitable source Mermaid when it already expresses the same card-sized relation. Otherwise generate only from source-grounded nodes and edges. The closing fence remains inside the list root and the one-line card IAL follows the complete root outside the fence.
+Copy a suitable source Mermaid when it already expresses the same card-sized relation. Otherwise generate only from source-grounded nodes and edges. The governing answer child places this Mermaid after the answer boundary. The closing fence remains inside the list root and the one-line card IAL follows the complete root outside the fence.
 
 ### Callout or blockquote root
 

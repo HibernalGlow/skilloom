@@ -32,6 +32,12 @@ KNOWLEDGE_TAG_RE = re.compile(r"#(?!闪卡/优先级/)[^#\s]+#")
 PRIORITY_TAG_RE = re.compile(r"#闪卡/优先级/([^#\s]+)#")
 GENERATED_LABEL_RE = re.compile(r"^\s*(?:>\s*)?(?:-\s+)?(?:问题|答案)[：:]")
 ORDER_CUE_RE = re.compile(r"顺序|次序|步骤|阶段|程序|流程|先后|依次|优先|第[一二三四五六七八九十0-9]+步")
+MERMAID_TYPE_RE = re.compile(
+    r"^(?:flowchart|graph|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|journey|gantt|pie|"
+    r"quadrantChart|requirementDiagram|gitGraph|mindmap|timeline|zenuml|sankey-beta|xychart-beta|"
+    r"block-beta|packet-beta|kanban|architecture-beta|radar-beta|treemap-beta)\b"
+)
+RECALL_SLOT_RE = re.compile(r"(?:[①②③④⑤⑥⑦⑧⑨⑩]|\?{1,}|？{1,}|_{2,}|…)")
 ALLOWED = {
     "custom-dm-source-key",
     "custom-dm-card-id",
@@ -106,14 +112,16 @@ def _card_body(lines: list[str], ial_start: int, renderer: str | None) -> tuple[
         return None, ""
     cursor = ial_start - 1
     if renderer in {"list", "mark"}:
-        while cursor >= 0 and lines[cursor].strip() and not lines[cursor].lstrip().startswith("{:"):
+        while cursor >= 0:
+            line = lines[cursor]
+            if line.lstrip().startswith("{:") or re.match(r"^#{1,6}\s+", line):
+                break
+            if re.match(r"^-\s+", line):
+                return cursor, "\n".join(lines[cursor:ial_start])
+            if line.strip() and not line[0].isspace():
+                break
             cursor -= 1
-        start = cursor + 1
-        roots = [index for index in range(start, ial_start) if re.match(r"^-\s+", lines[index])]
-        if not roots:
-            return None, ""
-        root = roots[-1]
-        return root, "\n".join(lines[root:ial_start])
+        return None, ""
     if renderer in {"blockquote", "callout"}:
         while cursor >= 0 and lines[cursor].lstrip().startswith(">"):
             cursor -= 1
@@ -155,9 +163,28 @@ def _is_question_front(front: str) -> bool:
     return without_tags.endswith(("？", "?"))
 
 
+def _list_item_indents(card_body: str) -> list[int]:
+    indents: list[int] = []
+    in_fence = False
+    for line in card_body.splitlines()[1:]:
+        if re.match(r"^\s*```", line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        match = re.match(r"^(?P<indent> +)(?:-|\d+\.)\s+\S", line)
+        if match:
+            indents.append(len(match.group("indent")))
+    return indents
+
+
 def _basic_answer_lines(card_body: str, renderer: str | None) -> list[str]:
     if renderer == "list":
-        return [line for line in card_body.splitlines() if re.match(r"^ {4}(?:-|\d+\.)\s+\S", line)]
+        indents = _list_item_indents(card_body)
+        if not indents:
+            return []
+        answer_indent = min(indents)
+        return [line for line in card_body.splitlines() if re.match(rf"^ {{{answer_indent}}}(?:-|\d+\.)\s+\S", line)]
     if renderer in {"blockquote", "callout"}:
         return [line for line in card_body.splitlines() if re.match(r"^\s*>\s+(?:-|\d+\.)\s+\S", line)]
     return []
@@ -165,7 +192,8 @@ def _basic_answer_lines(card_body: str, renderer: str | None) -> list[str]:
 
 def _has_nested_answer_items(card_body: str, renderer: str | None) -> bool:
     if renderer == "list":
-        return any(re.match(r"^ {8,}(?:-|\d+\.)\s+\S", line) for line in card_body.splitlines())
+        indents = _list_item_indents(card_body)
+        return bool(indents) and any(indent > min(indents) for indent in indents)
     if renderer in {"blockquote", "callout"}:
         for line in card_body.splitlines():
             match = re.match(r"^\s*>\s?(?P<indent> *)(?:-|\d+\.)\s+\S", line)
@@ -214,13 +242,64 @@ def _has_table(card_body: str) -> bool:
     return bool(re.search(r"^\s*(?:>\s*)?\|[^\n]+\|\s*$", card_body, re.MULTILINE))
 
 
+def _mermaid_blocks(card_body: str) -> list[tuple[int, int, str]]:
+    blocks: list[tuple[int, int, str]] = []
+    lines = card_body.splitlines()
+    index = 0
+    while index < len(lines):
+        match = re.match(r"^(?P<prefix>\s*(?:>\s*)?)```mermaid\s*$", lines[index])
+        if not match:
+            index += 1
+            continue
+        prefix = match.group("prefix")
+        indent = len(prefix) if ">" not in prefix else len(prefix.split(">", 1)[1])
+        content: list[str] = []
+        end = index + 1
+        while end < len(lines) and not re.match(r"^\s*(?:>\s*)?```\s*$", lines[end]):
+            content.append(lines[end])
+            end += 1
+        blocks.append((index, indent, "\n".join(content)))
+        index = end + 1
+    return blocks
+
+
 def _has_mermaid(card_body: str) -> bool:
-    return bool(re.search(r"^\s*(?:>\s*)?```mermaid\s*$", card_body, re.MULTILINE))
+    return bool(_mermaid_blocks(card_body))
+
+
+def _mermaid_has_diagram_type(content: str) -> bool:
+    for line in content.splitlines():
+        candidate = line.strip()
+        if not candidate or candidate.startswith("%%"):
+            continue
+        return bool(MERMAID_TYPE_RE.match(candidate))
+    return False
+
+
+def _mermaid_semantic_classes(content: str) -> tuple[set[str], set[str]]:
+    defined = set(re.findall(r"^\s*classDef\s+([A-Za-z][\w-]*)\s+", content, re.MULTILINE))
+    applied = set()
+    for names in re.findall(r"^\s*class\s+[^\s]+\s+([A-Za-z][\w-]*)\s*;?\s*$", content, re.MULTILINE):
+        applied.add(names)
+    applied.update(re.findall(r":::\s*([A-Za-z][\w-]*)", content))
+    return defined, applied
+
+
+def _front_mermaid_blocks(card_body: str, renderer: str | None) -> tuple[list[tuple[int, int, str]], int | None]:
+    if renderer != "list":
+        return [], None
+    answer_lines = _basic_answer_lines(card_body, renderer)
+    if not answer_lines:
+        return [], None
+    lines = card_body.splitlines()
+    answer_indexes = [index for index, line in enumerate(lines) if line in answer_lines]
+    answer_indent = min(_list_item_indents(card_body))
+    return [block for block in _mermaid_blocks(card_body) if block[0] < min(answer_indexes)], answer_indent
 
 
 def _has_ordered_answers(card_body: str, renderer: str | None) -> bool:
     if renderer == "list":
-        return bool(re.search(r"^ {4}\d+\.\s+\S", card_body, re.MULTILINE))
+        return any(re.match(r"^\s+\d+\.\s+\S", line) for line in _basic_answer_lines(card_body, renderer))
     if renderer in {"blockquote", "callout"}:
         return bool(re.search(r"^\s*>\s+\d+\.\s+\S", card_body, re.MULTILINE))
     return False
@@ -373,6 +452,21 @@ def validate(
         has_nested_items = _has_nested_answer_items(card_body, renderer)
         has_table = _has_table(card_body)
         has_mermaid = _has_mermaid(card_body)
+        mermaid_blocks = _mermaid_blocks(card_body)
+        for _offset, _indent, mermaid_content in mermaid_blocks:
+            if not _mermaid_has_diagram_type(mermaid_content):
+                findings.append(Finding(start + 1, "E048", "Every Mermaid fence must begin with a supported diagram type such as flowchart or sequenceDiagram."))
+            defined_classes, applied_classes = _mermaid_semantic_classes(mermaid_content)
+            if not defined_classes.intersection(applied_classes):
+                findings.append(Finding(start + 1, "W109", "Mermaid has no applied semantic class; inherit source classes or define and use known/recall/answer roles."))
+        front_mermaids, answer_indent = _front_mermaid_blocks(card_body, renderer)
+        if front_mermaids:
+            if kind != "basic" or renderer != "list":
+                findings.append(Finding(start + 1, "E049", "Question-side Mermaid is supported only for basic/list cards."))
+            elif answer_indent is None or any(indent != answer_indent for _offset, indent, _content in front_mermaids):
+                findings.append(Finding(start + 1, "E049", "Question-side Mermaid must share the first answer list's direct-child indentation and precede it."))
+            if not any(RECALL_SLOT_RE.search(content) for _offset, _indent, content in front_mermaids):
+                findings.append(Finding(start + 1, "W108", "Question-side Mermaid has no visible recall slot and may expose the answer instead of cueing it."))
         if kind == "basic" and "==" in front:
             findings.append(Finding(start + 1, "E036", "Basic question roots must use semantic style anchors, not ==...== highlights."))
         if kind == "mnemonic" and _is_question_front(front):

@@ -36,6 +36,7 @@ When the user asks to paste or import one or many Markdown files into a SiYuan d
 - Dedicated mode: [dedicated-mode.md](references/dedicated-mode.md)
 - Recall-unit gate, card kinds, normative examples, variants, and semantic deduplication: [card-design.md](references/card-design.md)
 - Complex card backs: read [answer-structure.md](references/answer-structure.md) only when the source range contains hierarchy, order, a warning/exception, a true comparison matrix, or a recall-sized diagram.
+- Question-side Mermaid: read [question-side-mermaid.md](references/question-side-mermaid.md) only when the user requests a front diagram or a complex process, branch, role relation, or many-to-one mapping materially benefits from a retrieval skeleton.
 - Portable fields, IAL boundary, and schema routing: [protocol-contract.md](references/protocol-contract.md)
 - Validation findings and rejection taxonomy: [validation.md](references/validation.md)
 - Dedicated-card MarkNote adapter: [marknote-integration.md](references/marknote-integration.md)

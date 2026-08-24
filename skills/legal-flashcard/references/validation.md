@@ -29,6 +29,8 @@ Warnings are advisory: print each finding, but return success when every finding
 - `W105`: one card uses both a table and Mermaid; confirm that both are necessary for one scoring axis.
 - `W106`: ordered answers have no sequence semantics in the supplied source range; source numbering alone remains unordered peers.
 - `W107`: a multi-answer card repeats at least two exact answer facts already tested by sibling cards and is probably a duplicate summary.
+- `W108`: a question-side Mermaid has no visible recall slot and may expose the answer instead of cueing it.
+- `W109`: a Mermaid lacks explicit semantic classes; use source classes or generated `known`/`recall`/`answer` roles instead of default styling.
 
 Completion criterion: every warning has an explicit keep, revise, split, or reject disposition, and running the checker on a warning-only file exits `0` while any `E` finding exits nonzero.
 
