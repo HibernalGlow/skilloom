@@ -150,6 +150,12 @@ def _front_line(card_body: str, renderer: str | None) -> str:
     lines = card_body.splitlines()
     if renderer in {"list", "mark"}:
         return lines[0].strip() if lines else ""
+    if renderer == "callout":
+        for line in lines:
+            match = re.match(r"^\s*>\s+\[![A-Z]+\]\s*(.*)$", line)
+            if match:
+                return match.group(1).strip()
+        return ""
     for line in lines:
         candidate = line.lstrip()
         if not candidate.startswith(">"):
@@ -298,6 +304,21 @@ def _validate_style_anchor_bounds(text: str) -> list[Finding]:
     return findings
 
 
+def _distinct_style_dimensions(text: str) -> tuple[set[str], set[str]]:
+    foreground: set[str] = set()
+    backgrounds: set[str] = set()
+    for match in STYLE_ANCHOR_RE.finditer(text):
+        style = re.search(r'style="([^"]+)"', match.group(0))
+        if not style:
+            continue
+        for name, value in STYLE_PROPERTY_RE.findall(style.group(1)):
+            if name == "color":
+                foreground.add(value.strip())
+            elif name == "background-color":
+                backgrounds.add(value.strip())
+    return foreground, backgrounds
+
+
 def _validate_rich_deck(text: str, card_styles: list[set[tuple[tuple[str, str], ...]]], card_count: int) -> list[Finding]:
     if not _is_rich_complex_deck(text, card_count):
         return []
@@ -311,6 +332,9 @@ def _validate_rich_deck(text: str, card_styles: list[set[tuple[tuple[str, str], 
     backgrounds = len(re.findall(r"b3-font-background(?:[2-9]|1[0-3])", text))
     if backgrounds < 3:
         findings.append(Finding(1, "E062", f"Rich flashcard decks need at least three short background-color anchors; found {backgrounds}."))
+    foregrounds, background_signatures = _distinct_style_dimensions(text)
+    if len(foregrounds) <= 3 and len(background_signatures) < 3:
+        findings.append(Finding(1, "E066", "A rich deck with a sparse foreground palette needs at least three distinct semantic background signatures; do not repeat a two-color foreground-only palette."))
     relation_cue = re.search(r"流程|程序|步骤|关系|对应|比较|区别|分支|情形|主体|阶段|如何", _visible_text(text))
     if relation_cue and "visual" not in structural:
         findings.append(Finding(1, "E063", "A rich deck with process, branch, role, comparison, or relation cues needs Mermaid, an inherited image, or another documented primary visual."))
@@ -555,6 +579,8 @@ def validate(
             findings.append(Finding(start + 1, "E036", "Basic question roots must use semantic style anchors, not ==...== highlights."))
         if kind == "mnemonic" and _is_question_front(front):
             findings.append(Finding(start + 1, "E037", "Mnemonic cards are named cue cards; do not render the front as a question."))
+        if renderer == "callout" and not _is_question_front(front):
+            findings.append(Finding(start + 1, "E067", "Callout titles are the card front; the title must be a complete source-grounded question ending in ？ or ?."))
         if kind == "mnemonic" and not _mnemonic_label(root):
             findings.append(Finding(start + 1, "E038", "Mnemonic roots must name the specific recall subject or relationship; a bare 口诀 label is insufficient."))
         if kind == "basic":
@@ -649,6 +675,9 @@ def validate(
                 else source_global_styles
             )
             for fragment in sorted(card_styles - scoped_styles):
+                generated_rich_style = rich_style and "background-color" in fragment
+                if generated_rich_style:
+                    continue
                 findings.append(Finding(start + 1, "E039", f"Styled fragment is not inherited byte-for-byte from the source provider range: {fragment}"))
             if scoped_styles and not card_styles.intersection(scoped_styles):
                 findings.append(Finding(start + 1, "E040", "Card does not reuse any exact styled fragment from its source provider range."))

@@ -30,6 +30,8 @@ When `--rich-style` is supplied for a medium/complex dedicated deck, these GoldQ
 - `E063`: a relation-heavy deck has no Mermaid, inherited image, or other documented primary visual.
 - `E064`: a color/background anchor exceeds eight visible characters.
 - `E065`: punctuation is inside a color/background anchor.
+- `E066`: a sparse foreground palette was not augmented with three distinct semantic background signatures.
+- `E067`: a Callout title is not a complete question; the title is the DAMO card front.
 
 - `W101`: foreground color and background/highlight are not both represented; inherit the missing dimension only when the provider range supplies it.
 - `W102`: a borderline flat multi-item back may hide a parent/child relation or mixed recall axes.
