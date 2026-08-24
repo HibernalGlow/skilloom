@@ -410,7 +410,7 @@ class FlashcardValidatorTests(unittest.TestCase):
         self.assertEqual(validate(blockquote), [])
         callout = blockquote.replace(
             "> **成立要件**{: style=\"color: var(--b3-font-color10);\"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#",
-            "> [!WARNING] 成立要件是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#",
+            "> [!WARNING] 成立要件是什么？\n> #法考/民法/债法/成立要件# #闪卡/优先级/P1#",
         ).replace("quote-v1", "warning-v1").replace('renderer="blockquote"', 'renderer="callout"')
         callout = callout.replace('background-color: var(--b3-font-background11);', 'background-color: var(--b3-font-background11); color: var(--b3-font-color10);')
         callout = callout.replace('> - **要件一**{: style="background-color: var(--b3-font-background11); color: var(--b3-font-color10);"}。', '> - **要件一**{: style="background-color: var(--b3-font-background11); color: var(--b3-font-color10);"}。\n> - **补充**{: style="color: var(--b3-font-color12);"}。')
@@ -430,6 +430,24 @@ class FlashcardValidatorTests(unittest.TestCase):
 {: custom-dm-source-key="civil-08" custom-dm-card-id="fc-civil-elements-warning-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="callout" custom-qb-note-topic-id="civil-elements"}
 """
         self.assertIn("E068", {finding.code for finding in validate(styled)})
+
+    def test_callout_tags_should_be_on_a_separate_quote_line(self):
+        tagged_title = """> [!WARNING] 成立要件是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#
+>
+> - **要件一**{: style="background-color: var(--b3-font-background11); color: var(--b3-font-color10);"}。
+{: custom-dm-source-key="civil-08" custom-dm-card-id="fc-civil-elements-warning-tags-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="callout" custom-qb-note-topic-id="civil-elements"}
+"""
+        self.assertIn("W115", {finding.code for finding in validate(tagged_title)})
+
+    def test_long_compound_answer_requires_semantic_children(self):
+        compound = VALID.replace(
+            "    - 要件一。",
+            "    - 认为原、被告的权利主张侵犯了自己的权利，将原告和被告一并作为被告，提起独立的诉讼请求。",
+        ).replace(
+            '        - **适用边界**{: style="background-color: var(--b3-font-background11);"}明确。\n',
+            "",
+        )
+        self.assertIn("W114", {finding.code for finding in validate(compound)})
 
     def test_requires_knowledge_tag_and_valid_priority_namespace(self):
         missing = VALID.replace(" #法考/民法/债法/成立要件# #闪卡/优先级/P1#", "")

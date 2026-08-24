@@ -46,6 +46,8 @@ When `--rich-style` is supplied for a medium/complex dedicated deck, these GoldQ
 - `W110`: a complex card uses exactly two style signatures; review whether three or more source/MarkNote roles are available instead of stopping at the minimum `E047` gate.
 - `W111`: a styled deck uses two or fewer unique signatures overall; the deck is visually monotone even though no single card triggers `E047`.
 - `W112`: a medium/complex process, branch, role mapping, comparison, or many-to-one card has no Mermaid, inherited image, or documented primary visual carrier.
+- `W114`: an answer line combines multiple semantic clauses without a governing parent and child structure; split conditions, actions, effects, exceptions, or alternatives.
+- `W115`: Callout tags are embedded in the title; move knowledge and priority tags to the immediately following quoted line.
 
 Completion criterion: every warning has an explicit keep, revise, split, or reject disposition, and running the checker on a warning-only file exits `0` while any `E` finding exits nonzero.
 
