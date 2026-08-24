@@ -4,7 +4,7 @@ Read this file only in dedicated-card mode. It is the source of truth for recall
 
 ## Build the source-fact ledger
 
-Before drafting, enumerate every independently testable source proposition, fixed closed list, distinction, exception, trap, date, case, and source-written mnemonic in a working ledger. Record:
+Before drafting, enumerate every independently testable source proposition, fixed closed list, distinction, exception, trap, date, **case-derived new rule/application**, and source-written mnemonic in a working ledger. Treat the original case narrative, party names, fact chronology, and question stem as source evidence, not as flashcard targets. Create a card only when the case contributes a new legal rule, exception, distinction, application path, or trap that is independently reusable; otherwise record `case-narrative` and reject it. Record:
 
 | Field | Required value |
 | --- | --- |
