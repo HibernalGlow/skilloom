@@ -22,7 +22,8 @@ STYLE_ANCHOR_TEXT_RE = re.compile(
     r'\*\*(?P<text>[^*\n]+)\*\*\{:\s+style="[^\"]*(?:color|background-color):'
 )
 PROVIDER_IAL_RE = re.compile(r'^\{:[^\n]*custom-qb-note-topic-id="([^"]+)"[^\n]*\}$')
-REPORT_RE = re.compile(r"候选\s*(\d+)\D+接受\s*(\d+)\D+拒绝\s*(\d+)")
+REPORT_YAML_RE = re.compile(r"(?ms)^```yaml\s*\n(?P<body>.*?)^```\s*$")
+REPORT_KEY_RE = re.compile(r"^  (?P<key>candidates|accepted|rejected):\s*(?P<value>\d+)\s*$", re.MULTILINE)
 AUDIT_PREAMBLE_RE = re.compile(
     r"^-\s+(?:源笔记|协议|标签|构成|着色图例|章节|样式继承|源笔记说明|高亮职责)："
 )
@@ -109,6 +110,21 @@ def _visible_text(text: str) -> str:
     text = re.sub(r'\{:\s*[^}]*\}', "", text)
     text = re.sub(r"[*_=`~<>]", "", text)
     return re.sub(r"\s+", "", text)
+
+
+def _parse_report_yaml(text: str) -> tuple[int, int, int] | None:
+    blocks = list(REPORT_YAML_RE.finditer(text))
+    if len(blocks) != 1:
+        return None
+    body = blocks[0].group("body")
+    if not re.match(r"^report:\s*$", body, re.MULTILINE):
+        return None
+    values = {match.group("key"): int(match.group("value")) for match in REPORT_KEY_RE.finditer(body)}
+    if set(values) != {"candidates", "accepted", "rejected"}:
+        return None
+    if not re.search(r"^  rejection_reasons:\s*(?:\{\})?\s*$", body, re.MULTILINE):
+        return None
+    return values["candidates"], values["accepted"], values["rejected"]
 
 
 def _card_body(lines: list[str], ial_start: int, renderer: str | None) -> tuple[int | None, str]:
@@ -726,13 +742,13 @@ def validate(
     if rich_style:
         findings.extend(_validate_rich_deck(text, deck_card_styles, len(accepted_card_lines)))
     if require_report:
-        reports = list(REPORT_RE.finditer(text))
-        if len(reports) != 1:
-            findings.append(Finding(max(1, len(lines)), "E031", "Dedicated output requires exactly one candidate/accepted/rejected report."))
+        report_values = _parse_report_yaml(text)
+        if report_values is None:
+            findings.append(Finding(max(1, len(lines)), "E070", "Dedicated output requires exactly one valid ```yaml report block with report.candidates, report.accepted, report.rejected, and report.rejection_reasons."))
         else:
-            candidate, accepted, rejected = (int(value) for value in reports[0].groups())
+            candidate, accepted, rejected = report_values
             if candidate != accepted + rejected or accepted != len(accepted_card_lines):
-                line = text[:reports[0].start()].count("\n") + 1
+                line = next((number for number, line in enumerate(lines, start=1) if line.strip() == "```yaml"), max(1, len(lines)))
                 findings.append(Finding(line, "E032", "Report counts must reconcile and accepted must equal rendered card count."))
         source_protocol_lines = [
             number for number, line in enumerate(lines, start=1) if SOURCE_PROTOCOL_RE.fullmatch(line.strip())

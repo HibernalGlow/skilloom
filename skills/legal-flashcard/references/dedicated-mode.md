@@ -11,7 +11,7 @@ Read this file only after the user explicitly requests flashcards. First invoke 
 5. Compare existing card IDs, normalized fronts, expected-answer statements, and answer fact sets within the same source range. Reject a summary that only unions accepted answers as `duplicate-summary`; retain a summary only when it tests a new relation, contrast, application, or source-written mnemonic. Completion criterion: every candidate has one accepted or rejected disposition from [validation.md](validation.md), and no accepted pair has equivalent prompts and expected answers.
 6. Render accepted cards using [card-design.md](card-design.md) and [protocol-contract.md](protocol-contract.md). Default to `basic/list`: write the question directly as the root list item, end it with `？` or `?`, and write direct answer children without labels. Use `cloze/mark` for one short deletion and `mnemonic/list` for an exact source-written cue with an auditable mapping. Use `blockquote` or `callout` only when quotation, warning, exception, or trap semantics require it. For `callout`, put the complete plain-text question in the directive title itself; the title is the DAMO front and the body is the answer. Keep all color, highlight, bold, italic, strike, code, and underline styles in the answer body. Put knowledge and priority tags on the front/cue line, then attach the complete IAL to the container root on one physical line. Completion criterion: no generated item begins with `问题：` or `答案：`, every basic front ends in a question mark, every callout title is a plain-text complete question with no inline styling, and each card matches one normative kind example.
 7. Apply the MarkNote adapter and source-style map, then run `scripts/validate_flashcard.py <draft.md> --source <source.md> --require-report --rich-style` for medium/complex dedicated decks. When the draft exists only in working context, pipe it to `scripts/validate_flashcard.py - --require-report --rich-style`; lack of a saved draft is not a waiver. Manually preview each card front in isolation before reading its back; verify the expected answer is specific, the prompt does not leak it, the card is not a summary duplicate, the style is not a two-signature patch, and every eligible complex relation has a visual carrier decision. If no explicit budget was supplied, keep all valid covered candidates; do not use `over-budget` as a convenience filter. Apply an explicit budget only after this pass. Completion criterion: the checker exits 0, no `E` finding remains, every `W` finding has a keep/revise/split/reject disposition, low style diversity and missing eligible Mermaid warnings are either revised or explicitly justified by the source, every highlighted cloze/mnemonic span and every color/background fragment is source-grounded or covered by the approved MarkNote style plan, every ledger row has a final disposition, and the report reconciles candidate, accepted, and rejected counts.
-8. Produce a clean delivery: H1, source-derived grouping headings only when useful, accepted card containers, one count line, an optional compact rejection line, and one final source/protocol line. Keep the source-fact ledger, source key, provider budget, tag rationale, card-kind mix, style audit, and rejection details in working context. Do not call Riff or mutate runtime state. Completion criterion: the last nonblank line is exactly `原笔记：[[<源笔记路径>]] · 协议：DAMO 闪卡 schema 1`, and deleting the cards plus footer leaves only the H1 and useful source-derived grouping headings, with no audit preamble.
+8. Produce a clean delivery: H1, source-derived grouping headings only when useful, accepted card containers, one parseable YAML report block, and one final source/protocol line. Keep the source-fact ledger, source key, provider budget, tag rationale, card-kind mix, style audit, and rejection details in working context. Do not call Riff or mutate runtime state. Completion criterion: the YAML report reconciles candidate/accepted/rejected counts and rejection reasons, the last nonblank line is exactly `原笔记：[[<源笔记路径>]] · 协议：DAMO 闪卡 schema 1`, and deleting the cards plus footer leaves only the H1 and useful source-derived grouping headings, with no audit preamble.
 
 ## Rendering rules
 
@@ -29,16 +29,31 @@ Read this file only after the user explicitly requests flashcards. First invoke 
 
 Default footer with no rejection:
 
+```yaml
+report:
+  candidates: 6
+  accepted: 6
+  rejected: 0
+  rejection_reasons: {}
+```
+
 ```text
-生成报告：候选 6；接受 6；拒绝 0。
 原笔记：[[客观/02-背诵卷/理论法/2026-马峰/20-整理/02-考点25-宪法的制定]] · 协议：DAMO 闪卡 schema 1
 ```
 
 Footer with rejection:
 
+```yaml
+report:
+  candidates: 8
+  accepted: 6
+  rejected: 2
+  rejection_reasons:
+    duplicate: 1
+    missing-topic: 1
+```
+
 ```text
-生成报告：候选 8；接受 6；拒绝 2。
-拒绝：duplicate 1；missing-topic 1。
 原笔记：[[客观/02-背诵卷/理论法/2026-马峰/20-整理/02-考点25-宪法的制定]] · 协议：DAMO 闪卡 schema 1
 ```
 

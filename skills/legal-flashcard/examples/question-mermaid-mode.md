@@ -23,3 +23,12 @@
             class P1,P2,R answer;
         ```
 {: custom-dm-source-key="beisong-2026-mafeng-kd15-fa-shiyong" custom-dm-card-id="fc-theory-judicial-syllogism-visual-recall-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="theory-law-application-judicial-syllogism"}
+
+```yaml
+report:
+  candidates: 1
+  accepted: 1
+  rejected: 0
+  rejection_reasons: {}
+```
+原笔记：[[示例/司法三段论]] · 协议：DAMO 闪卡 schema 1
