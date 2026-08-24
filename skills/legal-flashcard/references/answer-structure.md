@@ -24,6 +24,8 @@ Before rendering, run the **clause split**: an answer line longer than roughly 4
 
 Do not distribute formats for variety. Repeated unordered lists are correct when the material is a set of peers; ordered lists, Callouts, tables, and Mermaid earn their use only through the relationship above.
 
+**Ordered-list hard gate:** When the front contains `步骤`, `顺序`, `依次`, `阶段`, `流程`, `先后`, or an explicit numbered step, inspect the source relationship before rendering. If the answer is a procedure, chronology, priority, or source-significant sequence, render its direct children as `1.`, `2.`, `3.` in the source order; nest explanatory details beneath the relevant numbered step. Do not use peer `-` bullets for a sequence merely because the source was parsed as bullets. The validator emits `E078` when a sequence front has neither ordered children nor a genuinely necessary table/Mermaid carrier.
+
 The normative structures below demonstrate alternative carrier decisions. Do not emit both the ordered and Mermaid versions of the same fact in one deck merely because both templates exist.
 
 ## Normative structures

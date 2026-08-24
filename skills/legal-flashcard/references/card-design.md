@@ -6,6 +6,8 @@ Read this file only in dedicated-card mode. It is the source of truth for recall
 
 Before drafting, enumerate every independently testable source proposition, fixed closed list, distinction, exception, trap, date, **case-derived new rule/application**, and source-written mnemonic in a working ledger. Treat the original case narrative, party names, fact chronology, and question stem as source evidence, not as flashcard targets. Create a card only when the case contributes a new legal rule, exception, distinction, application path, or trap that is independently reusable; otherwise record `case-narrative` and reject it. Record:
 
+An original exercise front is never itself a card target. Do not copy a source question containing its case parties, option labels, or exercise wording into a formal card. If the exercise reveals a reusable rule, rewrite the front as a party-neutral legal relation (for example, `“代为调解”的特别授权包括哪些行为？`), retain only the general rule, and record the original exercise as `case-narrative` evidence. If that rewrite would lose the point, reject the candidate instead of replaying the question.
+
 | Field | Required value |
 | --- | --- |
 | `fact-key` | stable working key within the source range |
@@ -29,7 +31,7 @@ A card is atomic when all of these checks pass:
 4. **Closed-list exception.** Multiple child items may remain together only when the front names the closed class or cardinality and every item is a peer on the same axis, such as “三大基本原则”. Four items is a ceiling, not evidence of atomicity.
 5. **Prompt sufficiency.** The front supplies enough legal context to identify one answer without leaking it. Avoid vague prompts such as “有哪些要点？” when several dimensions are possible.
 6. **Answer economy.** Keep the direct answer before optional context. If an answer needs explanation from another axis, make another card.
-7. **Semantic back structure.** Reuse the source note's wording, hierarchy, order, and suitable containers. A simple answer may stay as first-level children. Route a non-simple back through [answer-structure.md](answer-structure.md) when the source contains hierarchy, sequence, warning/exception, a true comparison matrix, or a recall-sized relationship diagram.
+7. **Semantic back structure.** Reuse the source note's wording, hierarchy, order, and suitable containers. A simple answer may stay as first-level children. Route a non-simple back through [answer-structure.md](answer-structure.md) when the source contains hierarchy, sequence, warning/exception, a true comparison matrix, or a recall-sized relationship diagram. A procedure, chronology, priority, or source-significant sequence uses ordered `1.` children; a peer set remains unordered.
 
 Completion criterion: for every accepted card, write one short expected-answer statement; no other accepted card has the same statement or a superset that merely summarizes it, and every non-simple back uses the source-grounded structure selected by [answer-structure.md](answer-structure.md).
 

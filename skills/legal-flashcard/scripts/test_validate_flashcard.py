@@ -116,6 +116,17 @@ class FlashcardValidatorTests(unittest.TestCase):
         codes = {finding.code for finding in validate(sparse_subject, rich_style=True)}
         self.assertIn("E076", codes)
 
+    def test_sequence_front_requires_ordered_answer_children(self):
+        sequence = VALID.replace("是什么？", "步骤顺序是什么？").replace(
+            "    - 要件一。", "    - 第一步。\n    - 第二步。"
+        )
+        self.assertIn("E078", {finding.code for finding in validate(sequence)})
+
+    def test_exercise_front_replay_is_rejected(self):
+        exercise_source = SOURCE + "\n###### 习题\n张某委托李律师代为参加诉讼，李律师可以代为实施哪些行为？\n"
+        replay = VALID.replace("**成立要件**{: style=\"color: var(--b3-font-color10);\"}是什么？", "张某委托李律师代为参加诉讼，李律师可以代为实施哪些行为？")
+        self.assertIn("E079", {finding.code for finding in validate(replay, source_text=exercise_source)})
+
     def test_mark_highlight_counts_as_background_style_dimension(self):
         cloze = VALID.replace(
             '        - **适用边界**{: style="background-color: var(--b3-font-background11);"}明确。\n',
