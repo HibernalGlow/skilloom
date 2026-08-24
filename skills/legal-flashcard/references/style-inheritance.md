@@ -34,6 +34,7 @@ Count source-grounded foreground colors, background colors, and intentional `==.
 - A card with no style stays eligible only when its provider range is genuinely plain.
 - A styled card with exactly one unique signature fails `E047`.
 - A complex card or deck with exactly two signatures receives `W110`/`W111` for low visual diversity; revise toward three or more semantically distinct signatures when the source/style plan supplies three or more roles. Two signatures are not a successful end state merely because `E047` is avoided.
+- In `--rich-style`, complex cards also surface `W116` when either foreground or background/highlight is absent, `W117` when no auxiliary family (highlight, underline, code, strike, or italic) marks a real boundary, and `W118` when a substantive answer line of at least fourteen visible characters has no short semantic anchor. These are review findings, not permission to invent colors: a short definition may remain restrained, and every revision must remain source-grounded or covered by the approved MarkNote style plan.
 - A styled card with foreground color but no background color or intentional highlight, or with background/highlight but no foreground color, receives advisory `W101`. The warning does not change the validator exit status.
 - An intentional `==...==` target counts as the background/highlight dimension only for a `cloze` or `mnemonic` decision. Ordinary reading highlights are not copied into a card to satisfy balance.
 
