@@ -209,7 +209,7 @@ class FlashcardValidatorTests(unittest.TestCase):
 - 人数不确定的代表人诉讼启动步骤是什么？ #法考/民诉/共同诉讼/代表人诉讼/人数不确定# #闪卡/优先级/P1#
     - 程序步骤：
         1. **公告**{: style="color: var(--b3-font-color12); background-color: var(--b3-font-background12);"}案件情况。
-        2. **登记**{: style="color: var(--b3-font-color13);"}权利人。
+        2. **登记**{: style="color: var(--b3-font-color13); background-color: var(--b3-font-background13);"}权利人。
         3. 推选或商定代表人。
         ```mermaid
         flowchart LR
@@ -246,6 +246,13 @@ class FlashcardValidatorTests(unittest.TestCase):
         self.assertIn("E064", {finding.code for finding in validate(long_anchor, rich_style=True)})
         punctuated = VALID.replace("**成立要件**", "**成立要件：**")
         self.assertIn("E065", {finding.code for finding in validate(punctuated, rich_style=True)})
+
+    def test_rich_style_requires_background_augmentation_for_sparse_palette(self):
+        deck = "\n".join(
+            VALID.replace("fc-civil-elements-v1", f"fc-civil-sparse-v{number}")
+            for number in range(1, 4)
+        )
+        self.assertIn("E066", {finding.code for finding in validate(deck, rich_style=True)})
 
     def test_borderline_flat_back_gets_advisory(self):
         borderline = VALID.replace(
@@ -402,9 +409,17 @@ class FlashcardValidatorTests(unittest.TestCase):
 """
         self.assertEqual(validate(blockquote), [])
         callout = blockquote.replace(
-            "> **成立要件**", "> [!WARNING] 成立要件陷阱\n> **成立要件**"
+            "> **成立要件**{: style=\"color: var(--b3-font-color10);\"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#",
+            "> [!WARNING] **成立要件**{: style=\"color: var(--b3-font-color10);\"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#",
         ).replace("quote-v1", "warning-v1").replace('renderer="blockquote"', 'renderer="callout"')
         self.assertEqual(validate(callout), [])
+
+    def test_callout_title_is_the_question_front(self):
+        invalid = VALID.replace(
+            '- **成立要件**{: style="color: var(--b3-font-color10);"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n',
+            '> [!WARNING] 成立要件陷阱\n> **成立要件**{: style="color: var(--b3-font-color10);"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#\n>\n',
+        ).replace('custom-dm-card-renderer="list"', 'custom-dm-card-renderer="callout"')
+        self.assertIn("E067", {finding.code for finding in validate(invalid)})
 
     def test_requires_knowledge_tag_and_valid_priority_namespace(self):
         missing = VALID.replace(" #法考/民法/债法/成立要件# #闪卡/优先级/P1#", "")
