@@ -174,6 +174,79 @@ class FlashcardValidatorTests(unittest.TestCase):
         )
         self.assertIn("W108", {finding.code for finding in validate(no_slot)})
 
+    def test_rich_style_mode_raises_goldquest_level_gates(self):
+        deck = "\n## 共同诉讼关系\n\n" + "\n---\n\n".join(
+            VALID.replace("fc-civil-elements-v1", f"fc-civil-elements-v{number}")
+            .replace('background-color: var(--b3-font-background11);', 'color: var(--b3-font-color12);')
+            for number in range(1, 4)
+        )
+        codes = {finding.code for finding in validate(deck, rich_style=True)}
+        self.assertIn("E060", codes)
+        self.assertIn("E061", codes)
+        self.assertIn("E062", codes)
+        self.assertIn("E063", codes)
+
+    def test_rich_style_mode_accepts_goldquest_level_example(self):
+        rich = """# ⚡专题六 共同诉讼
+
+## 制度区分
+
+- **共同诉讼**{: style="color: var(--b3-font-color10);"}的两类基本形态如何区分？ #法考/民诉/共同诉讼/制度区分# #闪卡/优先级/P1#
+    - **必要共同诉讼**{: style="color: var(--b3-font-color10);"}：诉讼标的是**共同**{: style="background-color: var(--b3-font-background11);"}的。
+        - 处理结果：<em>合一审理、合一判决</em>。
+    - **普通共同诉讼**{: style="color: var(--b3-font-color12);"}：诉讼标的是<u>同一种类</u>的。
+        - 审理方式：可以`合并审理`，也可以分开审理。
+        | 制度 | 标的关系 |
+        | --- | --- |
+        | 必要 | 共同 |
+        | 普通 | 同一种类 |
+{: custom-dm-source-key="example-rich" custom-dm-card-id="fc-example-rich-basic-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="example-rich-distinction"}
+
+---
+
+## 代表人诉讼步骤
+
+- 人数不确定的代表人诉讼启动步骤是什么？ #法考/民诉/共同诉讼/代表人诉讼/人数不确定# #闪卡/优先级/P1#
+    - 程序步骤：
+        1. **公告**{: style="color: var(--b3-font-color12); background-color: var(--b3-font-background12);"}案件情况。
+        2. **登记**{: style="color: var(--b3-font-color13);"}权利人。
+        3. 推选或商定代表人。
+        ```mermaid
+        flowchart LR
+            A[人数尚未确定] --> B[公告]
+            B --> C[登记]
+            C --> D[推选或商定]
+            classDef known fill:#e8f1ff,stroke:#3b6ea8,color:#222;
+            classDef answer fill:#e8f5e9,stroke:#4d8b57,color:#222;
+            class A known;
+            class B,C,D answer;
+        ```
+    > [!IMPORTANT] 核心边界
+    > - <em>起诉时人数尚未确定</em>。
+    > - ~~跳过公告、登记直接裁判~~不是启动方式。
+{: custom-dm-source-key="example-rich" custom-dm-card-id="fc-example-rich-process-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="example-rich-process"}
+
+## 区分口诀
+
+- **区分口诀**{: style="color: var(--b3-font-color10);"}：==必要共标的，普通同种类；确定全体推，不定公告登。== #法考/民诉/共同诉讼/区分口诀# #闪卡/优先级/P1#
+    - ==必要共标的==：诉讼标的是**共同**{: style="background-color: var(--b3-font-background11);"}的。
+    - ==普通同种类==：诉讼标的是<u>同一种类</u>的。
+    - ==确定全体推==：全体当事人推选代表人。
+    - ==不定公告登==：公告、登记后推选或商定代表人。
+{: custom-dm-source-key="example-rich" custom-dm-card-id="fc-example-rich-mnemonic-v1" custom-dm-card-schema="1" custom-dm-card-kind="mnemonic" custom-dm-card-renderer="list" custom-qb-note-topic-id="example-rich-mnemonic"}
+
+生成报告：候选 3；接受 3；拒绝 0。
+原笔记：[[示例/专题六 共同诉讼]] · 协议：DAMO 闪卡 schema 1
+"""
+        findings = validate(rich, require_report=True, rich_style=True)
+        self.assertFalse([finding for finding in findings if not finding.code.startswith("W")])
+
+    def test_rich_style_rejects_long_or_punctuated_color_anchor(self):
+        long_anchor = VALID.replace("成立要件", "这是一个超过八字的锚点")
+        self.assertIn("E064", {finding.code for finding in validate(long_anchor, rich_style=True)})
+        punctuated = VALID.replace("**成立要件**", "**成立要件：**")
+        self.assertIn("E065", {finding.code for finding in validate(punctuated, rich_style=True)})
+
     def test_borderline_flat_back_gets_advisory(self):
         borderline = VALID.replace(
             "    - 要件一。\n"
