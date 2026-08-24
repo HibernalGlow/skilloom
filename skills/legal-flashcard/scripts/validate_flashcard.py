@@ -18,6 +18,9 @@ STYLE_ANCHOR_RE = re.compile(
     r'\*\*[^*\n]+\*\*\{:\s+style="[^"]*(?:color|background-color):\s*var\(--b3-font-(?:color|background)(?:[2-9]|1[0-3])\);?[^"]*"\}'
 )
 STYLE_PROPERTY_RE = re.compile(r"(?:^|;)\s*(background-color|color):\s*([^;]+)")
+STYLE_ANCHOR_TEXT_RE = re.compile(
+    r'\*\*(?P<text>[^*\n]+)\*\*\{:\s+style="[^\"]*(?:color|background-color):'
+)
 PROVIDER_IAL_RE = re.compile(r'^\{:[^\n]*custom-qb-note-topic-id="([^"]+)"[^\n]*\}$')
 REPORT_RE = re.compile(r"候选\s*(\d+)\D+接受\s*(\d+)\D+拒绝\s*(\d+)")
 AUDIT_PREAMBLE_RE = re.compile(
@@ -238,6 +241,85 @@ def _style_profile(card_body: str, kind: str | None) -> tuple[set[tuple[tuple[st
     return signatures, has_foreground, has_background
 
 
+def _auxiliary_style_families(text: str) -> set[str]:
+    prose = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+    families: set[str] = set()
+    if re.search(r"==[^=\n]+==", prose):
+        families.add("highlight")
+    if re.search(r"<em>[^<\n]+</em>", prose, re.IGNORECASE):
+        families.add("italic")
+    if re.search(r"~~[^~\n]+~~", prose):
+        families.add("strike")
+    if re.search(r"(?<!`)`[^`\n]+`(?!`)", prose):
+        families.add("code")
+    if re.search(r"<u(?:\s+[^>]*)?>[^<\n]+</u>", prose, re.IGNORECASE):
+        families.add("underline")
+    return families
+
+
+def _structural_families(text: str) -> set[str]:
+    families: set[str] = set()
+    if re.search(r"^\s{8,}(?:-|\d+\.)\s+\S", text, re.MULTILINE):
+        families.add("nested-list")
+    if re.search(r"^\s*>\s+\[![A-Z]+\]", text, re.MULTILINE):
+        families.add("callout")
+    if re.search(r"^#{2,6}\s+\S", text, re.MULTILINE):
+        families.add("subheading")
+    if _has_table(text):
+        families.add("table")
+    if (
+        _has_mermaid(text)
+        or re.search(r"^\s*```html\s*$", text, re.MULTILINE)
+        or re.search(r"!\[[^\]]*(?:可视化|图解|流程图|关系图|决策图|时间线|diagram)[^\]]*\]\([^)]*\)", text, re.IGNORECASE)
+    ):
+        families.add("visual")
+    if re.search(r"^\s*---\s*$", text, re.MULTILINE):
+        families.add("divider")
+    return families
+
+
+def _is_rich_complex_deck(text: str, card_count: int) -> bool:
+    body = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+    visible = _visible_text(body)
+    sentence_count = len(re.findall(r"[。！？；]", visible))
+    branch_count = len(re.findall(r"^\s{0,}(?:- |\d+\. )\S", body, re.MULTILINE))
+    return len(visible) >= 160 or sentence_count >= 4 or branch_count >= 3 or card_count >= 3
+
+
+def _validate_style_anchor_bounds(text: str) -> list[Finding]:
+    findings: list[Finding] = []
+    for match in STYLE_ANCHOR_TEXT_RE.finditer(text):
+        anchor = _visible_text(match.group("text"))
+        line = text.count("\n", 0, match.start()) + 1
+        if len(anchor) > 8:
+            findings.append(Finding(line, "E064", "Color/background anchors must stay within eight visible characters; style only the decisive retrieval term."))
+        if re.search(r"[，。；：、,.!?！？]", anchor):
+            findings.append(Finding(line, "E065", "Punctuation must remain outside a color/background anchor."))
+    return findings
+
+
+def _validate_rich_deck(text: str, card_styles: list[set[tuple[tuple[str, str], ...]]], card_count: int) -> list[Finding]:
+    if not _is_rich_complex_deck(text, card_count):
+        return []
+    findings: list[Finding] = _validate_style_anchor_bounds(text)
+    auxiliary = _auxiliary_style_families(text)
+    if len(auxiliary) < 4:
+        findings.append(Finding(1, "E060", f"Rich flashcard decks need at least four auxiliary style families; found {len(auxiliary)} ({', '.join(sorted(auxiliary)) or 'none'})."))
+    structural = _structural_families(text)
+    if len(structural) < 4:
+        findings.append(Finding(1, "E061", f"Rich flashcard decks need at least four structural families; found {len(structural)} ({', '.join(sorted(structural)) or 'none'})."))
+    backgrounds = len(re.findall(r"b3-font-background(?:[2-9]|1[0-3])", text))
+    if backgrounds < 3:
+        findings.append(Finding(1, "E062", f"Rich flashcard decks need at least three short background-color anchors; found {backgrounds}."))
+    relation_cue = re.search(r"流程|程序|步骤|关系|对应|比较|区别|分支|情形|主体|阶段|如何", _visible_text(text))
+    if relation_cue and "visual" not in structural:
+        findings.append(Finding(1, "E063", "A rich deck with process, branch, role, comparison, or relation cues needs Mermaid, an inherited image, or another documented primary visual."))
+    unique_signatures = set().union(*card_styles) if card_styles else set()
+    if len(unique_signatures) <= 2 and unique_signatures:
+        findings.append(Finding(1, "W111", "A styled rich deck uses two or fewer unique color/background signatures overall; revise toward three or more semantic roles."))
+    return findings
+
+
 def _has_table(card_body: str) -> bool:
     return bool(re.search(r"^\s*(?:>\s*)?\|[^\n]+\|\s*$", card_body, re.MULTILINE))
 
@@ -361,6 +443,7 @@ def validate(
     max_cards_per_topic: int = 4,
     max_answer_items: int = 4,
     max_answer_chars: int = 84,
+    rich_style: bool = False,
 ) -> list[Finding]:
     lines = text.splitlines()
     cards, findings = parse_ial_blocks(lines)
@@ -368,6 +451,7 @@ def validate(
     topic_lines: dict[str, list[int]] = {}
     accepted_card_lines: list[int] = []
     basic_records: list[tuple[int, str, str, set[str]]] = []
+    deck_card_styles: list[set[tuple[tuple[str, str], ...]]] = []
     source_global_styles: set[str] = set()
     source_topic_styles: dict[str, set[str]] = {}
     source_global_visible_lines: list[str] = []
@@ -539,6 +623,7 @@ def validate(
                     findings.append(Finding(start + 1, "E045", f"Cloze or mnemonic highlight is absent from the source provider range: {highlight}"))
         card_styles = set(STYLE_ANCHOR_RE.findall(card_body))
         style_signatures, has_foreground, has_background = _style_profile(card_body, kind)
+        deck_card_styles.append(style_signatures)
         if len(style_signatures) == 1:
             findings.append(Finding(start + 1, "E047", "A styled card must use more than one source-grounded color/background style signature."))
         if style_signatures and (not has_foreground or not has_background):
@@ -592,6 +677,8 @@ def validate(
     for topic_id, locations in topic_lines.items():
         if len(locations) > max_cards_per_topic:
             findings.append(Finding(locations[0], "E013", f"Topic ID {topic_id!r} is reused by {len(locations)} cards; confirm a narrower atomic topic mapping or raise the reviewed limit."))
+    if rich_style:
+        findings.extend(_validate_rich_deck(text, deck_card_styles, len(accepted_card_lines)))
     if require_report:
         reports = list(REPORT_RE.finditer(text))
         if len(reports) != 1:
@@ -635,6 +722,7 @@ def main() -> int:
     parser.add_argument("--source", type=Path, help="Source note used to verify provider-scoped style inheritance.")
     parser.add_argument("--mode", choices=("ordinary", "dedicated"), default="dedicated")
     parser.add_argument("--require-report", action="store_true")
+    parser.add_argument("--rich-style", action="store_true", help="Apply the legal-goldquest rich visual contract to medium/complex dedicated decks.")
     parser.add_argument("--max-cards-per-topic", type=int, default=4)
     parser.add_argument("--max-answer-items", type=int, default=4)
     parser.add_argument("--max-answer-chars", type=int, default=84)
@@ -649,6 +737,7 @@ def main() -> int:
         max_cards_per_topic=args.max_cards_per_topic,
         max_answer_items=args.max_answer_items,
         max_answer_chars=args.max_answer_chars,
+        rich_style=args.rich_style,
     )
     if findings:
         for item in findings:
