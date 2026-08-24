@@ -95,6 +95,66 @@ class SiyuanMarkdownExportTests(unittest.TestCase):
                 self.assertEqual(archive.namelist(), ["Parent.md"])
                 self.assertEqual(archive.read("Parent.md").decode("utf-8"), "# Parent\n")
 
+    def test_preserves_selected_directory_tree_and_can_flatten_explicitly(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            notebook = root / "data" / "notebook"
+            child_dir = notebook / "20260101000000-parent1"
+            child_dir.mkdir(parents=True)
+            parent = notebook / "20260101000000-parent1.sy"
+            child = child_dir / "20260100000001-child01.sy"
+            parent.write_text(
+                json.dumps({"ID": parent.stem, "Properties": {"title": "Parent"}}),
+                encoding="utf-8",
+            )
+            child.write_text(
+                json.dumps({"ID": child.stem, "Properties": {"title": "Child"}}),
+                encoding="utf-8",
+            )
+            documents = collect_sources([notebook])
+            markdown = {document.path: f"# {document.archive_path.stem}\n" for document in documents}
+
+            flat_target = root / "flat"
+            write_output(documents, markdown, flat_target, None, False)
+            self.assertTrue((flat_target / "Parent.md").is_file())
+            self.assertTrue((flat_target / "Parent" / "Child.md").is_file())
+
+            flattened_target = root / "flattened"
+            write_output(documents, markdown, flattened_target, None, False, True)
+            self.assertEqual(sorted(path.name for path in flattened_target.iterdir()), ["Child.md", "Parent.md"])
+
+    def test_crops_ancestors_before_selected_source_but_keeps_descendants(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            notebook = root / "data" / "notebook"
+            outer_id = "20260101000000-outer001"
+            selected_id = "20260101000001-subject1"
+            parent_id = "20260101000002-parent01"
+            child_id = "20260101000003-child001"
+            selected = notebook / outer_id / selected_id
+            child_dir = selected / parent_id
+            child_dir.mkdir(parents=True)
+            (notebook / f"{outer_id}.sy").write_text(
+                json.dumps({"ID": outer_id, "Properties": {"title": "Long Prefix"}}), encoding="utf-8"
+            )
+            (notebook / outer_id / f"{selected_id}.sy").write_text(
+                json.dumps({"ID": selected_id, "Properties": {"title": "Selected"}}), encoding="utf-8"
+            )
+            parent = selected / f"{parent_id}.sy"
+            parent.write_text(
+                json.dumps({"ID": parent_id, "Properties": {"title": "Concrete Note"}}), encoding="utf-8"
+            )
+            child = child_dir / f"{child_id}.sy"
+            child.write_text(
+                json.dumps({"ID": child_id, "Properties": {"title": "Nested Note"}}), encoding="utf-8"
+            )
+
+            documents = collect_sources([selected])
+            self.assertEqual(
+                [str(document.archive_path) for document in documents],
+                ["Concrete Note.md", "Concrete Note/Nested Note.md"],
+            )
+
     def test_calls_the_offline_kernel_batch_command(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
