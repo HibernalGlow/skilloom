@@ -32,6 +32,7 @@ When `--rich-style` is supplied for a medium/complex dedicated deck, these GoldQ
 - `E065`: punctuation is inside a color/background anchor.
 - `E066`: a sparse foreground palette was not augmented with three distinct semantic background signatures.
 - `E067`: a Callout title is not a complete question; the title is the DAMO card front.
+- `E068`: a Callout title contains inline styling; titles must be plain-text questions and styles belong in the answer body.
 
 - `W101`: foreground color and background/highlight are not both represented; inherit the missing dimension only when the provider range supplies it.
 - `W102`: a borderline flat multi-item back may hide a parent/child relation or mixed recall axes.
