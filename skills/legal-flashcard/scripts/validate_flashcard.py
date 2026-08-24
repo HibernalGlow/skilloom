@@ -36,6 +36,7 @@ PRIORITY_TAG_RE = re.compile(r"#闪卡/优先级/([^#\s]+)#")
 GENERATED_LABEL_RE = re.compile(r"^\s*(?:>\s*)?(?:-\s+)?(?:问题|答案)[：:]")
 CALL_OUT_TITLE_STYLE_RE = re.compile(r"\{:\s*style=|\*\*|==|~~|`|<\/?(?:em|u)(?:\s|>)", re.IGNORECASE)
 ORDER_CUE_RE = re.compile(r"顺序|次序|步骤|阶段|程序|流程|先后|依次|优先|第[一二三四五六七八九十0-9]+步")
+CASE_FRONT_CUE_RE = re.compile(r"案例分析|习题|真题|张某|李律师|王某|甲与乙|甲、乙|A[.、：:]|B[.、：:]|C[.、：:]|D[.、：:]")
 MERMAID_TYPE_RE = re.compile(
     r"^(?:flowchart|graph|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|journey|gantt|pie|"
     r"quadrantChart|requirementDiagram|gitGraph|mindmap|timeline|zenuml|sankey-beta|xychart-beta|"
@@ -513,6 +514,30 @@ def _source_names_order(visible_lines: list[str]) -> bool:
     return any(ORDER_CUE_RE.search(re.sub(r"#[^#\s]+#", "", line)) for line in visible_lines)
 
 
+def _front_requires_order(front: str) -> bool:
+    return bool(ORDER_CUE_RE.search(_visible_text(re.sub(r"#[^#\s]+#", "", front))))
+
+
+def _source_exercise_contains_front(front: str, source_text: str | None) -> bool:
+    if not source_text:
+        return False
+    visible_front = _visible_text(re.sub(r"^\s*[-*]\s+", "", re.sub(r"#[^#\s]+#", "", front)))
+    if len(visible_front) < 12:
+        return False
+    lines = source_text.splitlines()
+    exercise_indexes = [
+        index for index, line in enumerate(lines)
+        if re.search(r"习题|真题|案例分析|回答与解析|答案与解析", line)
+    ]
+    if not exercise_indexes:
+        return False
+    for index in exercise_indexes:
+        window = "".join(_visible_text(line) for line in lines[index:index + 80])
+        if visible_front in window:
+            return True
+    return False
+
+
 def _normalized_answer_fact(line: str) -> str:
     return _visible_text(_answer_text(line)).strip("。；;，,")
 
@@ -688,6 +713,10 @@ def validate(
                 findings.append(Finding(start + 1, "E026", "Basic cards require at least one unlabeled direct answer child."))
             if len(answer_lines) > max_answer_items:
                 findings.append(Finding(start + 1, "E027", f"Card has {len(answer_lines)} answer items; split above {max_answer_items}."))
+            if _front_requires_order(front) and not _has_ordered_answers(card_body, renderer) and not has_table and not has_mermaid:
+                findings.append(Finding(start + 1, "E078", "The front asks for a sequence, procedure, stage, or order, so its direct answer children must use an ordered Markdown list (1., 2., 3.)."))
+            if _source_exercise_contains_front(front, source_text):
+                findings.append(Finding(start + 1, "E079", "This card front reproduces a source exercise or case question. Reject the case replay; extract a general reusable rule or application path instead."))
             for answer in answer_lines:
                 if len(_visible_text(_answer_text(answer))) > max_answer_chars:
                     findings.append(Finding(start + 1, "E028", f"Answer item exceeds {max_answer_chars} visible characters; split or reject it."))
