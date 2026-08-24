@@ -42,6 +42,11 @@ MERMAID_TYPE_RE = re.compile(
     r"block-beta|packet-beta|kanban|architecture-beta|radar-beta|treemap-beta)\b"
 )
 RECALL_SLOT_RE = re.compile(r"(?:[①②③④⑤⑥⑦⑧⑨⑩]|\?{1,}|？{1,}|_{2,}|…)")
+FLASHCARD_SUBJECT_TERMS = (
+    "法定代理人", "委托代理人", "被代理人", "当事人", "特别授权", "一般授权",
+    "代理权", "诉讼行为", "诉讼程序", "执行程序", "审判程序", "法律效力",
+    "诉讼地位", "裁判对象", "实体权利", "程序性权利", "债权人", "债务人", "法院", "律师",
+)
 ALLOWED = {
     "custom-dm-source-key",
     "custom-dm-card-id",
@@ -354,6 +359,28 @@ def _substantive_answer_lines(card_body: str, renderer: str | None) -> list[str]
         if len(visible) >= 14:
             substantive.append(line)
     return substantive
+
+
+def _styled_subject_gaps(card_body: str) -> list[str]:
+    """Find legal role/concept terms that remain plain after a styled use.
+
+    GoldQuest treats recurring subjects as a visual index: once a role is
+    assigned a color, later occurrences cannot silently fall back to white.
+    Remove complete styled fragments first so shorter aliases inside a longer
+    styled phrase are not reported as false gaps.
+    """
+    prose = re.sub(r"```.*?```", "", card_body, flags=re.DOTALL)
+    styled = STYLE_ANCHOR_RE.findall(prose)
+    remaining = prose
+    for fragment in styled:
+        remaining = remaining.replace(fragment, "")
+    gaps: list[str] = []
+    for term in FLASHCARD_SUBJECT_TERMS:
+        if term not in prose:
+            continue
+        if term in remaining:
+            gaps.append(term)
+    return gaps
 
 
 def _validate_style_anchor_bounds(text: str) -> list[Finding]:
@@ -747,6 +774,8 @@ def validate(
                 sentence_count = len(re.findall(r"[。！？；]", _visible_text(answer_line)))
                 if sentence_count >= 3 and anchor_count * 2 < sentence_count:
                     findings.append(Finding(start + 1, "E075", "A multi-sentence answer line needs at least one semantic color anchor per one or two sentences, matching GoldQuest's E616 rule."))
+            for term in _styled_subject_gaps(card_body):
+                findings.append(Finding(start + 1, "E076", f"Recurring subject or legal concept '{term}' has an uncolored answer occurrence; reuse its established semantic color everywhere, matching GoldQuest's E623/E625 rule."))
         if style_signatures and (not has_foreground or not has_background):
             missing = "foreground color" if not has_foreground else "background/highlight"
             findings.append(Finding(start + 1, "W101", f"Style balance: this card has no {missing}; inherit one only when the source range supplies it."))

@@ -106,6 +106,16 @@ class FlashcardValidatorTests(unittest.TestCase):
         findings = validate(generated, source_text=SOURCE, rich_style=True)
         self.assertNotIn("E039", {finding.code for finding in findings})
 
+    def test_rich_style_requires_recurring_subject_coverage(self):
+        sparse_subject = VALID.replace(
+            "    - 要件一。",
+            "    - **债权人**{: style=\"color: var(--b3-font-color10);\"}与债务人发生关系，并决定规则适用边界。\n"
+            "    - 债权人可以主张权利，并要求债务人履行义务。\n"
+            "    - 债权人还可以依法采取程序措施。",
+        )
+        codes = {finding.code for finding in validate(sparse_subject, rich_style=True)}
+        self.assertIn("E076", codes)
+
     def test_mark_highlight_counts_as_background_style_dimension(self):
         cloze = VALID.replace(
             '        - **适用边界**{: style="background-color: var(--b3-font-background11);"}明确。\n',
@@ -239,7 +249,7 @@ class FlashcardValidatorTests(unittest.TestCase):
 - **区分口诀**{: style="color: var(--b3-font-color6);"}：==必要共标的，普通同种类；确定全体推，不定公告登。== #法考/民诉/共同诉讼/区分口诀# #闪卡/优先级/P1#
     - ==必要共标的==：诉讼标的是**共同**{: style="background-color: var(--b3-font-background11);"}的。
     - ==普通同种类==：诉讼标的是<u>同一种类</u>的。
-    - ==确定全体推==：全体当事人**推选代表人**{: style="color: var(--b3-font-color12);"}。
+    - ==确定全体推==：全体**当事人**{: style="color: var(--b3-font-color10);"}**推选代表人**{: style="color: var(--b3-font-color12);"}。
     - ==不定公告登==：公告、登记后**推选或商定**{: style="background-color: var(--b3-font-background13);"}代表人。
 {: custom-dm-source-key="example-rich" custom-dm-card-id="fc-example-rich-mnemonic-v1" custom-dm-card-schema="1" custom-dm-card-kind="mnemonic" custom-dm-card-renderer="list" custom-qb-note-topic-id="example-rich-mnemonic"}
 
