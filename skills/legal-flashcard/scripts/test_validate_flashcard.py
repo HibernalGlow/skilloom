@@ -235,7 +235,13 @@ class FlashcardValidatorTests(unittest.TestCase):
     - ==不定公告登==：公告、登记后推选或商定代表人。
 {: custom-dm-source-key="example-rich" custom-dm-card-id="fc-example-rich-mnemonic-v1" custom-dm-card-schema="1" custom-dm-card-kind="mnemonic" custom-dm-card-renderer="list" custom-qb-note-topic-id="example-rich-mnemonic"}
 
-生成报告：候选 3；接受 3；拒绝 0。
+```yaml
+report:
+  candidates: 3
+  accepted: 3
+  rejected: 0
+  rejection_reasons: {}
+```
 原笔记：[[示例/专题六 共同诉讼]] · 协议：DAMO 闪卡 schema 1
 """
         findings = validate(rich, require_report=True, rich_style=True)
@@ -463,10 +469,10 @@ class FlashcardValidatorTests(unittest.TestCase):
         cards = []
         for number in range(1, 6):
             cards.append(VALID.replace("fc-civil-elements-v1", f"fc-civil-elements-v{number}"))
-        deck = "\n".join(cards) + "\n生成报告：候选 5；接受 5；拒绝 0。\n原笔记：[[民法/成立要件]] · 协议：DAMO 闪卡 schema 1\n"
+        deck = "\n".join(cards) + "\n```yaml\nreport:\n  candidates: 5\n  accepted: 5\n  rejected: 0\n  rejection_reasons: {}\n```\n原笔记：[[民法/成立要件]] · 协议：DAMO 闪卡 schema 1\n"
         self.assertIn("E013", {finding.code for finding in validate(deck, require_report=True)})
         self.assertNotIn("E032", {finding.code for finding in validate(deck, require_report=True)})
-        self.assertIn("E032", {finding.code for finding in validate(deck.replace("接受 5", "接受 4"), require_report=True)})
+        self.assertIn("E032", {finding.code for finding in validate(deck.replace("accepted: 5", "accepted: 4"), require_report=True)})
 
     def test_rejects_internal_audit_preamble(self):
         preamble = """- 源笔记：[[20-整理/考点25]]
@@ -484,12 +490,16 @@ class FlashcardValidatorTests(unittest.TestCase):
         self.assertEqual(sum(finding.code == "E042" for finding in findings), 9)
 
     def test_requires_one_final_source_protocol_line(self):
-        report = "生成报告：候选 1；接受 1；拒绝 0。\n"
+        report = "```yaml\nreport:\n  candidates: 1\n  accepted: 1\n  rejected: 0\n  rejection_reasons: {}\n```\n"
         footer = "原笔记：[[民法/成立要件]] · 协议：DAMO 闪卡 schema 1\n"
         self.assertNotIn("E043", {finding.code for finding in validate(VALID + report + footer, require_report=True)})
         self.assertIn("E043", {finding.code for finding in validate(VALID + report, require_report=True)})
         misplaced = footer + VALID + report
         self.assertIn("E043", {finding.code for finding in validate(misplaced, require_report=True)})
+
+    def test_plain_text_report_is_rejected(self):
+        plain = "生成报告：候选 1；接受 1；拒绝 0。\n"
+        self.assertIn("E070", {finding.code for finding in validate(VALID + plain, require_report=True)})
 
 
 if __name__ == "__main__":

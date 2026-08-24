@@ -47,5 +47,11 @@
     - ==不定公告登==：人数不确定时先公告、登记，再推选或商定代表人。
 {: custom-dm-source-key="example-civil-joint-litigation" custom-dm-card-id="fc-example-joint-litigation-mnemonic-v1" custom-dm-card-schema="1" custom-dm-card-kind="mnemonic" custom-dm-card-renderer="list" custom-qb-note-topic-id="civil-procedure-joint-litigation-mnemonic"}
 
-生成报告：候选 3；接受 3；拒绝 0。
+```yaml
+report:
+  candidates: 3
+  accepted: 3
+  rejected: 0
+  rejection_reasons: {}
+```
 原笔记：[[示例/专题六 共同诉讼]] · 协议：DAMO 闪卡 schema 1

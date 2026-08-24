@@ -7,5 +7,11 @@
             - 从而发生法律**责任**{: style="color: var(--b3-font-color10);"}间的**竞合**{: style="color: var(--b3-font-color10);"}。
 {: custom-dm-source-key="beisong-2026-mafeng-kd13-falv-zeren-jinghe" custom-dm-card-id="fc-theory-liability-concurrence-mechanism-recall-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="theory-law-liability-concurrence-mechanism"}
 
-生成报告：候选 1；接受 1；拒绝 0。
+```yaml
+report:
+  candidates: 1
+  accepted: 1
+  rejected: 0
+  rejection_reasons: {}
+```
 原笔记：[[客观/02-背诵卷/理论法/2026-马峰/20-整理/01-考点13-法律责任的竞合]] · 协议：DAMO 闪卡 schema 1

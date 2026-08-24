@@ -35,6 +35,7 @@ When `--rich-style` is supplied for a medium/complex dedicated deck, these GoldQ
 - `E067`: a Callout title is not a complete question; the title is the DAMO card front.
 - `E068`: a Callout title contains inline styling; titles must be plain-text questions and styles belong in the answer body.
 - `E069`: a medium/complex rich deck has fewer than four semantic foreground colors; build a role dictionary instead of cycling a sparse palette.
+- `E070`: the generation report is missing or is not exactly one parseable YAML fenced block.
 
 - `W101`: foreground color and background/highlight are not both represented; inherit the missing dimension only when the provider range supplies it.
 - `W102`: a borderline flat multi-item back may hide a parent/child relation or mixed recall axes.
