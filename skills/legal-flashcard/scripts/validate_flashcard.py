@@ -336,6 +336,8 @@ def _validate_rich_deck(text: str, card_styles: list[set[tuple[tuple[str, str], 
     foregrounds, background_signatures = _distinct_style_dimensions(text)
     if len(foregrounds) <= 3 and len(background_signatures) < 3:
         findings.append(Finding(1, "E066", "A rich deck with a sparse foreground palette needs at least three distinct semantic background signatures; do not repeat a two-color foreground-only palette."))
+    if len(foregrounds) < 4:
+        findings.append(Finding(1, "E069", f"GoldQuest-level rich decks need at least four semantic foreground colors; found {len(foregrounds)}. Build a role dictionary instead of cycling a two- or three-color palette."))
     relation_cue = re.search(r"流程|程序|步骤|关系|对应|比较|区别|分支|情形|主体|阶段|如何", _visible_text(text))
     if relation_cue and "visual" not in structural:
         findings.append(Finding(1, "E063", "A rich deck with process, branch, role, comparison, or relation cues needs Mermaid, an inherited image, or another documented primary visual."))

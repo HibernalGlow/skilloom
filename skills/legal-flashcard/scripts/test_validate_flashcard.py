@@ -228,7 +228,7 @@ class FlashcardValidatorTests(unittest.TestCase):
 
 ## 区分口诀
 
-- **区分口诀**{: style="color: var(--b3-font-color10);"}：==必要共标的，普通同种类；确定全体推，不定公告登。== #法考/民诉/共同诉讼/区分口诀# #闪卡/优先级/P1#
+- **区分口诀**{: style="color: var(--b3-font-color6);"}：==必要共标的，普通同种类；确定全体推，不定公告登。== #法考/民诉/共同诉讼/区分口诀# #闪卡/优先级/P1#
     - ==必要共标的==：诉讼标的是**共同**{: style="background-color: var(--b3-font-background11);"}的。
     - ==普通同种类==：诉讼标的是<u>同一种类</u>的。
     - ==确定全体推==：全体当事人推选代表人。
