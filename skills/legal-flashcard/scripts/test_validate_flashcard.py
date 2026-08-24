@@ -138,6 +138,42 @@ class FlashcardValidatorTests(unittest.TestCase):
         self.assertIn("W104", codes)
         self.assertIn("W105", codes)
 
+    def test_question_side_mermaid_is_supported_only_before_answer_list(self):
+        visual = VALID.replace(
+            "    - 要件一。",
+            "    ```mermaid\n"
+            "    flowchart LR\n"
+            "        A[规范] --> B[①]\n"
+            "        classDef known fill:#e8f1ff,stroke:#2563eb;\n"
+            "        classDef recall fill:#fff3bf,stroke:#d97706,stroke-dasharray:5 3;\n"
+            "        class A known;\n"
+            "        class B recall;\n"
+            "    ```\n"
+            "    - 要件一。",
+        )
+        self.assertNotIn("E049", {finding.code for finding in validate(visual)})
+        self.assertNotIn("E048", {finding.code for finding in validate(visual)})
+
+    def test_mermaid_without_type_is_blocking(self):
+        invalid = VALID.replace(
+            "    - 要件一。",
+            "    ```mermaid\n    dcd\n    ```\n    - 要件一.",
+        )
+        self.assertIn("E048", {finding.code for finding in validate(invalid)})
+
+    def test_question_side_mermaid_without_recall_slot_warns(self):
+        no_slot = VALID.replace(
+            "    - 要件一。",
+            "    ```mermaid\n"
+            "    flowchart LR\n"
+            "        A[规范] --> B[事实]\n"
+            "        classDef known fill:#e8f1ff;\n"
+            "        class A,B known;\n"
+            "    ```\n"
+            "    - 要件一。",
+        )
+        self.assertIn("W108", {finding.code for finding in validate(no_slot)})
+
     def test_borderline_flat_back_gets_advisory(self):
         borderline = VALID.replace(
             "    - 要件一。\n"

@@ -37,7 +37,7 @@ Completion criterion: for every accepted card, write one short expected-answer s
 
 | Kind | Use when | Default renderer | Front/back behavior |
 | --- | --- | --- | --- |
-| `basic` | A direct question has one specific answer or one fixed closed set. | `list` | Root is the question and ends in `？` or `?`; direct child items are answers. Do not add `问题：` or `答案：`. |
+| `basic` | A direct question has one specific answer or one fixed closed set. | `list` | The first list-item paragraph is the question and ends in `？` or `?`; its child list starts the answer. Do not add `问题：` or `答案：`. |
 | `cloze` | Hiding one short term, date, actor, threshold, or contrast is more natural than asking a question. | `mark` | Root is a complete source-grounded statement with one short `==target==`; add context only when needed to disambiguate. |
 | `mnemonic` | The source supplies a口诀, compact sequence, or auditable character/segment mapping. | `list` | Root names the exact recall subject and highlights the complete source-written cue; children decode its segments. It is not a fake question. |
 
@@ -57,7 +57,7 @@ Apply the per-card gate in [style-inheritance.md](style-inheritance.md#card-unit
 {: custom-dm-source-key="beisong-2026-mafeng-kd23-lifafa" custom-dm-card-id="fc-theory-lifafa-principles-three-recall-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="theory-law-legislation-basic-principles"}
 ```
 
-The first list item is the front. Its direct children are the back. The adjacent IAL belongs to that root list block.
+The first list item is the front container. Its first paragraph is the verbal question and its child list starts the back. A question-side Mermaid may appear between them only through [question-side-mermaid.md](question-side-mermaid.md). The adjacent IAL belongs to the complete root list block.
 
 ### Cloze/mark
 
