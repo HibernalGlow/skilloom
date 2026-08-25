@@ -341,6 +341,43 @@ source:
         codes = {finding.code for finding in validate("\n".join(cards), rich_style=True)}
         self.assertIn("E081", codes)
 
+    def test_accepts_specific_memory_link_inside_card_back(self):
+        linked = VALID.replace(
+            '\n{: custom-dm-source-key=',
+            '\n    > [!TIP] 联系记忆：与法律效果卡对照\n'
+            '    >\n'
+            '    > - 对比轴：成立条件与后续法律效果。\n'
+            '{: custom-dm-source-key=',
+        )
+        codes = {finding.code for finding in validate(linked)}
+        self.assertFalse({"E082", "E083", "W118"} & codes)
+
+    def test_rejects_detached_or_vague_memory_link(self):
+        detached = VALID.replace(
+            '\n{: custom-dm-source-key=',
+            '\n> [!TIP] 联系记忆：与法律效果卡对照\n'
+            '> - 对比轴：成立条件与后续法律效果。\n'
+            '{: custom-dm-source-key=',
+        )
+        vague = VALID.replace(
+            '\n{: custom-dm-source-key=',
+            '\n    > [!TIP] 联系记忆：与其他制度比较\n'
+            '    > - 对比轴：成立条件与后续法律效果。\n'
+            '{: custom-dm-source-key=',
+        )
+        self.assertIn("E082", {finding.code for finding in validate(detached)})
+        self.assertIn("E083", {finding.code for finding in validate(vague)})
+
+    def test_warns_when_memory_link_repeats_a_second_answer(self):
+        long_body = "这是另一制度的完整答案内容，" * 8
+        linked = VALID.replace(
+            '\n{: custom-dm-source-key=',
+            '\n    > [!NOTE] 关联记忆：与另一制度卡联系\n'
+            f'    > - {long_body}\n'
+            '{: custom-dm-source-key=',
+        )
+        self.assertIn("W118", {finding.code for finding in validate(linked)})
+
     def test_rich_style_surfaces_sparse_complex_card_without_penalizing_short_definition(self):
         short_codes = {finding.code for finding in validate(VALID, rich_style=True)}
         self.assertNotIn("W110", short_codes)

@@ -35,6 +35,10 @@ KNOWLEDGE_TAG_RE = re.compile(r"#(?!闪卡/优先级/)[^#\s]+#")
 PRIORITY_TAG_RE = re.compile(r"#闪卡/优先级/([^#\s]+)#")
 GENERATED_LABEL_RE = re.compile(r"^\s*(?:>\s*)?(?:-\s+)?(?:问题|答案)[：:]")
 CALL_OUT_TITLE_STYLE_RE = re.compile(r"\{:\s*style=|\*\*|==|~~|`|<\/?(?:em|u)(?:\s|>)", re.IGNORECASE)
+MEMORY_LINK_CUE_RE = re.compile(r"联系记忆|关联记忆|对比记忆")
+MEMORY_LINK_TITLE_RE = re.compile(
+    r"^(?P<indent>\s*)>\s+\[!(?:TIP|NOTE|IMPORTANT)\]\s*(?P<label>联系记忆|关联记忆|对比记忆)(?:[：:](?P<target>.+))?\s*$"
+)
 ORDER_CUE_RE = re.compile(r"顺序|次序|步骤|阶段|程序|流程|先后|依次|优先|第[一二三四五六七八九十0-9]+步")
 CASE_FRONT_CUE_RE = re.compile(r"案例分析|习题|真题|张某|李律师|王某|甲与乙|甲、乙|A[.、：:]|B[.、：:]|C[.、：:]|D[.、：:]")
 MERMAID_TYPE_RE = re.compile(
@@ -238,6 +242,41 @@ def _has_nested_answer_items(card_body: str, renderer: str | None) -> bool:
 
 def _answer_text(line: str) -> str:
     return re.sub(r"^\s*(?:>\s*)?(?:-|\d+\.)\s+", "", line, count=1)
+
+
+def _validate_memory_links(card_body: str, renderer: str | None, card_line: int) -> list[Finding]:
+    findings: list[Finding] = []
+    lines = card_body.splitlines()
+    answer_lines = _basic_answer_lines(card_body, renderer)
+    first_answer_index = next((index for index, line in enumerate(lines) if line in answer_lines), None)
+    for index, line in enumerate(lines):
+        if not MEMORY_LINK_CUE_RE.search(line) or "[!" not in line:
+            continue
+        match = MEMORY_LINK_TITLE_RE.match(line)
+        target = match.group("target").strip() if match and match.group("target") else ""
+        indent = len(match.group("indent")) if match else 0
+        if renderer != "list" or indent < 4 or first_answer_index is None or index <= first_answer_index:
+            findings.append(Finding(card_line, "E082", "A memory-link Callout must be indented inside a list-card back and follow the direct answer."))
+        generic_target = bool(
+            re.fullmatch(r"(?:与)?(?:其他|相关|相近)(?:内容|制度|考点|卡片)(?:比较|对照|联系)?", target)
+            or target == "本节内容"
+        )
+        if match is None or not target or generic_target or CALL_OUT_TITLE_STYLE_RE.search(line):
+            findings.append(Finding(card_line, "E083", "Memory-link Callout title must be plain text and name a specific linked doctrine/card after a colon."))
+        if not match:
+            continue
+        block_lines: list[str] = []
+        for candidate in lines[index + 1:]:
+            if candidate.strip() and len(candidate) - len(candidate.lstrip()) < indent:
+                break
+            if candidate.strip().startswith("{: "):
+                break
+            block_lines.append(candidate)
+        block_visible = _visible_text("\n".join(block_lines))
+        block_items = sum(1 for candidate in block_lines if re.match(r"^\s*>\s+(?:-|\d+\.)\s+\S", candidate))
+        if len(block_visible) > 100 or block_items > 2:
+            findings.append(Finding(card_line, "W118", "Memory-link block is too large for post-answer context; keep one relation axis and leave the linked answer in its own card."))
+    return findings
 
 
 def _obviously_complex_flat_back(front: str, answer_lines: list[str], has_nested_items: bool) -> bool:
@@ -664,6 +703,11 @@ def validate(
 ) -> list[Finding]:
     lines = text.splitlines()
     cards, findings = parse_ial_blocks(lines)
+    for number, line in enumerate(lines, start=1):
+        if MEMORY_LINK_CUE_RE.search(line) and "[!" in line:
+            match = MEMORY_LINK_TITLE_RE.match(line)
+            if match and len(match.group("indent")) < 4:
+                findings.append(Finding(number, "E082", "A memory-link Callout must be indented inside a list-card back and follow the direct answer."))
     seen: dict[str, int] = {}
     topic_lines: dict[str, list[int]] = {}
     accepted_card_lines: list[int] = []
@@ -863,6 +907,7 @@ def validate(
                 if visible_highlight and not any(visible_highlight in line for line in scoped_visible_lines):
                     findings.append(Finding(start + 1, "E045", f"Cloze or mnemonic highlight is absent from the source provider range: {highlight}"))
         card_styles = set(STYLE_ANCHOR_RE.findall(card_body))
+        findings.extend(_validate_memory_links(card_body, renderer, start + 1))
         style_signatures, has_foreground, has_background = _style_profile(card_body, kind)
         deck_card_styles.append(style_signatures)
         deck_card_foregrounds.append(_foreground_counter(card_body))
