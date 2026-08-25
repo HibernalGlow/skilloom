@@ -17,7 +17,7 @@ When the user asks to paste or import one or many Markdown files into a SiYuan d
 
 ## Revise existing SiYuan cards
 
-When cards already exist in SiYuan and the user requests priority, tag, style, wording, or answer-layout changes without losing review identity, read [siyuan-live-revision.md](references/siyuan-live-revision.md). Export once with full IAL, edit the Markdown snapshot locally, validate it, and use `scripts/siyuan_live_patch.py` for one same-ID CLI write batch; do not re-import the document or edit `.sy`. Completion criterion: block IDs and `custom-dm-card-id` values are unchanged, only authorized card roots/children changed, and the portable re-export passes dedicated validation.
+When cards already exist in SiYuan and the user requests priority, tag, style, wording, answer-layout, insertion, deletion, or reordering changes, read [siyuan-live-revision.md](references/siyuan-live-revision.md). Export once with full IAL, edit the Markdown snapshot locally, validate it, then run `scripts/siyuan_live_patch.py` once in dry-run mode and once with `--confirm`; do not re-import the document or edit `.sy`. Ordinary blocks may be rebuilt. Special blocks retain SiYuan block IDs; `custom-dm-card-id` remains editable unless `--protect-attr` is explicitly supplied. Completion criterion: the dry-run identifies the adaptive plan, special IDs are preserved or explicitly authorized for deletion, and a portable re-export passes dedicated validation.
 
 ## Route the request
 
@@ -54,4 +54,4 @@ When cards already exist in SiYuan and the user requests priority, tag, style, w
 - External flashcard-skill audit: read [anki-compatibility.md](references/anki-compatibility.md) only when revising card-design rules or comparing another Anki/flashcard skill.
 - Offline SiYuan `.sy` and batch Markdown ZIP export: [siyuan-export.md](references/siyuan-export.md)
 - Real-Protyle single and batch Markdown paste: [siyuan-paste.md](references/siyuan-paste.md)
-- Same-ID repair of existing SiYuan notes and reviewed cards: [siyuan-live-revision.md](references/siyuan-live-revision.md)
+- Adaptive repair of existing SiYuan notes and reviewed cards: [siyuan-live-revision.md](references/siyuan-live-revision.md)
