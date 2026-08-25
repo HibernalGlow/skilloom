@@ -16,6 +16,9 @@ from legal_goldquest_semantic_structure_gate import validate_semantic_structure,
 from legal_marknote_prose_gate import validate_marknote_prose_structure  # noqa: E402
 
 ALLOWED_CALLOUTS = {"TIP", "NOTE", "IMPORTANT", "CAUTION", "WARNING", "QUESTION"}
+GENERIC_QUESTION_TITLE_PATTERN = re.compile(
+    r"^✏️\s+(?:习题|试一试|练习题|真题|题目)(?:\s*[一二三四五六七八九十\d]+)?$"
+)
 STATUS_COLORS = {5, 8, 12, 13}
 ANSWER_STATUS_TERMS = ("答案", "正确", "错误", "成立", "不成立", "有效", "无效", "应当", "不得", "排除")
 HIGHLIGHT_PATTERN = re.compile(r"==(.+?)==")
@@ -283,6 +286,10 @@ def validate_callouts_and_fences(text: str) -> list[Finding]:
             kind = callout.group(1)
             if kind != kind.upper() or kind not in ALLOWED_CALLOUTS:
                 findings.append(Finding("E", "303", number, f"Callout type must be one of: {', '.join(sorted(ALLOWED_CALLOUTS))}."))
+            if kind == "QUESTION":
+                title = line[callout.end():].strip()
+                if not title.startswith("✏️ ") or not title.removeprefix("✏️ ").strip() or GENERIC_QUESTION_TITLE_PATTERN.fullmatch(title):
+                    findings.append(Finding("E", "307", number, "QUESTION callout title must start with '✏️ ' and name a specific topic or tested rule."))
             cursor = number
             while cursor < len(lines) and lines[cursor].strip():
                 if not re.match(r"^\s*>($|\s)", lines[cursor]):

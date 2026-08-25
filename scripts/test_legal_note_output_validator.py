@@ -360,6 +360,15 @@ tags: 行政法, 强制执行
         text = "> [!note] 提示\n> 第一行\n- 遗漏引用符"
         self.assertTrue({"303", "304"} <= codes(text))
 
+    def test_accepts_question_callout(self) -> None:
+        text = "> [!QUESTION] ✏️ 检察院控诉职能与监督职能的区分\n> 问题与解析。"
+        self.assertNotIn("303", codes(text))
+        self.assertNotIn("307", codes(text))
+
+    def test_rejects_generic_question_callout_title(self) -> None:
+        text = "> [!QUESTION] ✏️ 习题1\n> 问题与解析。"
+        self.assertIn("307", codes(text))
+
     def test_rejects_unbroken_enumeration_and_plain_long_cell(self) -> None:
         text = "| 项目 | 1. 要件一 2. 要件二 3. 要件三 4. 要件四 |\n| 长文 | " + "普通说明。" * 24 + " |"
         self.assertTrue({"412", "402"} <= codes(text))
@@ -556,13 +565,13 @@ tags: 行政法, 强制执行
 
         self.assertNotIn("705", codes(text))
 
-    def test_keeps_exercise_counter_heading_without_question_stem(self) -> None:
-        text = """###### 习题
-### 1.
-合同效力：甲与乙签订合同，该合同是否有效？
-
-###### 回答与解析
-1. 合同有效。
+    def test_keeps_exercise_counter_heading_inside_question_callout(self) -> None:
+        text = """> [!QUESTION] ✏️ 合同效力判断
+> ### 1.
+> 合同效力：甲与乙签订合同，该合同是否有效？
+>
+> **回答与解析：**
+> 1. 合同有效。
 """
 
         self.assertNotIn("705", codes(text))

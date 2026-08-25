@@ -190,11 +190,11 @@ class ConceptHeadingValidationTests(unittest.TestCase):
 
         self.assertIn("705", {finding.code for finding in findings})
 
-    def test_accepts_promoted_concept_and_exercise_counter(self) -> None:
+    def test_accepts_promoted_concept_and_question_callout_counter(self) -> None:
         promoted = "### 1. 六赃\n\n六种非法获取公私财物的犯罪。\n"
-        exercise = """###### 习题
-### 1.
-合同效力：甲与乙签订合同，该合同是否有效？
+        exercise = """> [!QUESTION] ✏️ 合同效力判断
+> ### 1.
+> 合同效力：甲与乙签订合同，该合同是否有效？
 """
 
         self.assertNotIn("705", {finding.code for finding in MODULE.validate_text(promoted, "legal-marknote")})
