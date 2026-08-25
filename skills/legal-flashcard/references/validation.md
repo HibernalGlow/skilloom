@@ -41,7 +41,7 @@ When `--rich-style` is supplied for a medium/complex dedicated deck, these GoldQ
 - `E075`: in rich mode, a multi-sentence answer line has fewer than one semantic color anchor per one or two sentences.
 - `E076`: in rich mode, a recurring subject or legal concept is colored in one answer occurrence but left plain in another; reuse the role color on every answer occurrence.
 - `E080`: adjacent accepted cards have at least 60% weighted foreground-anchor overlap, or the same color supplies at least half of each card's foreground anchors; diversify source-grounded roles or reorder the cards.
-- `E081`: one foreground color exceeds the deck balance ceiling `max(40%, 2 / distinct foreground colors)` by anchor count; rebalance the role dictionary instead of inserting token colors that do not carry a semantic role.
+- `E081`: one foreground color exceeds the deck balance ceiling `max(40%, 2 / distinct foreground colors)` by anchor count; treat color-table labels as soft cues, rebalance the local role palette, and do not insert token colors that do not carry a semantic role.
 - `E082`: a `联系记忆`/`关联记忆`/`对比记忆` Callout is detached from the list-card back or appears before the direct answer; indent it inside the root and place it after the answer.
 - `E083`: a memory-link Callout title is styled, lacks a colon plus specific linked target, or uses a generic target such as `相关考点`; keep the title plain and name what to compare or connect.
 - `E078`: a front asks for a sequence, procedure, stage, or order but the direct answer children are unordered peer bullets without a necessary table/Mermaid carrier.

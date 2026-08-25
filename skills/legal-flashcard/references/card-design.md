@@ -53,9 +53,9 @@ Apply the per-card gate in [style-inheritance.md](style-inheritance.md#card-unit
 
 ```markdown
 - 立法的三大**基本原则**{: style="color: var(--b3-font-color12);"}是什么？ #法考/理论法/立法法/基本原则# #闪卡/优先级/P1#
-    - **科学性原则**{: style="color: var(--b3-font-color10);"}。
-    - **民主性原则**{: style="color: var(--b3-font-color10);"}。
-    - **合法性原则**{: style="color: var(--b3-font-color10);"}。
+    - **科学性原则**{: style="color: var(--b3-font-color8);"}。
+    - **民主性原则**{: style="color: var(--b3-font-color11);"}。
+    - **合法性原则**{: style="color: var(--b3-font-color12);"}。
 {: custom-dm-source-key="beisong-2026-mafeng-kd23-lifafa" custom-dm-card-id="fc-theory-lifafa-principles-three-recall-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="theory-law-legislation-basic-principles"}
 ```
 

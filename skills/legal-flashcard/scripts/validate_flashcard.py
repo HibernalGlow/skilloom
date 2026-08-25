@@ -531,7 +531,7 @@ def _validate_rich_deck(
                 Finding(
                     1,
                     "E081",
-                    f"Foreground palette is unbalanced: {dominant_color} covers {dominant_cards}/{len(card_foregrounds)} cards and {dominant_share:.0%} of foreground anchors (limit {balance_ceiling:.0%}); distribute semantic roles across the approved palette.",
+                    f"Foreground palette is unbalanced: {dominant_color} covers {dominant_cards}/{len(card_foregrounds)} cards and {dominant_share:.0%} of foreground anchors (limit {balance_ceiling:.0%}); treat generic color-table roles as soft cues and distribute local semantic roles across the approved palette.",
                 )
             )
     return findings
@@ -929,7 +929,7 @@ def validate(
                 if sentence_count >= 3 and anchor_count * 2 < sentence_count:
                     findings.append(Finding(start + 1, "E075", "A multi-sentence answer line needs at least one semantic color anchor per one or two sentences, matching GoldQuest's E616 rule."))
             for term in _styled_subject_gaps(card_body):
-                findings.append(Finding(start + 1, "E076", f"Recurring subject or legal concept '{term}' has an uncolored answer occurrence; reuse its established semantic color everywhere, matching GoldQuest's E623/E625 rule."))
+                findings.append(Finding(start + 1, "E076", f"Recurring subject or legal concept '{term}' has an uncolored answer occurrence; color it consistently for the same local role, while allowing another approved color when the relation changes."))
         if style_signatures and (not has_foreground or not has_background):
             missing = "foreground color" if not has_foreground else "background/highlight"
             findings.append(Finding(start + 1, "W101", f"Style balance: this card has no {missing}; inherit one only when the source range supplies it."))
