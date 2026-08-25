@@ -29,6 +29,34 @@ class FlashcardValidatorTests(unittest.TestCase):
     def test_valid_dedicated_card(self):
         self.assertEqual(validate(VALID), [])
 
+    def _priority_deck(self, priorities):
+        cards = []
+        for number, priority in enumerate(priorities, start=1):
+            card = VALID.replace("fc-civil-elements-v1", f"fc-priority-audit-v{number}")
+            card = card.replace('custom-qb-note-topic-id="civil-elements"', f'custom-qb-note-topic-id="civil-priority-{number}"')
+            cards.append(card.replace("#闪卡/优先级/P1#", f"#闪卡/优先级/{priority}#"))
+        return "\n".join(cards)
+
+    def test_priority_distribution_warns_when_p2_is_a_fallback(self):
+        findings = validate(self._priority_deck(["P1", "P2", "P2", "P2", "P2", "P2", "P2", "P3"]))
+
+        self.assertIn("W121", {finding.code for finding in findings})
+        self.assertFalse(has_blocking_findings([finding for finding in findings if finding.code == "W121"]))
+
+    def test_priority_distribution_warns_when_a_large_deck_has_no_p4(self):
+        codes = {
+            finding.code
+            for finding in validate(self._priority_deck(["P1", "P2", "P3"] * 4))
+        }
+
+        self.assertNotIn("W122", codes)
+        self.assertIn("W123", codes)
+
+    def test_priority_distribution_does_not_force_small_deck_quotas(self):
+        codes = {finding.code for finding in validate(self._priority_deck(["P2"] * 4))}
+
+        self.assertFalse({"W121", "W122", "W123"} & codes)
+
     def test_rejects_generated_question_and_answer_prefixes(self):
         prefixed = VALID.replace("- **成立要件**", "- 问题：**成立要件**").replace(
             "    - 要件一。", "    - 答案：要件一。"

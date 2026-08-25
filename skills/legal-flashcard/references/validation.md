@@ -61,6 +61,9 @@ When `--rich-style` is supplied for a medium/complex dedicated deck, these GoldQ
 - `W112`: a medium/complex process, branch, role mapping, comparison, or many-to-one card has no Mermaid, inherited image, or documented primary visual carrier.
 - `W114`: an answer line combines multiple semantic clauses without a governing parent and child structure; split conditions, actions, effects, exceptions, or alternatives.
 - `W115`: Callout tags are embedded in the title; move knowledge and priority tags to the immediately following quoted line.
+- `W121`: P2 dominates a sufficiently large deck; recompare candidates against the source instead of treating P2 as the default.
+- `W122`: a sufficiently large deck uses fewer than three priority levels; audit whether the source really lacks meaningful separation.
+- `W123`: a deck of at least eight cards has no P4 cards; check whether valid low-yield material was promoted to P2/P3 or correctly rejected. An evidence-backed absence may remain.
 
 Completion criterion: every warning has an explicit keep, revise, split, or reject disposition, and running the checker on a warning-only file exits `0` while any `E` finding exits nonzero.
 
