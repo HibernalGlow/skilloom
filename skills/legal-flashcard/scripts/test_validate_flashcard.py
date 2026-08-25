@@ -291,6 +291,28 @@ source:
         )
         self.assertIn("E066", {finding.code for finding in validate(deck, rich_style=True)})
 
+    def test_rich_style_rejects_adjacent_foreground_palette_overlap(self):
+        first = VALID.replace("fc-civil-elements-v1", "fc-civil-adjacent-a-v1")
+        second = VALID.replace("fc-civil-elements-v1", "fc-civil-adjacent-b-v1")
+        deck = first + "\n" + second + "\n" + second.replace("fc-civil-adjacent-b-v1", "fc-civil-adjacent-c-v1")
+        codes = {finding.code for finding in validate(deck, rich_style=True)}
+        self.assertIn("E080", codes)
+
+    def test_rich_style_rejects_deck_wide_dominant_foreground(self):
+        cards = []
+        for number, accent in enumerate(("6", "8", "12"), start=1):
+            card = VALID.replace("fc-civil-elements-v1", f"fc-civil-dominant-v{number}")
+            card = card.replace(
+                "    - 要件一。",
+                "    - **主体**{: style=\"color: var(--b3-font-color10);\"}、"
+                "**客体**{: style=\"color: var(--b3-font-color10);\"}、"
+                "**制度**{: style=\"color: var(--b3-font-color10);\"}与"
+                f"**边界**{{: style=\"color: var(--b3-font-color{accent});\"}}。",
+            )
+            cards.append(card)
+        codes = {finding.code for finding in validate("\n".join(cards), rich_style=True)}
+        self.assertIn("E081", codes)
+
     def test_rich_style_surfaces_sparse_complex_card_without_penalizing_short_definition(self):
         short_codes = {finding.code for finding in validate(VALID, rich_style=True)}
         self.assertNotIn("W110", short_codes)

@@ -411,7 +411,22 @@ def _distinct_style_dimensions(text: str) -> tuple[set[str], set[str]]:
     return foreground, backgrounds
 
 
-def _validate_rich_deck(text: str, card_styles: list[set[tuple[tuple[str, str], ...]]], card_count: int) -> list[Finding]:
+def _foreground_counter(text: str) -> Counter[str]:
+    colors: Counter[str] = Counter()
+    for match in STYLE_ANCHOR_RE.finditer(text):
+        style = re.search(r'style="([^"]+)"', match.group(0))
+        if not style:
+            continue
+        colors.update(value.strip() for name, value in STYLE_PROPERTY_RE.findall(style.group(1)) if name == "color")
+    return colors
+
+
+def _validate_rich_deck(
+    text: str,
+    card_styles: list[set[tuple[tuple[str, str], ...]]],
+    card_foregrounds: list[Counter[str]],
+    card_count: int,
+) -> list[Finding]:
     if not _is_rich_complex_deck(text, card_count):
         return []
     findings: list[Finding] = _validate_style_anchor_bounds(text)
@@ -435,6 +450,51 @@ def _validate_rich_deck(text: str, card_styles: list[set[tuple[tuple[str, str], 
     unique_signatures = set().union(*card_styles) if card_styles else set()
     if len(unique_signatures) <= 2 and unique_signatures:
         findings.append(Finding(1, "W111", "A styled rich deck uses two or fewer unique color/background signatures overall; revise toward three or more semantic roles."))
+    for index, (left, right) in enumerate(zip(card_foregrounds, card_foregrounds[1:]), start=1):
+        if not left or not right:
+            continue
+        colors = set(left) | set(right)
+        weighted_overlap = sum(min(left[color], right[color]) for color in colors) / sum(
+            max(left[color], right[color]) for color in colors
+        )
+        left_dominant, left_count = left.most_common(1)[0]
+        right_dominant, right_count = right.most_common(1)[0]
+        repeats_dominant = (
+            left_dominant == right_dominant
+            and left_count / left.total() >= 0.50
+            and right_count / right.total() >= 0.50
+        )
+        if weighted_overlap >= 0.60 or repeats_dominant:
+            reason = (
+                f"{weighted_overlap:.0%} weighted overlap"
+                if weighted_overlap >= 0.60
+                else f"shared dominant color {left_dominant} supplies at least half of both cards"
+            )
+            findings.append(
+                Finding(
+                    1,
+                    "E080",
+                    f"Adjacent cards {index} and {index + 1} over-reuse their foreground palette ({reason}); diversify source-grounded semantic roles or reorder the cards.",
+                )
+            )
+    coverage = Counter(color for colors in card_foregrounds for color in colors)
+    if coverage and card_count >= 3:
+        foreground_occurrences: Counter[str] = Counter()
+        for colors in card_foregrounds:
+            foreground_occurrences.update(colors)
+        dominant_color, dominant_occurrences = foreground_occurrences.most_common(1)[0]
+        dominant_cards = coverage[dominant_color]
+        total_occurrences = sum(foreground_occurrences.values())
+        dominant_share = dominant_occurrences / total_occurrences if total_occurrences else 0.0
+        balance_ceiling = max(0.40, 2 / len(foreground_occurrences))
+        if dominant_share > balance_ceiling:
+            findings.append(
+                Finding(
+                    1,
+                    "E081",
+                    f"Foreground palette is unbalanced: {dominant_color} covers {dominant_cards}/{len(card_foregrounds)} cards and {dominant_share:.0%} of foreground anchors (limit {balance_ceiling:.0%}); distribute semantic roles across the approved palette.",
+                )
+            )
     return findings
 
 
@@ -594,6 +654,7 @@ def validate(
     accepted_card_lines: list[int] = []
     basic_records: list[tuple[int, str, str, set[str]]] = []
     deck_card_styles: list[set[tuple[tuple[str, str], ...]]] = []
+    deck_card_foregrounds: list[Counter[str]] = []
     source_global_styles: set[str] = set()
     source_topic_styles: dict[str, set[str]] = {}
     source_global_visible_lines: list[str] = []
@@ -786,6 +847,7 @@ def validate(
         card_styles = set(STYLE_ANCHOR_RE.findall(card_body))
         style_signatures, has_foreground, has_background = _style_profile(card_body, kind)
         deck_card_styles.append(style_signatures)
+        deck_card_foregrounds.append(_foreground_counter(card_body))
         if len(style_signatures) == 1:
             findings.append(Finding(start + 1, "E047", "A styled card must use more than one source-grounded color/background style signature."))
         if rich_style and _is_rich_complex_card(card_body, kind, renderer):
@@ -860,7 +922,7 @@ def validate(
         if len(locations) > max_cards_per_topic:
             findings.append(Finding(locations[0], "E013", f"Topic ID {topic_id!r} is reused by {len(locations)} cards; confirm a narrower atomic topic mapping or raise the reviewed limit."))
     if rich_style:
-        findings.extend(_validate_rich_deck(text, deck_card_styles, len(accepted_card_lines)))
+        findings.extend(_validate_rich_deck(text, deck_card_styles, deck_card_foregrounds, len(accepted_card_lines)))
     if require_report:
         report_values = _parse_report_yaml(text)
         if report_values is None:
