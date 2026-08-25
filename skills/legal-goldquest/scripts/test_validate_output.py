@@ -39,6 +39,21 @@ class GoldquestDensityValidationTests(unittest.TestCase):
 
         self.assertIn("634", codes(text))
 
+    def test_warns_when_multi_question_topic_h1_has_no_sortable_number(self) -> None:
+        unnumbered = """# 专题六 共同诉讼
+{: custom-qb-note-topic-id="civil-procedure-topic"}
+## 📌 考点必背
+- 共同诉讼规则。
+##### 1.
+{: custom-qb-id="q-1" custom-qb-question-topic-ids="topic-a"}
+##### 2.
+{: custom-qb-id="q-2" custom-qb-question-topic-ids="topic-b"}
+"""
+        numbered = unnumbered.replace("# 专题六", "# 06 专题六", 1)
+
+        self.assertIn("638", codes(unnumbered))
+        self.assertNotIn("638", codes(numbered))
+
     def test_accepts_topic_summary_between_provider_and_first_question(self) -> None:
         text = """# 专题
 {: custom-qb-note-topic-id="civil-procedure-topic"}
