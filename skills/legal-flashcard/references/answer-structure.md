@@ -21,7 +21,7 @@ Before rendering, run the **clause split**: an answer line longer than roughly 4
 | inherent warning, exception, trap, or source quotation | `callout` or `blockquote` root | the semantic role survives without decorative relabeling |
 | true cross-axis comparison, mapping, aligned period/number, or scope matrix | small table beneath one governing child | simultaneous row/column scanning is necessary; apply MarkNote's table-size gate |
 | process, branching decision, or many-to-one relationship | small Mermaid beneath one governing child | every node and edge is source-grounded and the complete graph tests one axis |
-| source-grounded relation to a sibling card or easily confused doctrine | short nested `TIP`/`NOTE` Callout, or one italic connection line | place it after the direct answer; name the linked target and one contrast, dependency, sequence, exception, or shared-rule axis |
+| source-grounded relation to a sibling card or easily confused doctrine | short nested Callout, or one italic connection line | choose a semantically accurate Callout type; place it after the direct answer; name the linked target and one contrast, dependency, sequence, exception, or shared-rule axis |
 
 Do not distribute formats for variety. Repeated unordered lists are correct when the material is a set of peers; ordered lists, Callouts, tables, and Mermaid earn their use only through the relationship above.
 
@@ -92,7 +92,7 @@ Use the normative Callout and blockquote examples in [card-design.md](card-desig
 
 ### Card-back memory link
 
-Add a memory link only when the supplied source or another accepted card establishes a useful relation. It is post-answer context, not part of the scoring axis. Prefer a nested `TIP` for comparisons and dependencies, or `NOTE` for a shared source rule. A lighter relationship may use one indented line such as `<em>联系记忆</em>：与……比较，区分轴是……`.
+Add a memory link only when the supplied source or another accepted card establishes a useful relation. It is post-answer context, not part of the scoring axis. Choose any source-grounded or semantically accurate Callout type; the type vocabulary is open rather than a fixed list. A lighter relationship may use one indented line such as `<em>联系记忆</em>：与……比较，区分轴是……`.
 
 ```markdown
 - 价款抵押权逾期登记时适用什么顺位？ #法考/民法/担保物权/价款抵押权/逾期登记# #闪卡/优先级/P1#
@@ -102,6 +102,8 @@ Add a memory link only when the supplied source or another accepted card establi
     > - **对比轴**{: style="color: var(--b3-font-color12);"}：是否在交付后十日内完成登记。
 {: custom-dm-source-key="jingjiang-2026-zhangxiang-zt49-danbao-jingcun" custom-dm-card-id="fc-civil-security-price-mortgage-late-registration-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="civil-law-security-price-mortgage-late-registration"}
 ```
+
+`TIP` above is illustrative, not a whitelist. A source-preserved type or a meaningful custom type such as `COMPARE` or `MEMORY-LINK` is valid when it accurately signals the relation.
 
 Keep the nested Callout indented by four spaces so it remains inside the list card root and therefore on the back. The title stays plain text and names the exact linked doctrine, card, or rule; `联系记忆` alone, `相关考点`, or `与其他制度比较` is not enough. The body states one relation axis and normally stays within one short item. If the block needs the linked doctrine's full definition, elements, exceptions, or effects, keep that content in its sibling card and shorten this block to the connecting axis. Do not add a memory link merely to vary the layout.
 

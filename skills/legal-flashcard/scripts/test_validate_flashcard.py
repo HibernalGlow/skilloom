@@ -344,7 +344,7 @@ source:
     def test_accepts_specific_memory_link_inside_card_back(self):
         linked = VALID.replace(
             '\n{: custom-dm-source-key=',
-            '\n    > [!TIP] 联系记忆：与法律效果卡对照\n'
+            '\n    > [!MEMORY-LINK] 联系记忆：与法律效果卡对照\n'
             '    >\n'
             '    > - 对比轴：成立条件与后续法律效果。\n'
             '{: custom-dm-source-key=',

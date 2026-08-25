@@ -37,7 +37,7 @@ GENERATED_LABEL_RE = re.compile(r"^\s*(?:>\s*)?(?:-\s+)?(?:问题|答案)[：:]"
 CALL_OUT_TITLE_STYLE_RE = re.compile(r"\{:\s*style=|\*\*|==|~~|`|<\/?(?:em|u)(?:\s|>)", re.IGNORECASE)
 MEMORY_LINK_CUE_RE = re.compile(r"联系记忆|关联记忆|对比记忆")
 MEMORY_LINK_TITLE_RE = re.compile(
-    r"^(?P<indent>\s*)>\s+\[!(?:TIP|NOTE|IMPORTANT)\]\s*(?P<label>联系记忆|关联记忆|对比记忆)(?:[：:](?P<target>.+))?\s*$"
+    r"^(?P<indent>\s*)>\s+\[!(?P<type>[A-Za-z][A-Za-z0-9_-]*)\]\s*(?P<label>联系记忆|关联记忆|对比记忆)(?:[：:](?P<target>.+))?\s*$"
 )
 ORDER_CUE_RE = re.compile(r"顺序|次序|步骤|阶段|程序|流程|先后|依次|优先|第[一二三四五六七八九十0-9]+步")
 CASE_FRONT_CUE_RE = re.compile(r"案例分析|习题|真题|张某|李律师|王某|甲与乙|甲、乙|A[.、：:]|B[.、：:]|C[.、：:]|D[.、：:]")
