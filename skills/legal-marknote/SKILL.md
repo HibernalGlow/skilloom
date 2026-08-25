@@ -89,6 +89,8 @@ When the user states that a text was already processed by an earlier `legal-mark
 
 When a finished SiYuan document already contains manual edits, references, or backlinks, keep the existing blocks in place. Use [the manifest migration workflow](references/siyuan-topic-migration.md): export the heading outline and block IDs beside the corresponding `20-整理` file, review topic IDs in JSON, preview all mutations, then set `custom-qb-note-topic-id` directly on the selected block IDs and verify each write. Never replace this workflow with Markdown re-import.
 
+When the user explicitly asks to repair or extend a document that is already written in SiYuan, read [the live revision workflow](references/siyuan-live-revision.md). Export once with the `legal-flashcard` export script, edit and validate the Markdown snapshot locally, then use that skill's `scripts/siyuan_live_patch.py` for one same-ID CLI write batch. Preserve existing block IDs, parent/child order, IAL, flashcard roots, references, and backlinks; do not edit `.sy` files or re-import a whole replacement document. Completion criterion: the batch receipt names every changed block, untouched identities and protected attributes are unchanged, and one portable re-export passes the applicable MarkNote, Flashcard, or GoldQuest gates.
+
 ## Accuracy
 
 - Never replace a legal rule with an unsupported paraphrase.

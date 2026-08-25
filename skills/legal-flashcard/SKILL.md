@@ -15,6 +15,10 @@ When the source is one or more `.sy` files, a SiYuan document directory, an offl
 
 When the user asks to paste or import one or many Markdown files into a SiYuan directory, read [siyuan-paste.md](references/siyuan-paste.md) and run `scripts/paste_siyuan_markdown.py`. An exported `25-kramdown\...\法考\客观\民诉` folder can be passed directly as the source; use the already-existing SiYuan `/法考/客观/民诉` as `--directory`, so the processing folders are not copied. Use `--title` for one explicit title or `--title-map` for batch titles; otherwise prefer the first H1 before the filename. Never replace this route with direct document-content upload when IAL must survive, because the bundled script delegates each write to a real Protyle paste event. Completion criterion: one batch receipt names every created document and its target path, or the failure names the completed prefix and snapshot.
 
+## Revise existing SiYuan cards
+
+When cards already exist in SiYuan and the user requests priority, tag, style, wording, or answer-layout changes without losing review identity, read [siyuan-live-revision.md](references/siyuan-live-revision.md). Export once with full IAL, edit the Markdown snapshot locally, validate it, and use `scripts/siyuan_live_patch.py` for one same-ID CLI write batch; do not re-import the document or edit `.sy`. Completion criterion: block IDs and `custom-dm-card-id` values are unchanged, only authorized card roots/children changed, and the portable re-export passes dedicated validation.
+
 ## Route the request
 
 1. Select **ordinary mode** when the request is note organization, summarization, formatting, or repair and does not explicitly ask for flashcards. Read [ordinary-mode.md](references/ordinary-mode.md). If the source provider is broad or incomplete, also read [topic-resolution.md](references/topic-resolution.md) to complete candidate topic mapping; do not load dedicated card rules. Completion criterion: the note preserves its source contract, records only review candidates with narrow topics or named gaps, and contains no formal `custom-dm-*` card IAL or runtime SRS field.
@@ -50,3 +54,4 @@ When the user asks to paste or import one or many Markdown files into a SiYuan d
 - External flashcard-skill audit: read [anki-compatibility.md](references/anki-compatibility.md) only when revising card-design rules or comparing another Anki/flashcard skill.
 - Offline SiYuan `.sy` and batch Markdown ZIP export: [siyuan-export.md](references/siyuan-export.md)
 - Real-Protyle single and batch Markdown paste: [siyuan-paste.md](references/siyuan-paste.md)
+- Same-ID repair of existing SiYuan notes and reviewed cards: [siyuan-live-revision.md](references/siyuan-live-revision.md)
