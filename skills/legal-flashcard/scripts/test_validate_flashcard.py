@@ -278,9 +278,9 @@ class FlashcardValidatorTests(unittest.TestCase):
             class A known;
             class B,C,D answer;
         ```
-    > [!IMPORTANT] 核心边界
-    > - <em>起诉时</em>**人数尚未确定**{: style="color: var(--b3-font-color12);"}。
-    > - ~~跳过公告、登记直接裁判~~不是**启动方式**{: style="color: var(--b3-font-color13);"}。
+        > [!IMPORTANT] 核心边界
+        > - <em>起诉时</em>**人数尚未确定**{: style="color: var(--b3-font-color12);"}。
+        > - ~~跳过公告、登记直接裁判~~不是**启动方式**{: style="color: var(--b3-font-color13);"}。
 {: custom-dm-source-key="example-rich" custom-dm-card-id="fc-example-rich-process-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="example-rich-process"}
 
 ## 区分口诀
@@ -332,9 +332,9 @@ source:
         nested = plain.replace(
             "    - 例外情形适用特别规则。",
             "    - 直接规则。\n"
-            "    > [!WARNING] 例外边界\n"
-            "    >\n"
-            "    > - 例外情形适用特别规则。",
+            "        > [!WARNING] 例外边界\n"
+            "        >\n"
+            "        > - 例外情形适用特别规则。",
         )
         self.assertNotIn("E085", {finding.code for finding in validate(nested, rich_style=True)})
 
@@ -375,13 +375,13 @@ source:
     def test_accepts_specific_memory_link_inside_card_back(self):
         linked = VALID.replace(
             '\n{: custom-dm-source-key=',
-            '\n    > [!MEMORY-LINK] 联系记忆：与法律效果卡对照\n'
-            '    >\n'
-            '    > - 对比轴：成立条件与后续法律效果。\n'
+            '\n        > [!MEMORY-LINK] 联系记忆：与法律效果卡对照\n'
+            '        >\n'
+            '        > - 对比轴：成立条件与后续法律效果。\n'
             '{: custom-dm-source-key=',
         )
         codes = {finding.code for finding in validate(linked)}
-        self.assertFalse({"E082", "E083", "W118"} & codes)
+        self.assertFalse({"E082", "E083", "E086", "W118"} & codes)
 
     def test_rejects_detached_or_vague_memory_link(self):
         detached = VALID.replace(
@@ -403,11 +403,50 @@ source:
         long_body = "这是另一制度的完整答案内容，" * 8
         linked = VALID.replace(
             '\n{: custom-dm-source-key=',
-            '\n    > [!NOTE] 关联记忆：与另一制度卡联系\n'
-            f'    > - {long_body}\n'
+            '\n        > [!NOTE] 关联记忆：与另一制度卡联系\n'
+            f'        > - {long_body}\n'
             '{: custom-dm-source-key=',
         )
         self.assertIn("W118", {finding.code for finding in validate(linked)})
+
+    def test_rejects_back_callout_at_answer_item_indent(self):
+        flat = VALID.replace(
+            '\n{: custom-dm-source-key=',
+            '\n    > [!CAUTION] 🚨 注意：伪造文件不构成表见事由\n'
+            '    > 公章、证书、文件系**伪造**的，绝对==不构成==**表见事由**。\n'
+            '{: custom-dm-source-key=',
+        )
+        self.assertIn("E086", {finding.code for finding in validate(flat)})
+
+    def test_accepts_back_callout_nested_into_answer_sub_list(self):
+        nested = VALID.replace(
+            '\n{: custom-dm-source-key=',
+            '\n        > [!CAUTION] 🚨 注意：伪造文件不构成表见事由\n'
+            '        > 公章、证书、文件系**伪造**的，绝对==不构成==**表见事由**。\n'
+            '{: custom-dm-source-key=',
+        )
+        self.assertNotIn("E086", {finding.code for finding in validate(nested)})
+
+    def test_two_space_back_callout_must_be_nested_into_sub_list(self):
+        flat = """- **表见事由**{: style="color: var(--b3-font-color10);"}包括哪些？其根本要求是什么？ #法考/民法/代理/表见代理# #闪卡/优先级/P1#
+  - 包括`公章`、`证书`、`文件`、**职务**{: style="color: var(--b3-font-color12);"}以及**交易习惯**{: style="color: var(--b3-font-color8);"}等。
+  - **根本要求**{: style="color: var(--b3-font-color8);"}是本身必须真实。
+  > [!CAUTION] 🚨 注意：伪造文件不构成表见事由
+  > 公章、证书、文件系**伪造**的，绝对==不构成==**表见事由**。
+{: custom-dm-source-key="civil-08" custom-dm-card-id="fc-civil-callout-flat-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="civil-elements"}
+"""
+        self.assertIn("E086", {finding.code for finding in validate(flat)})
+        nested = flat.replace("  > [!CAUTION]", "    > [!CAUTION]").replace("  > 公章", "    > 公章")
+        self.assertNotIn("E086", {finding.code for finding in validate(nested)})
+
+    def test_accepts_callout_note_written_as_plain_sub_list_item(self):
+        card = """- **表见事由**{: style="color: var(--b3-font-color10);"}包括哪些？其根本要求是什么？ #法考/民法/代理/表见代理# #闪卡/优先级/P1#
+  - 包括`公章`、`证书`、`文件`、**职务**{: style="color: var(--b3-font-color12);"}以及**交易习惯**{: style="color: var(--b3-font-color8);"}等。
+  - **根本要求**{: style="color: var(--b3-font-color8);"}是本身必须真实。
+  - 🚨 **注意**：公章、证书、文件系**伪造**的，绝对不构成表见事由。
+{: custom-dm-source-key="civil-08" custom-dm-card-id="fc-civil-callout-item-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="civil-elements"}
+"""
+        self.assertNotIn("E086", {finding.code for finding in validate(card)})
 
     def test_rich_style_surfaces_sparse_complex_card_without_penalizing_short_definition(self):
         short_codes = {finding.code for finding in validate(VALID, rich_style=True)}

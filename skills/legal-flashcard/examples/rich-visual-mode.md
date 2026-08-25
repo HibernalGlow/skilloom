@@ -33,9 +33,9 @@
             class A known;
             class B,C,D answer;
         ```
-    > [!IMPORTANT] 核心边界
-    > - <em>起诉时</em>**人数尚未确定**{: style="color: var(--b3-font-color12);"}，不能直接按确定人数规则推选。
-    > - ~~跳过公告、登记直接裁判~~不是**启动方式**{: style="color: var(--b3-font-color13);"}。
+        > [!IMPORTANT] 核心边界
+        > - <em>起诉时</em>**人数尚未确定**{: style="color: var(--b3-font-color12);"}，不能直接按确定人数规则推选。
+        > - ~~跳过公告、登记直接裁判~~不是**启动方式**{: style="color: var(--b3-font-color13);"}。
 {: custom-dm-source-key="example-civil-joint-litigation" custom-dm-card-id="fc-example-joint-litigation-representative-process-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="civil-procedure-joint-litigation-representative-undetermined"}
 
 ## 四类制度区分口诀

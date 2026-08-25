@@ -19,7 +19,7 @@ Before rendering, run the **clause split**: an answer line longer than roughly 4
 | governing proposition with dependent conditions, reasons, exceptions, examples, or effects | nested unordered tree | each deeper item qualifies its parent; punctuation alone creates no depth |
 | procedure, chronology, priority, or source-significant sequence | ordered list, nested when a step has detail | changing the order would change the rule or its retrieval value; source numbering alone is insufficient, and the front cannot invent an order cue to authorize numbering |
 | whole scoring axis is an inherent warning, exception, trap, or decisive boundary | `callout` root | the plain Callout title is the complete question and the body is the answer |
-| list answer contains a local warning, exception, conclusion peak, or memory relation | nested Callout after the direct answer | the Callout remains inside the list root and isolates one supporting semantic peak |
+| list answer contains a local warning, exception, conclusion peak, or memory relation | nested Callout after the direct answer | the Callout is indented into the answer sub-list (deeper than the direct answer items) and isolates one supporting semantic peak |
 | source quotation is itself the retrieval unit | `blockquote` root | the quotation role survives without decorative relabeling |
 | true cross-axis comparison, mapping, aligned period/number, or scope matrix | small table beneath one governing child | simultaneous row/column scanning is necessary; apply MarkNote's table-size gate |
 | process, branching decision, or many-to-one relationship | small Mermaid beneath one governing child | every node and edge is source-grounded and the complete graph tests one axis |
@@ -90,7 +90,7 @@ Copy a suitable source Mermaid when it already expresses the same card-sized rel
 
 ### Callout or blockquote root
 
-Use the normative Callout and blockquote examples in [card-design.md](card-design.md). Preserve a source Callout's category when its warning, exception, or trap is the retrieval role. Use a Callout root when that role is the whole scoring axis. When a list card has a direct answer plus a local exception, decisive boundary, conclusion peak, or source-grounded link, place a short nested Callout after the direct answer instead of leaving the entire back as undifferentiated bullets. Every Callout title is plain text. A root title is the complete question; a nested title names the exact semantic peak.
+Use the normative Callout and blockquote examples in [card-design.md](card-design.md). Preserve a source Callout's category when its warning, exception, or trap is the retrieval role. Use a Callout root when that role is the whole scoring axis. When a list card has a direct answer plus a local exception, decisive boundary, conclusion peak, or source-grounded link, place a short nested Callout after the direct answer instead of leaving the entire back as undifferentiated bullets. The nested Callout must be indented into the answer sub-list — strictly deeper than the direct answer items — so it stays on the card back; a Callout at answer-item depth is a sibling of the answer list and fails `E086`. If the note cannot be mounted as a nested block, write it as a normal sub-list item instead of a Callout. Every Callout title is plain text. A root title is the complete question; a nested title names the exact semantic peak.
 
 ### Card-back memory link
 
@@ -99,15 +99,15 @@ Add a memory link only when the supplied source or another accepted card establi
 ```markdown
 - 价款抵押权逾期登记时适用什么顺位？ #法考/民法/担保物权/价款抵押权/逾期登记# #闪卡/优先级/P1#
     - 适用**一般受偿顺序**{: style="color: var(--b3-font-color8);"}。
-    > [!TIP] 联系记忆：与价款抵押权的超级优先卡对照
-    >
-    > - **对比轴**{: style="color: var(--b3-font-color12);"}：是否在交付后十日内完成登记。
+        > [!TIP] 联系记忆：与价款抵押权的超级优先卡对照
+        >
+        > - **对比轴**{: style="color: var(--b3-font-color12);"}：是否在交付后十日内完成登记。
 {: custom-dm-source-key="jingjiang-2026-zhangxiang-zt49-danbao-jingcun" custom-dm-card-id="fc-civil-security-price-mortgage-late-registration-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="civil-law-security-price-mortgage-late-registration"}
 ```
 
 `TIP` above is illustrative, not a whitelist. A source-preserved type or a meaningful custom type such as `COMPARE` or `MEMORY-LINK` is valid when it accurately signals the relation.
 
-Keep the nested Callout indented by four spaces so it remains inside the list card root and therefore on the back. The title stays plain text and names the exact linked doctrine, card, or rule; `联系记忆` alone, `相关考点`, or `与其他制度比较` is not enough. The body states one relation axis and normally stays within one short item. If the block needs the linked doctrine's full definition, elements, exceptions, or effects, keep that content in its sibling card and shorten this block to the connecting axis. Do not add a memory link merely to vary the layout.
+Keep the nested Callout indented into the answer sub-list — strictly deeper than the direct answer items — so it remains on the card back. The title stays plain text and names the exact linked doctrine, card, or rule; `联系记忆` alone, `相关考点`, or `与其他制度比较` is not enough. The body states one relation axis and normally stays within one short item. If the block needs the linked doctrine's full definition, elements, exceptions, or effects, keep that content in its sibling card and shorten this block to the connecting axis. Do not add a memory link merely to vary the layout.
 
 ## Completion checklist
 
@@ -118,5 +118,6 @@ Keep the nested Callout indented by four spaces so it remains inside the list ca
 - Rich-deck Callout coverage reaches at least `ceil(accepted cards / 6)`, and every explicit exception, trap, confusion, risk, or memory-link cue is routed through a root or nested Callout.
 - Ordered steps remain ordered, dependent branches remain nested, and peer sets remain peers.
 - A table or Mermaid is fully contained beneath one governing answer child; a Callout or blockquote is the root container.
+- A nested Callout is indented into the answer sub-list (deeper than the direct answer items); a note that cannot be nested is written as a normal sub-list item.
 - An optional memory link follows the direct answer inside the same root, names a specific linked target and one relation axis, and does not duplicate a sibling card's full answer.
 - The complete card root is followed by one schema 1 IAL on one physical line.
