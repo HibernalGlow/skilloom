@@ -319,6 +319,25 @@ source:
         )
         self.assertIn("E066", {finding.code for finding in validate(deck, rich_style=True)})
 
+    def test_rich_style_requires_deck_callout_coverage(self):
+        deck = "\n".join(
+            VALID.replace("fc-civil-elements-v1", f"fc-civil-callout-coverage-v{number}")
+            for number in range(1, 7)
+        )
+        self.assertIn("E084", {finding.code for finding in validate(deck, rich_style=True)})
+
+    def test_explicit_exception_requires_a_callout_in_rich_mode(self):
+        plain = VALID.replace("要件一。", "例外情形适用特别规则。")
+        self.assertIn("E085", {finding.code for finding in validate(plain, rich_style=True)})
+        nested = plain.replace(
+            "    - 例外情形适用特别规则。",
+            "    - 直接规则。\n"
+            "    > [!WARNING] 例外边界\n"
+            "    >\n"
+            "    > - 例外情形适用特别规则。",
+        )
+        self.assertNotIn("E085", {finding.code for finding in validate(nested, rich_style=True)})
+
     def test_rich_style_rejects_adjacent_foreground_palette_overlap(self):
         first = VALID.replace("fc-civil-elements-v1", "fc-civil-adjacent-a-v1")
         second = VALID.replace("fc-civil-elements-v1", "fc-civil-adjacent-b-v1")

@@ -36,6 +36,9 @@ PRIORITY_TAG_RE = re.compile(r"#闪卡/优先级/([^#\s]+)#")
 GENERATED_LABEL_RE = re.compile(r"^\s*(?:>\s*)?(?:-\s+)?(?:问题|答案)[：:]")
 CALL_OUT_TITLE_STYLE_RE = re.compile(r"\{:\s*style=|\*\*|==|~~|`|<\/?(?:em|u)(?:\s|>)", re.IGNORECASE)
 MEMORY_LINK_CUE_RE = re.compile(r"联系记忆|关联记忆|对比记忆")
+CALLOUT_LINE_RE = re.compile(r"^\s*>\s+\[![A-Za-z][A-Za-z0-9_-]*\]\s+\S", re.MULTILINE)
+CALLOUT_STRONG_CUE_RE = re.compile(r"例外|但书|陷阱|易混|联系记忆|关联记忆|对比记忆|特别注意|风险提示")
+CALLOUT_SOFT_CUE_RE = re.compile(r"不得|禁止|无效|不予|仅限|除非|否则|原则上")
 MEMORY_LINK_TITLE_RE = re.compile(
     r"^(?P<indent>\s*)>\s+\[!(?P<type>[A-Za-z][A-Za-z0-9_-]*)\]\s*(?P<label>联系记忆|关联记忆|对比记忆)(?:[：:](?P<target>.+))?\s*$"
 )
@@ -460,11 +463,16 @@ def _foreground_counter(text: str) -> Counter[str]:
     return colors
 
 
+def _has_substantive_callout(text: str) -> bool:
+    return bool(CALLOUT_LINE_RE.search(text))
+
+
 def _validate_rich_deck(
     text: str,
     card_styles: list[set[tuple[tuple[str, str], ...]]],
     card_foregrounds: list[Counter[str]],
     card_count: int,
+    callout_card_count: int,
 ) -> list[Finding]:
     if not _is_rich_complex_deck(text, card_count):
         return []
@@ -475,6 +483,10 @@ def _validate_rich_deck(
     structural = _structural_families(text)
     if len(structural) < 4:
         findings.append(Finding(1, "E061", f"Rich flashcard decks need at least four structural families; found {len(structural)} ({', '.join(sorted(structural)) or 'none'})."))
+    if card_count >= 4:
+        required_callout_cards = max(1, (card_count + 5) // 6)
+        if callout_card_count < required_callout_cards:
+            findings.append(Finding(1, "E084", f"Rich decks need substantive Callout coverage in at least {required_callout_cards}/{card_count} cards; found {callout_card_count}. Use a callout root or a nested answer Callout for a real exception, warning, conclusion peak, or memory relation."))
     backgrounds = len(re.findall(r"b3-font-background(?:[2-9]|1[0-3])", text))
     if backgrounds < 3:
         findings.append(Finding(1, "E062", f"Rich flashcard decks need at least three short background-color anchors; found {backgrounds}."))
@@ -723,6 +735,7 @@ def validate(
     deck_card_styles: list[set[tuple[tuple[str, str], ...]]] = []
     accepted_priorities: list[str] = []
     deck_card_foregrounds: list[Counter[str]] = []
+    deck_callout_card_count = 0
     source_global_styles: set[str] = set()
     source_topic_styles: dict[str, set[str]] = {}
     source_global_visible_lines: list[str] = []
@@ -809,6 +822,13 @@ def validate(
         has_nested_items = _has_nested_answer_items(card_body, renderer)
         has_table = _has_table(card_body)
         has_mermaid = _has_mermaid(card_body)
+        has_callout = _has_substantive_callout(card_body)
+        if has_callout:
+            deck_callout_card_count += 1
+        if rich_style and CALLOUT_STRONG_CUE_RE.search(_visible_text(card_body)) and not has_callout:
+            findings.append(Finding(start + 1, "E085", "This card contains an explicit exception, trap, confusion, risk, or memory-link cue; render that semantic peak as a callout root or a nested answer Callout."))
+        elif rich_style and CALLOUT_SOFT_CUE_RE.search(_visible_text(card_body)) and not has_callout:
+            findings.append(Finding(start + 1, "W125", "This card contains a prohibition, invalidity, limiting, or principle cue; review whether a nested Callout would make the boundary easier to retrieve."))
         mermaid_blocks = _mermaid_blocks(card_body)
         for _offset, _indent, mermaid_content in mermaid_blocks:
             if not _mermaid_has_diagram_type(mermaid_content):
@@ -994,7 +1014,7 @@ def validate(
             findings.append(Finding(locations[0], "E013", f"Topic ID {topic_id!r} is reused by {len(locations)} cards; confirm a narrower atomic topic mapping or raise the reviewed limit."))
     findings.extend(_priority_distribution_findings(accepted_priorities, accepted_card_lines[0] if accepted_card_lines else 1))
     if rich_style:
-        findings.extend(_validate_rich_deck(text, deck_card_styles, deck_card_foregrounds, len(accepted_card_lines)))
+        findings.extend(_validate_rich_deck(text, deck_card_styles, deck_card_foregrounds, len(accepted_card_lines), deck_callout_card_count))
     if require_report:
         report_values = _parse_report_yaml(text)
         if report_values is None:

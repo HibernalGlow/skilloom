@@ -18,12 +18,14 @@ Before rendering, run the **clause split**: an answer line longer than roughly 4
 | one short fact, direct two-item contrast, or explicit closed set | first-level unordered children | every child is a peer and directly answers the front |
 | governing proposition with dependent conditions, reasons, exceptions, examples, or effects | nested unordered tree | each deeper item qualifies its parent; punctuation alone creates no depth |
 | procedure, chronology, priority, or source-significant sequence | ordered list, nested when a step has detail | changing the order would change the rule or its retrieval value; source numbering alone is insufficient, and the front cannot invent an order cue to authorize numbering |
-| inherent warning, exception, trap, or source quotation | `callout` or `blockquote` root | the semantic role survives without decorative relabeling |
+| whole scoring axis is an inherent warning, exception, trap, or decisive boundary | `callout` root | the plain Callout title is the complete question and the body is the answer |
+| list answer contains a local warning, exception, conclusion peak, or memory relation | nested Callout after the direct answer | the Callout remains inside the list root and isolates one supporting semantic peak |
+| source quotation is itself the retrieval unit | `blockquote` root | the quotation role survives without decorative relabeling |
 | true cross-axis comparison, mapping, aligned period/number, or scope matrix | small table beneath one governing child | simultaneous row/column scanning is necessary; apply MarkNote's table-size gate |
 | process, branching decision, or many-to-one relationship | small Mermaid beneath one governing child | every node and edge is source-grounded and the complete graph tests one axis |
 | source-grounded relation to a sibling card or easily confused doctrine | short nested Callout, or one italic connection line | choose a semantically accurate Callout type; place it after the direct answer; name the linked target and one contrast, dependency, sequence, exception, or shared-rule axis |
 
-Do not distribute formats for variety. Repeated unordered lists are correct when the material is a set of peers; ordered lists, Callouts, tables, and Mermaid earn their use only through the relationship above.
+Run a **Callout selection pass** after choosing the primary carrier. For a rich deck, at least one of every six accepted cards must contain a substantive Callout, either as the card root or nested in a list back. Satisfy that coverage with real exception, warning, conclusion, comparison, or memory-link material; do not wrap ordinary peer facts merely to reach the count. Repeated unordered lists remain correct when the material is only a set of peers, while ordered lists, tables, and Mermaid continue to follow their relationship gates.
 
 **Ordered-list hard gate:** When the front contains `步骤`, `顺序`, `依次`, `阶段`, `流程`, `先后`, or an explicit numbered step, inspect the source relationship before rendering. If the answer is a procedure, chronology, priority, or source-significant sequence, render its direct children as `1.`, `2.`, `3.` in the source order; nest explanatory details beneath the relevant numbered step. Do not use peer `-` bullets for a sequence merely because the source was parsed as bullets. The validator emits `E078` when a sequence front has neither ordered children nor a genuinely necessary table/Mermaid carrier.
 
@@ -88,7 +90,7 @@ Copy a suitable source Mermaid when it already expresses the same card-sized rel
 
 ### Callout or blockquote root
 
-Use the normative Callout and blockquote examples in [card-design.md](card-design.md). Preserve a source Callout's category and title when its warning, exception, or trap is the retrieval role. A plain rule stays a list card even when emphasis would look attractive.
+Use the normative Callout and blockquote examples in [card-design.md](card-design.md). Preserve a source Callout's category when its warning, exception, or trap is the retrieval role. Use a Callout root when that role is the whole scoring axis. When a list card has a direct answer plus a local exception, decisive boundary, conclusion peak, or source-grounded link, place a short nested Callout after the direct answer instead of leaving the entire back as undifferentiated bullets. Every Callout title is plain text. A root title is the complete question; a nested title names the exact semantic peak.
 
 ### Card-back memory link
 
@@ -113,6 +115,7 @@ Keep the nested Callout indented by four spaces so it remains inside the list ca
 - Wording, styles, order, container meaning, table mappings, and Mermaid edges are inherited or have an exact source mapping.
 - The card still has one scoring axis; richer structure does not justify a summary card.
 - Each expected-answer statement has one primary carrier; carrier-only duplicates are rejected.
+- Rich-deck Callout coverage reaches at least `ceil(accepted cards / 6)`, and every explicit exception, trap, confusion, risk, or memory-link cue is routed through a root or nested Callout.
 - Ordered steps remain ordered, dependent branches remain nested, and peer sets remain peers.
 - A table or Mermaid is fully contained beneath one governing answer child; a Callout or blockquote is the root container.
 - An optional memory link follows the direct answer inside the same root, names a specific linked target and one relation axis, and does not duplicate a sibling card's full answer.

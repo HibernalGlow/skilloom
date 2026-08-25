@@ -4,14 +4,14 @@ Read this reference only in dedicated-card mode when the user asks for a Markdow
 
 ## Resolve the destination
 
-1. Identify the exact source note path and its first meaningful Markdown heading. Treat the source note's basename, numbering, punctuation, and heading wording as authoritative.
+1. Identify the exact source note path and basename. Treat the source basename's numbering, punctuation, and wording as authoritative for both the output filename and root H1; source headings remain authorities only for section headings below H1.
 2. Search the same subject/teacher or chapter family for existing flashcard directories or files. Prefer an existing sibling directory whose name clearly denotes flashcards, such as `30-闪卡`, `闪卡`, `flashcards`, or the repository's established equivalent. Completion criterion: the destination directory is recorded and contains at least one comparable existing flashcard file, or the search result is recorded as empty.
 3. Place a new flashcard file in that dedicated destination directory, never beside the source note inside `20-整理` or another ordinary-note directory. If no dedicated directory exists, create one as a sibling of the source-note directory using the surrounding numbering convention; default to `30-闪卡` only when the source family uses numbered processing stages. Completion criterion: source and destination have different parent directories, and the destination name is traceable to the discovered convention.
 
 ## Derive the name and headings
 
 - Start the output filename from the source basename, preserving its number, title, punctuation, and extension semantics. Add one role suffix only when needed to distinguish the artifact: `01-考点23-立法法.md` -> `01-考点23-立法法-闪卡.md`. If the source basename already contains `闪卡`, `flashcard`, or an established equivalent, do not add a second suffix.
-- Use the source note's first meaningful heading text as the output's H1, after removing only the Markdown heading marker and an attached IAL, then prefix the exact role marker `⚡` with no intervening space: `考点23 立法法` becomes `⚡考点23 立法法`. Preserve the source wording, numbering, and punctuation after that marker; do not rename or translate the subject. The first visible character must distinguish a flashcard tab from its ordinary source note in SiYuan's truncated tab labels. If the source heading already starts with `⚡`, keep exactly one marker.
+- Derive the root H1 from the completed output filename: remove only the extension and one terminal flashcard suffix, then prefix the exact role marker `⚡` with no intervening space. For `03 民事权利能力、民事行为能力与自然人的监护-闪卡.md`, emit exactly `# ⚡03 民事权利能力、民事行为能力与自然人的监护`. Preserve the Arabic sort prefix, spaces, punctuation, and wording byte-for-byte. Keep this H1 plain: no bold, color, background, inline IAL, tag, or suffix belongs in it.
 - Preserve source section headings and numbering in the card file when headings are needed for grouping. A card container's explicit boundary and topic IAL remain authoritative; headings never implicitly define card answers.
 - If the source has no meaningful heading, derive both the filename stem and the H1 from the source basename after removing only the extension and one existing flashcard role suffix, then prefix `⚡` to the H1. Record `fallback-title` in the delivery report.
 
@@ -31,10 +31,10 @@ Destination:
 
 `.../2026-马峰/30-闪卡/01-考点23-立法法-闪卡.md`
 
-First heading in both files:
+Flashcard H1:
 
 ```markdown
-# ⚡考点23 立法法
+# ⚡01-考点23-立法法
 ```
 
-The source note's original headings may be reused below that H1. The leading `⚡` is the only generated title decoration. Keep the filename suffix `-闪卡.md`; the filename serves directory/search identification while the H1 prefix serves truncated SiYuan tabs.
+The source note's original headings may be reused below that H1. The leading `⚡` is the only generated title decoration. Keep the filename suffix `-闪卡.md`; the filename supplies the sortable H1 identity while the H1 prefix distinguishes truncated SiYuan tabs.

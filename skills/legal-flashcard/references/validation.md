@@ -44,6 +44,8 @@ When `--rich-style` is supplied for a medium/complex dedicated deck, these GoldQ
 - `E081`: one foreground color exceeds the deck balance ceiling `max(30%, 2 / distinct foreground colors)` by anchor count; treat color-table labels as soft cues, rebalance the local role palette, and do not insert token colors that do not carry a semantic role.
 - `E082`: a `联系记忆`/`关联记忆`/`对比记忆` Callout is detached from the list-card back or appears before the direct answer; indent it inside the root and place it after the answer.
 - `E083`: a memory-link Callout title is styled, lacks a colon plus specific linked target, or uses a generic target such as `相关考点`; keep the title plain and name what to compare or connect.
+- `E084`: a rich deck of at least four cards has substantive Callouts in fewer than `ceil(accepted cards / 6)` card units; root and nested Callouts both count when they carry a real semantic peak.
+- `E085`: a rich card explicitly contains an exception, trap, confusion, risk, or memory-link cue but has no root or nested Callout.
 - `E078`: a front asks for a sequence, procedure, stage, or order but the direct answer children are unordered peer bullets without a necessary table/Mermaid carrier.
 - `E079`: the front reproduces a source exercise or case question; extract a neutral reusable rule or reject the case candidate.
 
@@ -68,6 +70,7 @@ When `--rich-style` is supplied for a medium/complex dedicated deck, these GoldQ
 - `W122`: a sufficiently large deck uses fewer than three priority levels; audit whether the source really lacks meaningful separation.
 - `W123`: a deck of at least eight cards has no P4 cards; check whether valid low-yield material was promoted to P2/P3 or correctly rejected. An evidence-backed absence may remain.
 - `W124`: one foreground color supplies more than 25% of the deck's foreground anchors (while still below `E081`); the palette is becoming a visual default. Reassign grounded semantic roles or add a source-grounded second dimension before delivery.
+- `W125`: a rich card contains a prohibition, invalidity, limiting, or principle cue without a Callout; review whether a nested Callout would make that boundary easier to retrieve.
 
 Completion criterion: every warning has an explicit keep, revise, split, or reject disposition, and running the checker on a warning-only file exits `0` while any `E` finding exits nonzero.
 
