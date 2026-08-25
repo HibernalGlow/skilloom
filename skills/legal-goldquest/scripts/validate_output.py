@@ -979,6 +979,9 @@ def validate_goldquest(text: str) -> list[Finding]:
         first_question = h5_indices[0]
         root_provider = next((index for index in provider_indices if index < first_question), None)
         if root_provider is not None:
+            root_h1 = next((line for line in lines[:root_provider] if re.match(r"^#\s+", line)), "")
+            if not re.match(r"^#\s+\d+\s+\S", root_h1):
+                findings.append(Finding("W", "638", 1, "Multi-question GoldQuest topic H1 should start with a sortable Arabic-number prefix, for example '# 06 专题六 共同诉讼'."))
             if not summary_indices:
                 findings.append(Finding("E", "634", first_question + 1, "Multi-question GoldQuest topic documents require '## 📌 考点必背' before the first question."))
             else:
