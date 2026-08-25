@@ -320,6 +320,7 @@ description: 将法考教材和学习笔记整理为结构化思源笔记，保�
          - **主体区分**：`**甲**{: style="color: var(--b3-font-color10);"}`、`**乙**{: style="color: var(--b3-font-color8);"}`、`**丙**{: style="color: var(--b3-font-color11);"}`
          - **结果对比**：`**有效**{: style="color: var(--b3-font-color8);"}` vs `**无效**{: style="color: var(--b3-font-color13);"}`
          - **概念标记**：`**善意取得**{: style="color: var(--b3-font-color10);"}`（定义性概念用蓝色）
+         - 以上颜色只提供示例，不构成硬绑定；当同一卡片或同一组概念出现单色堆积时，优先按实际法律关系恢复前景色多样性。
 
     三、任务流程
 
