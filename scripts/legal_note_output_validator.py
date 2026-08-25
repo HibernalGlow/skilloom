@@ -16,6 +16,9 @@ from legal_goldquest_semantic_structure_gate import validate_semantic_structure,
 from legal_marknote_prose_gate import validate_marknote_prose_structure  # noqa: E402
 
 ALLOWED_CALLOUTS = {"TIP", "NOTE", "IMPORTANT", "CAUTION", "WARNING", "QUESTION"}
+GENERIC_QUESTION_TITLE_PATTERN = re.compile(
+    r"^✏️\s+(?:习题|试一试|练习题|真题|题目)(?:\s*[一二三四五六七八九十\d]+)?$"
+)
 STATUS_COLORS = {5, 8, 12, 13}
 ANSWER_STATUS_TERMS = ("答案", "正确", "错误", "成立", "不成立", "有效", "无效", "应当", "不得", "排除")
 HIGHLIGHT_PATTERN = re.compile(r"==(.+?)==")
@@ -283,6 +286,10 @@ def validate_callouts_and_fences(text: str) -> list[Finding]:
             kind = callout.group(1)
             if kind != kind.upper() or kind not in ALLOWED_CALLOUTS:
                 findings.append(Finding("E", "303", number, f"Callout type must be one of: {', '.join(sorted(ALLOWED_CALLOUTS))}."))
+            if kind == "QUESTION":
+                title = line[callout.end():].strip()
+                if not title.startswith("✏️ ") or not title.removeprefix("✏️ ").strip() or GENERIC_QUESTION_TITLE_PATTERN.fullmatch(title):
+                    findings.append(Finding("E", "307", number, "QUESTION callout title must start with '✏️ ' and name a specific topic or tested rule."))
             cursor = number
             while cursor < len(lines) and lines[cursor].strip():
                 if not re.match(r"^\s*>($|\s)", lines[cursor]):
@@ -949,6 +956,40 @@ def validate_goldquest(text: str) -> list[Finding]:
         findings.append(Finding("E", "603", task_options[0], "Question options require a separate '###### 答案与解析' section."))
 
     h5_indices = [index for index, line in enumerate(lines) if re.match(r"^#####\s+", line) and not re.match(r"^######", line)]
+    provider_indices = [
+        index
+        for index, line in enumerate(lines)
+        if "custom-qb-note-topic-id" in ial_attributes(line)
+    ]
+    summary_indices = [
+        index
+        for index, line in enumerate(lines)
+        if re.match(r"^##\s+📌\s*考点必背\s*$", line)
+    ]
+    if len(h5_indices) >= 2 and provider_indices:
+        first_question = h5_indices[0]
+        root_provider = next((index for index in provider_indices if index < first_question), None)
+        if root_provider is not None:
+            root_h1 = next((line for line in lines[:root_provider] if re.match(r"^#\s+", line)), "")
+            if not re.match(r"^#\s+\d+\s+\S", root_h1):
+                findings.append(Finding("W", "638", 1, "Multi-question GoldQuest topic H1 should start with a sortable Arabic-number prefix, for example '# 06 专题六 共同诉讼'."))
+            if not summary_indices:
+                findings.append(Finding("E", "634", first_question + 1, "Multi-question GoldQuest topic documents require '## 📌 考点必背' before the first question."))
+            else:
+                if len(summary_indices) > 1:
+                    findings.append(Finding("E", "637", summary_indices[1] + 1, "GoldQuest topic documents must contain exactly one '## 📌 考点必背' section."))
+                summary_index = summary_indices[0]
+                if not root_provider < summary_index < first_question:
+                    findings.append(Finding("E", "635", summary_index + 1, "'## 📌 考点必背' must follow the root provider IAL and precede the first H5 question."))
+                else:
+                    summary_text = "\n".join(lines[summary_index + 1:first_question])
+                    forbidden_summary_fields = re.findall(
+                        r"custom-(?:qb-(?:id|answer|section|question-topic-ids)|dm-[\w-]+|riff-[\w-]+)",
+                        summary_text,
+                    )
+                    if forbidden_summary_fields:
+                        fields = sorted(set(forbidden_summary_fields))
+                        findings.append(Finding("E", "636", summary_index + 1, f"Topic summary must remain navigation prose and cannot contain question, answer, flashcard, or runtime fields: {fields}."))
     for index in h5_indices:
         end = next((candidate for candidate in range(index + 1, len(lines)) if re.match(r"^#{1,5}\s+", lines[candidate])), len(lines))
         answer_heading = next((candidate for candidate in range(index + 1, end) if re.match(r"^######\s+答案与解析\s*$", lines[candidate])), None)
