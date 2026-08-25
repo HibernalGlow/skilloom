@@ -252,14 +252,16 @@ def _validate_memory_links(card_body: str, renderer: str | None, card_line: int)
     lines = card_body.splitlines()
     answer_lines = _basic_answer_lines(card_body, renderer)
     first_answer_index = next((index for index, line in enumerate(lines) if line in answer_lines), None)
+    answer_indents = _list_item_indents(card_body)
+    answer_indent = min(answer_indents) if answer_indents else None
     for index, line in enumerate(lines):
         if not MEMORY_LINK_CUE_RE.search(line) or "[!" not in line:
             continue
         match = MEMORY_LINK_TITLE_RE.match(line)
         target = match.group("target").strip() if match and match.group("target") else ""
         indent = len(match.group("indent")) if match else 0
-        if renderer != "list" or indent < 4 or first_answer_index is None or index <= first_answer_index:
-            findings.append(Finding(card_line, "E082", "A memory-link Callout must be indented inside a list-card back and follow the direct answer."))
+        if renderer != "list" or answer_indent is None or indent <= answer_indent or first_answer_index is None or index <= first_answer_index:
+            findings.append(Finding(card_line, "E082", "A memory-link Callout must be indented into the answer sub-list (deeper than the direct answer items) and follow the direct answer."))
         generic_target = bool(
             re.fullmatch(r"(?:与)?(?:其他|相关|相近)(?:内容|制度|考点|卡片)(?:比较|对照|联系)?", target)
             or target == "本节内容"
@@ -280,6 +282,34 @@ def _validate_memory_links(card_body: str, renderer: str | None, card_line: int)
         if len(block_visible) > 100 or block_items > 2:
             findings.append(Finding(card_line, "W118", "Memory-link block is too large for post-answer context; keep one relation axis and leave the linked answer in its own card."))
     return findings
+
+
+def _back_callout_violations(card_body: str, renderer: str | None) -> list[int]:
+    """Return 1-based body line numbers of back Callouts not nested into the answer sub-list.
+
+    A Callout mounted inside a list card belongs to the card back only when it is
+    indented deeper than the direct answer items. A Callout at answer-item depth
+    renders as a sibling of the answer list and breaks the card's retrieval unit;
+    write it nested into the sub-list or as a plain sub-list item instead.
+    """
+    if renderer not in {"list", "mark"}:
+        return []
+    indents = _list_item_indents(card_body)
+    if not indents:
+        return []
+    answer_indent = min(indents)
+    violations: list[int] = []
+    in_fence = False
+    for index, line in enumerate(card_body.splitlines(), start=1):
+        if re.match(r"^\s*(?:>\s*)?```", line):
+            in_fence = not in_fence
+            continue
+        if in_fence or MEMORY_LINK_CUE_RE.search(line) or "[!" not in line:
+            continue
+        match = re.match(r"^(?P<indent> *)(?:>\s+)?\[![A-Za-z][A-Za-z0-9_-]*\]", line)
+        if match and len(match.group("indent")) <= answer_indent:
+            violations.append(index)
+    return violations
 
 
 def _obviously_complex_flat_back(front: str, answer_lines: list[str], has_nested_items: bool) -> bool:
@@ -936,6 +966,9 @@ def validate(
                     findings.append(Finding(start + 1, "E045", f"Cloze or mnemonic highlight is absent from the source provider range: {highlight}"))
         card_styles = set(STYLE_ANCHOR_RE.findall(card_body))
         findings.extend(_validate_memory_links(card_body, renderer, start + 1))
+        for body_line in _back_callout_violations(card_body, renderer):
+            violation_line = root_index + body_line if root_index is not None else start + 1
+            findings.append(Finding(violation_line, "E086", "A Callout inside a list card must be indented into the answer sub-list (deeper than the direct answer items) or written as a normal sub-list item."))
         style_signatures, has_foreground, has_background = _style_profile(card_body, kind)
         deck_card_styles.append(style_signatures)
         deck_card_foregrounds.append(_foreground_counter(card_body))
