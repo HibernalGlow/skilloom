@@ -43,7 +43,7 @@ Completion criterion: for every accepted card, write one short expected-answer s
 | `cloze` | Hiding one short term, date, actor, threshold, or contrast is more natural than asking a question. | `mark` | Root is a complete source-grounded statement with one short `==target==`; add context only when needed to disambiguate. |
 | `mnemonic` | The source supplies a口诀, compact sequence, or auditable character/segment mapping. | `list` | Root names the exact recall subject and highlights the complete source-written cue; children decode its segments. It is not a fake question. |
 
-Use `blockquote` only when the quotation itself is the retrieval unit. Use `callout` only for an inherent warning, exception, or trap. Changing renderer never changes `custom-dm-card-kind`.
+Use `blockquote` only when the quotation itself is the retrieval unit. Use a `callout` root when an inherent warning, exception, trap, or decisive boundary is the whole retrieval unit; otherwise keep the list root and place a short nested Callout around the local exception, conclusion peak, or memory relation. Changing renderer never changes `custom-dm-card-kind`.
 
 ## Normative schema 1 examples
 
@@ -92,14 +92,14 @@ Every highlighted cue and decoded segment must occur verbatim in the source prov
 ```
 
 ```markdown
-> [!WARNING] 土地权利转让
-> 土地所有权能否转让？ #法考/理论法/宪法/土地权利转让# #闪卡/优先级/P1#
+> [!WARNING] 土地所有权能否转让？
+> #法考/理论法/宪法/土地权利转让# #闪卡/优先级/P1#
 >
 > - 土地**所有权不得转让**{: style="color: var(--b3-font-color10);"}；可以转让的是**土地使用权**{: style="background-color: var(--b3-font-background11);"}。
 {: custom-dm-source-key="beisong-2026-mafeng-kd31-jiben-jingji-zhidu" custom-dm-card-id="fc-theory-xianfa-land-transfer-warning-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="callout" custom-qb-note-topic-id="theory-law-economic-system-prediction-quiz-land-transfer"}
 ```
 
-Use these renderers only when losing the quotation or warning role would weaken retrieval. `list` remains the default.
+Use these root renderers when losing the quotation, warning, exception, trap, or decisive-boundary role would weaken retrieval. `list` remains the default root, but its back should use a nested Callout when one local semantic peak deserves isolation.
 
 ## Deduplicate and route variants
 

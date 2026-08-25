@@ -26,9 +26,8 @@ def expected_stem(source: Path) -> str:
     return stem if FLASH_MARKER_RE.search(stem) else f"{stem}-闪卡"
 
 
-def expected_title(source: Path, source_heading: tuple[int, str] | None) -> str:
-    title = source_heading[1] if source_heading is not None else source.stem
-    title = FLASH_MARKER_RE.sub("", title).strip(" -·") if source_heading is None else title
+def output_title_stem(output: Path) -> str:
+    title = re.sub(r"(?:[- ·]?闪卡|[- ]?flash[- ]?cards?)$", "", output.stem, flags=re.IGNORECASE)
     title = title.removeprefix(TITLE_MARKER).lstrip()
     return f"{TITLE_MARKER}{title}"
 
@@ -49,7 +48,7 @@ def validate(output: Path, source: Path) -> list[str]:
         code = "N004 fallback-title" if source_heading is None else "N005 title-mismatch"
         findings.append(f"{code}: output must start with a source-derived H1 prefixed by {TITLE_MARKER!r}.")
     else:
-        title = expected_title(source, source_heading)
+        title = output_title_stem(output)
         if output_heading.group("title").strip() != title:
             findings.append(
                 f"N005 title-mismatch: expected H1 {title!r}, observed {output_heading.group('title').strip()!r}."
