@@ -448,6 +448,17 @@ source:
 """
         self.assertNotIn("E086", {finding.code for finding in validate(card)})
 
+    def test_rejects_leftover_card_container_inside_card_body(self):
+        nested = VALID.replace(
+            '\n{: custom-dm-source-key=',
+            '\n    {: custom-dm-card-id="fc-old-card-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list"}\n'
+            '{: custom-dm-source-key=',
+        )
+        self.assertIn("E087", {finding.code for finding in validate(nested)})
+
+    def test_accepts_card_body_without_nested_card_markers(self):
+        self.assertNotIn("E087", {finding.code for finding in validate(VALID)})
+
     def test_rich_style_surfaces_sparse_complex_card_without_penalizing_short_definition(self):
         short_codes = {finding.code for finding in validate(VALID, rich_style=True)}
         self.assertNotIn("W110", short_codes)

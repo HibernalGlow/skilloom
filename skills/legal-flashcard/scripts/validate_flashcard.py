@@ -312,6 +312,37 @@ def _back_callout_violations(card_body: str, renderer: str | None) -> list[int]:
     return violations
 
 
+def _leftover_card_container_lines(lines: list[str], cards: list[tuple[int, int, dict[str, str], str, list[str]]]) -> list[int]:
+    """Return 1-based lines of custom-dm-* card IALs nested inside another card's body.
+
+    A list/mark card's body ends at the first `{:` line found above its IAL. When
+    that line is itself a card container (`custom-dm-*`), the source range had
+    already been cardified; the generator must strip the leftover attribute line
+    completely instead of keeping an already-cardified block.
+    """
+    markers: list[int] = []
+    for start, _end, attrs, _raw, _keys in cards:
+        if not any(key.startswith("custom-dm-") for key in attrs):
+            continue
+        if attrs.get("custom-dm-card-renderer") not in {"list", "mark"}:
+            continue
+        cursor = start - 1
+        while cursor >= 0:
+            line = lines[cursor]
+            stripped = line.lstrip()
+            if stripped.startswith("{:") and "custom-dm-" in line:
+                markers.append(cursor + 1)
+                break
+            if stripped.startswith("{:") or re.match(r"^#{1,6}\s+", line):
+                break
+            if re.match(r"^-\s+", line):
+                break
+            if line.strip() and not line[0].isspace():
+                break
+            cursor -= 1
+    return sorted(set(markers))
+
+
 def _obviously_complex_flat_back(front: str, answer_lines: list[str], has_nested_items: bool) -> bool:
     if has_nested_items or len(answer_lines) < 3:
         return False
@@ -1029,6 +1060,8 @@ def validate(
             for visible, variants in sorted(styles_by_text.items()):
                 if visible in card_visible and not card_styles.intersection(variants):
                     findings.append(Finding(start + 1, "E041", f"Source-styled text lost its provider-scoped style in the card: {visible}"))
+    for leftover_line in _leftover_card_container_lines(lines, cards):
+        findings.append(Finding(leftover_line, "E087", "Card body contains a leftover card container; strip the nested custom-dm-* attribute line completely instead of keeping an already-cardified block."))
     for line, source_key, card_id, answer_facts in basic_records:
         if len(answer_facts) < 2:
             continue
