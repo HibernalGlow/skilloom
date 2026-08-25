@@ -29,6 +29,12 @@ LOCAL_CUE_PATTERNS = (
     re.compile(r'\*\*[^*\n]+\*\*\{:\s*style="[^"]*b3-font-(?:color|background)\d+'),
 )
 CHILD_REASON_PATTERN = re.compile(r"^(?P<indent>\s*)(?:[-*+]|\d+[.)])\s+(?P<body>\S.+?)\s*$")
+DEFERRED_REASON_PATTERN = re.compile(r"下文|后文|综合推理|完整推理|推理过程")
+VERDICT_BOILERPLATE_PATTERN = re.compile(
+    r"(?:破绽|依据|破题点|理由|结论|故|因此|所以|综上所述|选项|本项|该项|说法|"
+    r"[A-ZＡ-Ｚ]项?|应当|应|正确答案|答案|正确|错误|排除|当选|不当选|选|不选|为|是|均|项|"
+    r"[A-ZＡ-Ｚ]+)+"
+)
 
 
 @dataclass(frozen=True)
@@ -69,7 +75,11 @@ def _has_immediate_reason(lines: list[str], offset: int, option_indent: str) -> 
         match = CHILD_REASON_PATTERN.match(candidate)
         if not match or len(match.group("indent").expandtabs(4)) < base_indent + 4:
             return False
-        return bool(_normalize_option_text(match.group("body")))
+        reason = _normalize_option_text(match.group("body"))
+        if not reason or DEFERRED_REASON_PATTERN.search(reason):
+            return False
+        substantive = VERDICT_BOILERPLATE_PATTERN.sub("", reason)
+        return len(substantive) >= 4
     return False
 
 

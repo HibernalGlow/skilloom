@@ -26,6 +26,22 @@ def codes(text: str) -> set[str]:
 
 
 class GoldquestDensityValidationTests(unittest.TestCase):
+    def test_rejects_verdict_only_option_reasons(self) -> None:
+        question_lines = [
+            "    - [ ] A. 村委会应当返还所得收益",
+            "    - [ ] B. 村委会无需承担责任",
+        ]
+        analysis_lines = [
+            "- ❌ A. 村委会~~应当返还所得收益~~",
+            "    - **破绽**：A项应排除，**不当选**。",
+            "- ✅ B. 村委会==无需承担责任==",
+            "    - <u>依据</u>：由综合推理，本项**当选**。",
+        ]
+
+        result = MODULE.validate_option_analysis(question_lines, analysis_lines, 1, "B")
+
+        self.assertEqual(["632", "632"], [finding.code for finding in result.findings])
+
     def test_requires_topic_summary_for_multi_question_provider_document(self) -> None:
         text = """# 专题
 {: custom-qb-note-topic-id="civil-procedure-topic"}

@@ -12,12 +12,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = (
     ROOT / "scripts" / "legal_goldquest_option_gate.py",
+    ROOT / "scripts" / "legal_goldquest_semantic_structure_gate.py",
     ROOT / "scripts" / "legal_marknote_prose_gate.py",
     ROOT / "scripts" / "legal_note_output_validator.py",
     ROOT / "skills" / "legal-marknote" / "scripts" / "legal_goldquest_option_gate.py",
+    ROOT / "skills" / "legal-marknote" / "scripts" / "legal_goldquest_semantic_structure_gate.py",
     ROOT / "skills" / "legal-marknote" / "scripts" / "legal_marknote_prose_gate.py",
     ROOT / "skills" / "legal-marknote" / "scripts" / "validate_output.py",
     ROOT / "skills" / "legal-goldquest" / "scripts" / "legal_goldquest_option_gate.py",
+    ROOT / "skills" / "legal-goldquest" / "scripts" / "legal_goldquest_semantic_structure_gate.py",
     ROOT / "skills" / "legal-goldquest" / "scripts" / "legal_marknote_prose_gate.py",
     ROOT / "skills" / "legal-goldquest" / "scripts" / "validate_output.py",
     ROOT / "skills" / "legal-question-bank" / "scripts" / "validate_question_bank.py",
@@ -30,6 +33,7 @@ SCRIPTS = (
 TEST_SCRIPTS = (
     ROOT / "skills" / "legal-marknote" / "scripts" / "test_validate_output.py",
     ROOT / "skills" / "legal-goldquest" / "scripts" / "test_validate_output.py",
+    ROOT / "skills" / "legal-goldquest" / "scripts" / "test_legal_goldquest_semantic_structure_gate.py",
     ROOT / "skills" / "legal-question-bank" / "scripts" / "test_validate_question_bank.py",
     ROOT / "skills" / "legal-flashcard" / "scripts" / "test_validate_flashcard.py",
     ROOT / "skills" / "legal-flashcard" / "scripts" / "test_validate_naming.py",
