@@ -1,10 +1,10 @@
 # ⚡考点13 法律责任的竞合
 
 - **法律责任的竞合**{: style="color: var(--b3-font-color10);"}产生机制是什么？ #法考/理论法/法理学/法律责任竞合/产生机制# #闪卡/优先级/P2#
-    - **机制**{: style="color: var(--b3-font-color10);"}：不同的法律**规范**{: style="color: var(--b3-font-color10);"}从不同角度对**社会关系**{: style="color: var(--b3-font-color10);"}加以调整。
-        - 由于法律**规范**{: style="color: var(--b3-font-color10);"}的**抽象性**以及**社会关系**{: style="color: var(--b3-font-color10);"}的**复杂性**。
-        - 不同法律规范调整社会关系时可能产生**重合**{: style="color: var(--b3-font-color12);"}。
-            - 从而发生法律**责任**{: style="color: var(--b3-font-color10);"}间的**竞合**{: style="color: var(--b3-font-color10);"}。
+    - **机制**{: style="color: var(--b3-font-color12);"}：不同的法律**规范**{: style="color: var(--b3-font-color2);"}从不同角度对**社会关系**{: style="color: var(--b3-font-color3);"}加以调整。
+        - 由于法律**规范**{: style="color: var(--b3-font-color2);"}的**抽象性**以及**社会关系**{: style="color: var(--b3-font-color3);"}的**复杂性**。
+        - 不同法律规范调整社会关系时可能产生**重合**{: style="color: var(--b3-font-color8);"}。
+            - 从而发生法律**责任**{: style="color: var(--b3-font-color13);"}间的**竞合**{: style="background-color: var(--b3-font-background13);"}。
 {: custom-dm-source-key="beisong-2026-mafeng-kd13-falv-zeren-jinghe" custom-dm-card-id="fc-theory-liability-concurrence-mechanism-recall-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="theory-law-liability-concurrence-mechanism"}
 
 ```yaml

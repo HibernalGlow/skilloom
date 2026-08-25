@@ -525,13 +525,21 @@ def _validate_rich_deck(
         dominant_cards = coverage[dominant_color]
         total_occurrences = sum(foreground_occurrences.values())
         dominant_share = dominant_occurrences / total_occurrences if total_occurrences else 0.0
-        balance_ceiling = max(0.40, 2 / len(foreground_occurrences))
+        balance_ceiling = max(0.30, 2 / len(foreground_occurrences))
         if dominant_share > balance_ceiling:
             findings.append(
                 Finding(
                     1,
                     "E081",
                     f"Foreground palette is unbalanced: {dominant_color} covers {dominant_cards}/{len(card_foregrounds)} cards and {dominant_share:.0%} of foreground anchors (limit {balance_ceiling:.0%}); treat generic color-table roles as soft cues and distribute local semantic roles across the approved palette.",
+                )
+            )
+        elif dominant_share > 0.25:
+            findings.append(
+                Finding(
+                    1,
+                    "W124",
+                    f"Foreground palette is becoming visually dominant: {dominant_color} supplies {dominant_share:.0%} of foreground anchors; diversify grounded local roles before this crosses the {balance_ceiling:.0%} hard ceiling.",
                 )
             )
     return findings
