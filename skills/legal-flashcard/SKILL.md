@@ -41,6 +41,7 @@ When the user asks to paste or import one or many Markdown files into a SiYuan d
 - Rich visual calibration: read [rich-visual-mode.md](examples/rich-visual-mode.md) when drafting or reviewing a medium/complex dedicated deck; it is a passing GoldQuest-level shape, not a template to copy mechanically.
 - Question-side Mermaid: read [question-side-mermaid.md](references/question-side-mermaid.md) only when the user requests a front diagram or a complex process, branch, role relation, or many-to-one mapping materially benefits from a retrieval skeleton.
 - Portable fields, IAL boundary, and schema routing: [protocol-contract.md](references/protocol-contract.md)
+- Source-relative P1-P4 assignment and distribution audit: [priority-calibration.md](references/priority-calibration.md)
 - Validation findings and rejection taxonomy: [validation.md](references/validation.md)
 - Dedicated-card MarkNote adapter: [marknote-integration.md](references/marknote-integration.md)
 - Dedicated source-style map and byte-for-byte inheritance: [style-inheritance.md](references/style-inheritance.md)

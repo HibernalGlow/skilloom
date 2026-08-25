@@ -637,6 +637,21 @@ def _source_scope_topic(topic_id: str, known_topics: set[str]) -> str | None:
     return max(parents, key=len) if parents else None
 
 
+def _priority_distribution_findings(priorities: list[str], line: int = 1) -> list[Finding]:
+    count = len(priorities)
+    if count < 6:
+        return []
+    findings: list[Finding] = []
+    histogram = Counter(priorities)
+    if histogram["P2"] / count >= 0.5:
+        findings.append(Finding(line, "W121", f"P2 dominates {histogram['P2']}/{count} cards; recompare priorities against the source instead of using P2 as a fallback."))
+    if count >= 8 and len(histogram) < 3:
+        findings.append(Finding(line, "W122", f"This {count}-card deck uses only {len(histogram)} priority level(s); audit source-relative separation without mechanically filling tiers."))
+    if count >= 8 and histogram["P4"] == 0:
+        findings.append(Finding(line, "W123", "This large deck has no P4 cards; verify whether low-yield retained material was promoted or whether the source genuinely has no P4 tier."))
+    return findings
+
+
 def validate(
     text: str,
     *,
@@ -654,6 +669,7 @@ def validate(
     accepted_card_lines: list[int] = []
     basic_records: list[tuple[int, str, str, set[str]]] = []
     deck_card_styles: list[set[tuple[tuple[str, str], ...]]] = []
+    accepted_priorities: list[str] = []
     deck_card_foregrounds: list[Counter[str]] = []
     source_global_styles: set[str] = set()
     source_topic_styles: dict[str, set[str]] = {}
@@ -725,6 +741,8 @@ def validate(
             findings.append(Finding(start + 1, "E035", "Every accepted card needs exactly one #闪卡/优先级/P1# through P4 tag."))
         elif len(priorities) > 1:
             findings.append(Finding(start + 1, "E035", "Every accepted card needs exactly one flashcard priority tag."))
+        elif priorities[0] in {"P1", "P2", "P3", "P4"}:
+            accepted_priorities.append(priorities[0])
         if re.search(r"#闪卡/(?!优先级/)[^#\s]+#", card_body):
             findings.append(Finding(start + 1, "E034", "Flashcard tags must use the #闪卡/优先级/P1# through P4 namespace."))
         if renderer in {"list", "mark"} and not re.match(r"^-\s+", root):
@@ -921,6 +939,7 @@ def validate(
     for topic_id, locations in topic_lines.items():
         if len(locations) > max_cards_per_topic:
             findings.append(Finding(locations[0], "E013", f"Topic ID {topic_id!r} is reused by {len(locations)} cards; confirm a narrower atomic topic mapping or raise the reviewed limit."))
+    findings.extend(_priority_distribution_findings(accepted_priorities, accepted_card_lines[0] if accepted_card_lines else 1))
     if rich_style:
         findings.extend(_validate_rich_deck(text, deck_card_styles, deck_card_foregrounds, len(accepted_card_lines)))
     if require_report:
@@ -947,12 +966,16 @@ def validate(
 
 def validate_ordinary(text: str) -> list[Finding]:
     findings: list[Finding] = []
+    priorities: list[str] = []
     for number, line in enumerate(text.splitlines(), start=1):
         if re.search(r"custom-dm-[\w-]+\s*=|custom-riff-decks\s*=|\b(?:due|interval|suspend|bury)\s*=", line, re.IGNORECASE):
             findings.append(Finding(number, "O001", "Ordinary mode contains formal card or runtime metadata."))
         for tag in re.findall(r"#闪卡/优先级/([^#]+)#", line):
             if tag not in {"P1", "P2", "P3", "P4"}:
                 findings.append(Finding(number, "O002", "Flashcard priority tag must be P1, P2, P3, or P4."))
+            else:
+                priorities.append(tag)
+    findings.extend(_priority_distribution_findings(priorities))
     return findings
 
 
