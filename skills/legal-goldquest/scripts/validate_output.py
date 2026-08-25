@@ -965,6 +965,37 @@ def validate_goldquest(text: str) -> list[Finding]:
         findings.append(Finding("E", "603", task_options[0], "Question options require a separate '###### 答案与解析' section."))
 
     h5_indices = [index for index, line in enumerate(lines) if re.match(r"^#####\s+", line) and not re.match(r"^######", line)]
+    provider_indices = [
+        index
+        for index, line in enumerate(lines)
+        if "custom-qb-note-topic-id" in ial_attributes(line)
+    ]
+    summary_indices = [
+        index
+        for index, line in enumerate(lines)
+        if re.match(r"^##\s+📌\s*考点必背\s*$", line)
+    ]
+    if len(h5_indices) >= 2 and provider_indices:
+        first_question = h5_indices[0]
+        root_provider = next((index for index in provider_indices if index < first_question), None)
+        if root_provider is not None:
+            if not summary_indices:
+                findings.append(Finding("E", "634", first_question + 1, "Multi-question GoldQuest topic documents require '## 📌 考点必背' before the first question."))
+            else:
+                if len(summary_indices) > 1:
+                    findings.append(Finding("E", "637", summary_indices[1] + 1, "GoldQuest topic documents must contain exactly one '## 📌 考点必背' section."))
+                summary_index = summary_indices[0]
+                if not root_provider < summary_index < first_question:
+                    findings.append(Finding("E", "635", summary_index + 1, "'## 📌 考点必背' must follow the root provider IAL and precede the first H5 question."))
+                else:
+                    summary_text = "\n".join(lines[summary_index + 1:first_question])
+                    forbidden_summary_fields = re.findall(
+                        r"custom-(?:qb-(?:id|answer|section|question-topic-ids)|dm-[\w-]+|riff-[\w-]+)",
+                        summary_text,
+                    )
+                    if forbidden_summary_fields:
+                        fields = sorted(set(forbidden_summary_fields))
+                        findings.append(Finding("E", "636", summary_index + 1, f"Topic summary must remain navigation prose and cannot contain question, answer, flashcard, or runtime fields: {fields}."))
     for index in h5_indices:
         end = next((candidate for candidate in range(index + 1, len(lines)) if re.match(r"^#{1,5}\s+", lines[candidate])), len(lines))
         answer_heading = next((candidate for candidate in range(index + 1, end) if re.match(r"^######\s+答案与解析\s*$", lines[candidate])), None)

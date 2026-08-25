@@ -26,6 +26,61 @@ def codes(text: str) -> set[str]:
 
 
 class GoldquestDensityValidationTests(unittest.TestCase):
+    def test_requires_topic_summary_for_multi_question_provider_document(self) -> None:
+        text = """# 专题
+{: custom-qb-note-topic-id="civil-procedure-topic"}
+
+##### 1.
+{: custom-qb-id="q-1" custom-qb-question-topic-ids="topic-a"}
+
+##### 2.
+{: custom-qb-id="q-2" custom-qb-question-topic-ids="topic-b"}
+"""
+
+        self.assertIn("634", codes(text))
+
+    def test_accepts_topic_summary_between_provider_and_first_question(self) -> None:
+        text = """# 专题
+{: custom-qb-note-topic-id="civil-procedure-topic"}
+
+## 📌 考点必背
+
+### 1. 共同诉讼
+
+- 核心规则来自题目解析。
+
+##### 1.
+{: custom-qb-id="q-1" custom-qb-question-topic-ids="topic-a"}
+
+##### 2.
+{: custom-qb-id="q-2" custom-qb-question-topic-ids="topic-b"}
+"""
+
+        self.assertFalse({"634", "635", "636", "637"} & codes(text))
+
+    def test_rejects_misplaced_or_metadata_bearing_topic_summary(self) -> None:
+        misplaced = """# 专题
+## 📌 考点必背
+{: custom-qb-note-topic-id="civil-procedure-topic"}
+##### 1.
+{: custom-qb-id="q-1" custom-qb-question-topic-ids="topic-a"}
+##### 2.
+{: custom-qb-id="q-2" custom-qb-question-topic-ids="topic-b"}
+"""
+        metadata_bearing = """# 专题
+{: custom-qb-note-topic-id="civil-procedure-topic"}
+## 📌 考点必背
+- 导航
+{: custom-dm-card-id="fc-invalid"}
+##### 1.
+{: custom-qb-id="q-1" custom-qb-question-topic-ids="topic-a"}
+##### 2.
+{: custom-qb-id="q-2" custom-qb-question-topic-ids="topic-b"}
+"""
+
+        self.assertIn("635", codes(misplaced))
+        self.assertIn("636", codes(metadata_bearing))
+
     def test_rejects_markdown_emphasis_and_accepts_em_tag(self) -> None:
         rejected = "*星号斜体*\n_下划线斜体_\n__下划线加粗__"
         accepted = "<em>轻旁注</em>与**关键结论**。"
