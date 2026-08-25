@@ -341,6 +341,18 @@ source:
         codes = {finding.code for finding in validate("\n".join(cards), rich_style=True)}
         self.assertIn("E081", codes)
 
+    def test_rich_style_warns_before_foreground_balance_ceiling(self):
+        cards = [VALID.replace("fc-civil-elements-v1", f"fc-civil-prebalance-v{number}") for number in range(1, 4)]
+        for number, accent in enumerate(("2", "3", "4", "5", "6", "7", "8", "9"), start=4):
+            card = VALID.replace("fc-civil-elements-v1", f"fc-civil-prebalance-v{number}")
+            card = card.replace(
+                '**成立要件**{: style="color: var(--b3-font-color10);"}',
+                f'**成立要件**{{: style="color: var(--b3-font-color{accent});"}}',
+            )
+            cards.append(card)
+        codes = {finding.code for finding in validate("\n".join(cards), rich_style=True)}
+        self.assertIn("W124", codes)
+
     def test_accepts_specific_memory_link_inside_card_back(self):
         linked = VALID.replace(
             '\n{: custom-dm-source-key=',
