@@ -12,9 +12,10 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from legal_goldquest_option_gate import validate_option_analysis  # noqa: E402
+from legal_goldquest_semantic_structure_gate import validate_semantic_structure, visual_families  # noqa: E402
 from legal_marknote_prose_gate import validate_marknote_prose_structure  # noqa: E402
 
-ALLOWED_CALLOUTS = {"TIP", "NOTE", "IMPORTANT", "CAUTION", "WARNING"}
+ALLOWED_CALLOUTS = {"TIP", "NOTE", "IMPORTANT", "CAUTION", "WARNING", "QUESTION"}
 STATUS_COLORS = {5, 8, 12, 13}
 ANSWER_STATUS_TERMS = ("答案", "正确", "错误", "成立", "不成立", "有效", "无效", "应当", "不得", "排除")
 HIGHLIGHT_PATTERN = re.compile(r"==(.+?)==")
@@ -31,11 +32,6 @@ CONCEPT_LIST_LEAD_PATTERN = re.compile(
 )
 ENUMERATION_PATTERN = re.compile(r"(?<![\w])(?:\d{1,2}[、.]|[（(]\d{1,2}[）)]|[①-⑳])")
 IMAGE_PATTERN = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
-STATIC_VISUAL_PATTERN = re.compile(
-    r"!\[(?P<alt>[^\]]*(?:可视化|图解|流程图|关系图|决策图|时间线|diagram)[^\]]*)\]"
-    r"\((?P<target>[^)\s]+?\.(?:svg|png)(?:[?#][^)]*)?)\)",
-    re.IGNORECASE,
-)
 MERGE_TOKEN_PATTERN = re.compile(r"\{:\s*(?:colspan='\d+'|rowspan='\d+'|class='fn__none')\}")
 TABLE_ROW_PATTERN = re.compile(r"^\s*\|.*\|\s*$")
 TABLE_SEPARATOR_PATTERN = re.compile(r"^:?-{3,}:?$")
@@ -118,18 +114,6 @@ def has_semantic_emoji_cue(value: str, *, exclude_decision_options: bool = False
             if match.group() not in {"✅", "❌"}:
                 return True
     return False
-
-
-def visual_families(value: str) -> set[str]:
-    """Return intentional SiYuan-compatible visual carriers present in Markdown."""
-    families: set[str] = set()
-    if re.search(r"(?m)^(?:\s*>\s*)?```mermaid\s*$", value):
-        families.add("mermaid")
-    if re.search(r"(?m)^(?:\s*>\s*)?```html\s*$", value):
-        families.add("html")
-    if STATIC_VISUAL_PATTERN.search(value):
-        families.add("static-image")
-    return families
 
 
 def split_table_cells(line: str) -> list[str]:
@@ -726,7 +710,7 @@ def validate_marknote_richness(text: str) -> list[Finding]:
             if re.match(r"^#{3,6}\s+", stripped):
                 has_subheading = True
             continue
-        if re.match(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING)\]", line):
+        if re.match(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING|QUESTION)\]", line):
             has_callout = True
             continue
         if re.match(r"^\s*-\s+", line):
@@ -1202,6 +1186,9 @@ def validate_goldquest(text: str) -> list[Finding]:
         analysis_sentence_count = len(re.findall(r"[。！？；]", prose_without_fenced_blocks(analysis_text)))
         branch_count = top_level_analysis_items + nested_analysis_items
         medium_complexity = analysis_length >= 160 or branch_count >= 3 or analysis_sentence_count >= 4
+        complex_reasoning = analysis_length >= 320 or branch_count >= 6 or analysis_sentence_count >= 8
+        semantic_findings = validate_semantic_structure(answer_lines, analysis_start + 1, medium_complexity=medium_complexity, complex_reasoning=complex_reasoning)
+        findings.extend(Finding("E", item.code, item.line, item.message) for item in semantic_findings)
         if medium_complexity and len(auxiliary_styles) < 4:
             findings.append(Finding("E", "620", analysis_start + 1, "Medium-or-higher complexity analysis needs at least four auxiliary style families among highlight, italic, strikethrough, inline code, and underline."))
         if medium_complexity and not analysis_visuals:
