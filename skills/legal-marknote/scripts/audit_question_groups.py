@@ -26,9 +26,12 @@ QUESTION_PROMPT_LABEL = re.compile(r"^>\s*问题[：:]\s*(?:\S.*)?$")
 ANSWER_HEADING = re.compile(r"^>\s*\*\*回答与解析：\*\*\s*$")
 NUMERIC_HEADING = re.compile(r"^>\s*#{1,6}\s+(?:\d+|\(\d+\)|[①②③④⑤⑥⑦⑧⑨⑩])(?:[.)、]|\s)")
 ANSWER_ITEM = re.compile(r"^>\s*(\d+)\.\s+")
-QUESTION_LABEL = re.compile(r"^>\s*######\s*习题")
+QUESTION_CALLOUT = re.compile(r"^>\s*\[!QUESTION\](?:\s+(?P<title>\S.*?))?\s*$")
+LEGACY_QUESTION_LABEL = re.compile(r"^(?:>\s*)?######\s*(?:习题|试一试|练习题|真题)")
+GENERIC_QUESTION_TITLE = re.compile(
+    r"^(?:习题|试一试|练习题|真题|题目)(?:\s*[一二三四五六七八九十\d]+)?$"
+)
 MARKDOWN_HEADING = re.compile(r"^#{1,6}\s+")
-QUOTED_HEADING = re.compile(r"^>\s*#{1,6}\s+")
 
 
 class AuditError:
@@ -67,52 +70,81 @@ def fenced_question_identifiers(path: Path) -> list[str]:
     return identifiers
 
 
-def validate_question_labels(lines: list[str], path: Path) -> list[AuditError]:
-    """Require one exercise label per continuous quoted exercise group."""
+def validate_question_callouts(lines: list[str], path: Path) -> list[AuditError]:
+    """Require one specifically titled QUESTION directive per exercise callout."""
     errors: list[AuditError] = []
-    label_seen = False
-    in_exercise_group = False
+    in_callout = False
 
     for number, line in enumerate(lines, start=1):
-        if QUESTION_LABEL.match(line):
-            if label_seen:
+        if LEGACY_QUESTION_LABEL.match(line):
+            errors.append(
+                AuditError(
+                    path,
+                    number,
+                    "legacy exercise heading must be replaced with '> [!QUESTION] ✏️ <specific topic or tested rule>'",
+                )
+            )
+            continue
+
+        directive = QUESTION_CALLOUT.match(line)
+        if directive:
+            if in_callout:
                 errors.append(
                     AuditError(
                         path,
                         number,
-                        "continuous quoted exercise group repeats the '###### 习题' label; keep it only before the first question fence",
+                        "continuous exercise callout repeats the QUESTION directive; keep it only before the first question fence",
                     )
                 )
-            label_seen = True
-            in_exercise_group = True
+            title = (directive.group("title") or "").strip()
+            if not title.startswith("✏️ "):
+                errors.append(
+                    AuditError(
+                        path,
+                        number,
+                        "QUESTION callout title must start with '✏️ ' and name the specific topic or tested rule",
+                    )
+                )
+            else:
+                topic = title.removeprefix("✏️ ").strip()
+                if not topic or topic == "具体专题或考点" or GENERIC_QUESTION_TITLE.fullmatch(topic):
+                    errors.append(
+                        AuditError(
+                            path,
+                            number,
+                            "QUESTION callout title must name the specific topic or tested rule, not a generic exercise label",
+                        )
+                    )
+            in_callout = True
             continue
 
-        if not in_exercise_group:
+        if not in_callout:
             continue
-        if not line.strip() or line.lstrip().startswith(">"):
-            if QUOTED_HEADING.match(line):
-                label_seen = False
-                in_exercise_group = False
+        if line.lstrip().startswith(">"):
             continue
-
-        label_seen = False
-        in_exercise_group = False
+        in_callout = False
 
     return errors
 
 
 def audit(path: Path, source: Path | None = None) -> tuple[list[AuditError], list[str]]:
     lines = path.read_text(encoding="utf-8").splitlines()
-    errors = validate_question_labels(lines, path)
+    errors = validate_question_callouts(lines, path)
     advisories: list[str] = []
     index = 0
     question_context = False
 
     while index < len(lines):
-        if QUESTION_LABEL.match(lines[index]):
+        if QUESTION_CALLOUT.match(lines[index]):
             question_context = True
             index += 1
             continue
+        if LEGACY_QUESTION_LABEL.match(lines[index]):
+            question_context = False
+            index += 1
+            continue
+        if question_context and not lines[index].lstrip().startswith(">"):
+            question_context = False
         if MARKDOWN_HEADING.match(lines[index]):
             question_context = False
         if not question_context or not QUESTION_FENCE.match(lines[index]):
@@ -182,13 +214,13 @@ def audit(path: Path, source: Path | None = None) -> tuple[list[AuditError], lis
                     AuditError(
                         path,
                         opening_line,
-                        "multi-part question needs separate 题干： and 问题： lines before its one-line subquestions",
+                        "multi-part question needs separate  and 问题： lines before its one-line subquestions",
                     )
                 )
 
         closing_index = index
         index += 1
-        while index < len(lines) and lines[index].strip() in {">", ""}:
+        while index < len(lines) and lines[index].strip() == ">":
             index += 1
 
         has_answer_heading = index < len(lines) and ANSWER_HEADING.match(lines[index])
@@ -213,6 +245,8 @@ def audit(path: Path, source: Path | None = None) -> tuple[list[AuditError], lis
             line = lines[index]
             if QUESTION_FENCE.match(line):
                 break
+            if not line.lstrip().startswith(">"):
+                break
             if line.startswith(">    ") or line.startswith(">\t"):
                 has_nested_list = True
             match = ANSWER_ITEM.match(line)
@@ -224,7 +258,7 @@ def audit(path: Path, source: Path | None = None) -> tuple[list[AuditError], lis
                 )
             index += 1
 
-        question_context = False
+        question_context = index < len(lines) and QUESTION_FENCE.match(lines[index]) is not None
 
         expected = question_numbers
         if expected and answer_numbers[: len(expected)] != expected:

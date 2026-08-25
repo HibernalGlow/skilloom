@@ -59,7 +59,7 @@ CONTRACTS = (
             ("背景色：", "## Rich visual contract"),
             ("E620-E627", "## Rich visual contract"),
             ("inside each fenced question block", "## Question-answer formatting"),
-            ("exactly one `> ###### 习题` label", "## Question-answer formatting"),
+            ("exactly one `> [!QUESTION] ✏️ <specific topic or tested rule>` directive", "## Question-answer formatting"),
             ("audit_question_groups.py <output.md> --source <source.md>", "## Workflow"),
             ("every apparent classification lead as evidence, not a command", "## Workflow"),
             ("audit_heading_promotions.py <source.md> <output.md> --strict", "## Workflow"),

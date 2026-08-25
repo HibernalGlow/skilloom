@@ -18,11 +18,11 @@ sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
 
-SOURCE = """> ###### 习题
+SOURCE = """> [!QUESTION] ✏️ 共同诉讼中的当事人责任
 >
 > ```md
 > 37. 第一题
-> 题干：共同事实。
+> 共同事实。
 > 问题：
 > (1) 第一小问
 > ```
@@ -64,13 +64,13 @@ class FencedQuestionIdentityTests(unittest.TestCase):
 
     def test_rejects_stem_and_multiple_subquestions_on_one_line(self) -> None:
         output = SOURCE.replace(
-            "> 题干：共同事实。\n> 问题：\n> (1) 第一小问",
-            "> 题干：共同事实。(1) 第一小问(2) 第二小问",
+            "> 共同事实。\n> 问题：\n> (1) 第一小问",
+            "> 共同事实。(1) 第一小问(2) 第二小问",
         )
         errors, _ = self.audit_pair(output)
 
         self.assertTrue(any("crowded onto one line" in error.message for error in errors))
-        self.assertTrue(any("separate 题干： and 问题：" in error.message for error in errors))
+        self.assertTrue(any("separate  and 问题：" in error.message for error in errors))
 
     def test_accepts_labeled_stem_and_one_subquestion_per_line(self) -> None:
         output = SOURCE.replace(
@@ -78,8 +78,8 @@ class FencedQuestionIdentityTests(unittest.TestCase):
             "> (1) 第一小问\n> (2) 第二小问",
         )
         source = SOURCE.replace(
-            "> 题干：共同事实。\n> 问题：\n> (1) 第一小问",
-            "> 题干：共同事实。(1) 第一小问(2) 第二小问",
+            "> 共同事实。\n> 问题：\n> (1) 第一小问",
+            "> 共同事实。(1) 第一小问(2) 第二小问",
         )
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -92,17 +92,41 @@ class FencedQuestionIdentityTests(unittest.TestCase):
         self.assertFalse(any("identifiers changed" in error.message for error in errors))
         self.assertFalse(any("crowded onto one line" in error.message for error in errors))
 
-    def test_accepts_one_exercise_label_for_multiple_question_fences(self) -> None:
+    def test_accepts_one_question_callout_for_multiple_question_fences(self) -> None:
         errors, _ = self.audit_pair(SOURCE)
-        self.assertFalse(any("repeats the '###### 习题' label" in error.message for error in errors))
+        self.assertFalse(any("repeats the QUESTION directive" in error.message for error in errors))
 
-    def test_rejects_repeated_exercise_label_in_one_quote_group(self) -> None:
+    def test_rejects_repeated_question_directive_in_one_callout(self) -> None:
         output = SOURCE.replace(
             "> ```md\n> 42. 第二题",
-            "> ###### 习题\n>\n> ```md\n> 42. 第二题",
+            "> [!QUESTION] ✏️ 共同诉讼中的当事人责任\n>\n> ```md\n> 42. 第二题",
         )
         errors, _ = self.audit_pair(output)
-        self.assertTrue(any("repeats the '###### 习题' label" in error.message for error in errors))
+        self.assertTrue(any("repeats the QUESTION directive" in error.message for error in errors))
+
+    def test_rejects_legacy_exercise_heading(self) -> None:
+        output = SOURCE.replace(
+            "> [!QUESTION] ✏️ 共同诉讼中的当事人责任",
+            "> ###### 习题",
+        )
+        errors, _ = self.audit_pair(output)
+        self.assertTrue(any("legacy exercise heading" in error.message for error in errors))
+
+    def test_rejects_missing_pencil_and_generic_title(self) -> None:
+        missing_pencil = SOURCE.replace(
+            "> [!QUESTION] ✏️ 共同诉讼中的当事人责任",
+            "> [!QUESTION] 共同诉讼中的当事人责任",
+        )
+        generic = SOURCE.replace(
+            "> [!QUESTION] ✏️ 共同诉讼中的当事人责任",
+            "> [!QUESTION] ✏️ 习题1",
+        )
+
+        missing_errors, _ = self.audit_pair(missing_pencil)
+        generic_errors, _ = self.audit_pair(generic)
+
+        self.assertTrue(any("must start with '✏️ '" in error.message for error in missing_errors))
+        self.assertTrue(any("not a generic exercise label" in error.message for error in generic_errors))
 
 
 if __name__ == "__main__":
