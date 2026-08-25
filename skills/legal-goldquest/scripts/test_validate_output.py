@@ -112,6 +112,41 @@ class GoldquestDensityValidationTests(unittest.TestCase):
         self.assertIn("635", codes(misplaced))
         self.assertIn("636", codes(metadata_bearing))
 
+    def test_rejects_topic_summary_that_labels_specific_questions(self) -> None:
+        spoilers = {
+            "本题": "- 本题考察必要共同诉讼与普通共同诉讼的区分。",
+            "题号": "- 第 73 题对应代表人诉讼的程序路径。",
+            "上题": "- 如上一题所述，诉讼标的是否同一决定合并审理。",
+            "下题": "- 下题将进入代表人诉讼。",
+        }
+        for label, summary_line in spoilers.items():
+            with self.subTest(label=label):
+                text = f"""# 专题
+{{: custom-qb-note-topic-id="civil-procedure-topic"}}
+## 📌 考点必背
+{summary_line}
+##### 1.
+{{: custom-qb-id="q-1" custom-qb-question-topic-ids="topic-a"}}
+##### 2.
+{{: custom-qb-id="q-2" custom-qb-question-topic-ids="topic-b"}}
+"""
+                self.assertIn("813", codes(text))
+
+    def test_accepts_topic_summary_grouped_by_exam_point_without_question_pointers(self) -> None:
+        text = """# 专题
+{: custom-qb-note-topic-id="civil-procedure-topic"}
+## 📌 考点必背
+### 1. 必要共同诉讼与普通共同诉讼
+- **核心区分**：诉讼标的是否同一。
+### 2. 代表人诉讼的程序路径
+- 本题组覆盖的程序路径按公告、登记、推选顺序展开。
+##### 1.
+{: custom-qb-id="q-1" custom-qb-question-topic-ids="topic-a"}
+##### 2.
+{: custom-qb-id="q-2" custom-qb-question-topic-ids="topic-b"}
+"""
+        self.assertNotIn("813", codes(text))
+
     def test_rejects_markdown_emphasis_and_accepts_em_tag(self) -> None:
         rejected = "*星号斜体*\n_下划线斜体_\n__下划线加粗__"
         accepted = "<em>轻旁注</em>与**关键结论**。"

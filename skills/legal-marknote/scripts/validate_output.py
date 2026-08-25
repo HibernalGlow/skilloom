@@ -990,6 +990,14 @@ def validate_goldquest(text: str) -> list[Finding]:
                     if forbidden_summary_fields:
                         fields = sorted(set(forbidden_summary_fields))
                         findings.append(Finding("E", "636", summary_index + 1, f"Topic summary must remain navigation prose and cannot contain question, answer, flashcard, or runtime fields: {fields}."))
+                    spoiler_hits = [
+                        match.group(0)
+                        for pattern in (r"本题(?!组)", r"第\s*[\d０-９]+\s*题", r"[上下]一?题")
+                        for match in re.finditer(pattern, summary_text)
+                    ]
+                    if spoiler_hits:
+                        hits = sorted(set(spoiler_hits))
+                        findings.append(Finding("E", "813", summary_index + 1, f"Topic summary must not label specific questions; remove question pointers such as {hits}."))
     for index in h5_indices:
         end = next((candidate for candidate in range(index + 1, len(lines)) if re.match(r"^#{1,5}\s+", lines[candidate])), len(lines))
         answer_heading = next((candidate for candidate in range(index + 1, end) if re.match(r"^######\s+答案与解析\s*$", lines[candidate])), None)
