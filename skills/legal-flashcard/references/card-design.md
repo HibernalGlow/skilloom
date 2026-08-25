@@ -8,6 +8,8 @@ Before drafting, enumerate every independently testable source proposition, fixe
 
 An original exercise front is never itself a card target. Do not copy a source question containing its case parties, option labels, or exercise wording into a formal card. If the exercise reveals a reusable rule, rewrite the front as a party-neutral legal relation (for example, `“代为调解”的特别授权包括哪些行为？`), retain only the general rule, and record the original exercise as `case-narrative` evidence. If that rewrite would lose the point, reject the candidate instead of replaying the question.
 
+Case and exercise blocks themselves are never card targets: a `案例分析`, `> [!QUESTION]`, 真题, or 习题 range is processed as evidence only — extract a party-neutral reusable rule at most, and record the whole block as `case-narrative` when it would otherwise be replayed. If a source range has already been cardified (content carrying `custom-dm-*` attributes or `#闪卡/优先级/P1#`-`P4#` tags), treat it as already-cardified evidence: do not re-card it, and when the content is kept as ordinary prose, strip every card-recognizable tag and attribute completely — `custom-dm-*` IALs, `custom-riff-*` fields, and `#闪卡/优先级/P#` tags must not reach the output (`E087`).
+
 | Field | Required value |
 | --- | --- |
 | `fact-key` | stable working key within the source range |
