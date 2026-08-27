@@ -2,7 +2,7 @@
 
 ## 制度区分
 
-- **共同诉讼**{: style="color: var(--b3-font-color10);"}的两类基本形态如何区分？ #法考/民诉/共同诉讼/制度区分# #闪卡/优先级/P1#
+- **共同诉讼**{: style="color: var(--b3-font-color10);"}的两类基本形态如何区分🧭？ #法考/民诉/共同诉讼/制度区分# #闪卡/优先级/P1#
     - **必要共同诉讼**{: style="color: var(--b3-font-color10);"}：诉讼标的是**共同**{: style="background-color: var(--b3-font-background11);"}的。
         - 处理结果：<em>合一审理、合一判决</em>，最终**统一裁判**{: style="color: var(--b3-font-color8);"}。
     - **普通共同诉讼**{: style="color: var(--b3-font-color12);"}：诉讼标的是<u>同一种类</u>的。
@@ -34,13 +34,13 @@
             class B,C,D answer;
         ```
         > [!IMPORTANT] 核心边界
-        > - <em>起诉时</em>**人数尚未确定**{: style="color: var(--b3-font-color12);"}，不能直接按确定人数规则推选。
+        > - 🚨 <em>起诉时</em>**人数尚未确定**{: style="color: var(--b3-font-color12);"}，不能直接按确定人数规则推选。
         > - ~~跳过公告、登记直接裁判~~不是**启动方式**{: style="color: var(--b3-font-color13);"}。
 {: custom-dm-source-key="example-civil-joint-litigation" custom-dm-card-id="fc-example-joint-litigation-representative-process-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="civil-procedure-joint-litigation-representative-undetermined"}
 
 ## 四类制度区分口诀
 
-- **区分口诀**{: style="color: var(--b3-font-color6);"}：==必要共标的，普通同种类；确定全体推，不定公告登。== #法考/民诉/共同诉讼/区分口诀# #闪卡/优先级/P1#
+- 🧠 **区分口诀**{: style="color: var(--b3-font-color6);"}：==必要共标的，普通同种类；确定全体推，不定公告登。== #法考/民诉/共同诉讼/区分口诀# #闪卡/优先级/P1#
     - ==必要共标的==：必要共同诉讼，诉讼标的是**共同**{: style="background-color: var(--b3-font-background11);"}的。
     - ==普通同种类==：普通共同诉讼，诉讼标的是<u>同一种类</u>的。
     - ==确定全体推==：人数确定时由全体当事人**推选代表人**{: style="color: var(--b3-font-color12);"}。
@@ -53,6 +53,11 @@ report:
   accepted: 3
   rejected: 0
   rejection_reasons: {}
+  priorities:
+    P1: 3
+    P2: 0
+    P3: 0
+    P4: 0
 source:
   note: "示例/专题六 共同诉讼"
   protocol: "DAMO 闪卡 schema 1"

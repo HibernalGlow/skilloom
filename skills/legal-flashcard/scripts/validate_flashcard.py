@@ -33,7 +33,23 @@ RUNTIME_RE = re.compile(
 )
 KNOWLEDGE_TAG_RE = re.compile(r"#(?!闪卡/优先级/)[^#\s]+#")
 PRIORITY_TAG_RE = re.compile(r"#闪卡/优先级/([^#\s]+)#")
-GENERATED_LABEL_RE = re.compile(r"^\s*(?:>\s*)?(?:-\s+)?(?:问题|答案)[：:]")
+GENERATED_LABEL_PREFIX_RE = re.compile(r"(?:问题|题干|答案|解析|问)[：:]")
+EMOJI_PATTERN = re.compile(
+    r"[\U0001F000-\U0001FAFF\u2300-\u23FF\u2600-\u27BF\u2B00-\u2BFF](?:\ufe0f|\U0001F3FB-\U0001F3FF|\u200d[\U0001F000-\U0001FAFF\u2300-\u27BF\u2B00-\u2BFF])*"
+)
+EMOJI_GENERIC_CUE_RE = re.compile(r"重点|难点|要点|注意|提示|警惕|小心|牢记|警示|易错|陷阱|考点|归纳|小结|总结")
+POSITIONAL_TAG_SEGMENT_RE = re.compile(
+    r"^(?:专题[0-9零一二三四五六七八九十百]+|第[0-9零一二三四五六七八九十百]+[讲章节课编部分]|[0-9零一二三四五六七八九十百]+)$"
+)
+LIST_ORDERED_MARKER_START_RE = re.compile(
+    r"^(?:(?:\d{1,3})\s*[.)、．]|[（(]\s*\d{1,3}\s*[）)]|[①-⑳])(?=\s*[^\d\s]|\s*$)"
+)
+MNEMONIC_SOURCE_CUE_RE = re.compile(r"口诀|助记|速记|顺口溜|取字|首字|谐音")
+MEMORY_CALLOUT_CUE_RE = re.compile(r"[!](?:TIP|NOTE|IMPORTANT|CAUTION|WARNING)[^\n]*(?:记忆|口诀|助记|联想|谐音|取字|首字)", re.IGNORECASE)
+PRIORITY_REPORT_KEY_RE = re.compile(r"^  priorities:\s*$", re.MULTILINE)
+PRIORITY_COUNT_RE = re.compile(r"^    (?P<key>P[1-4]):\s*(?P<value>\d+)\s*$", re.MULTILINE)
+COLOR_ANCHOR_TOKEN_RE = re.compile(r"b3-font-(?:color|background)(?:[2-9]|1[0-3])")
+IMAGE_REF_RE = re.compile(r"!\[[^\]]*\]\([^)]+\)")
 CALL_OUT_TITLE_STYLE_RE = re.compile(r"\{:\s*style=|\*\*|==|~~|`|<\/?(?:em|u)(?:\s|>)", re.IGNORECASE)
 MEMORY_LINK_CUE_RE = re.compile(r"联系记忆|关联记忆|对比记忆")
 CALLOUT_LINE_RE = re.compile(r"^\s*>\s+\[![A-Za-z][A-Za-z0-9_-]*\]\s+\S", re.MULTILINE)
@@ -124,7 +140,184 @@ def _visible_text(text: str) -> str:
     return re.sub(r"\s+", "", text)
 
 
-def _parse_report_yaml(text: str) -> tuple[int, int, int, str] | None:
+def _has_semantic_emoji_cue(text: str) -> bool:
+    """Return whether prose has an open-set emoji cue outside ✅/❌ decision markers."""
+    for line in re.sub(r"```.*?```", "", text, flags=re.DOTALL).splitlines():
+        for match in EMOJI_PATTERN.finditer(line):
+            if match.group() not in {"✅", "❌"}:
+                return True
+    return False
+
+
+def _semantic_emoji_set(text: str) -> set[str]:
+    """Return the set of open-set emoji cues (✅/❌ excluded, fences skipped)."""
+    result: set[str] = set()
+    for line in re.sub(r"```.*?```", "", text, flags=re.DOTALL).splitlines():
+        for match in EMOJI_PATTERN.finditer(line):
+            if match.group() not in {"✅", "❌"}:
+                result.add(match.group())
+    return result
+
+
+def _emoji_is_anchored(line: str, start: int, end: int) -> bool:
+    """Return whether an emoji occurrence has a neighboring content word (CJK/letter/digit)
+    directly before or after it, ignoring whitespace and inline markup runes."""
+    before = re.sub(r"[\s`*=~<>/]+$", "", line[:start])
+    after = re.sub(r"^[\s`*=~<>/]+", "", line[end:])
+    word = r"[\u4e00-\u9fffA-Za-z0-9]"
+    return bool(
+        (before and re.search(word, before[-1]))
+        or (after and re.search(word, after[0]))
+    )
+
+
+def _has_generated_label_prefix(line: str) -> bool:
+    """Return whether a card line opens with a generated 问题：/题干：/答案：/解析：/问： label,
+    tolerating list/quote markers, bold asterisks, and leading emoji so none of them can mask it."""
+    text = EMOJI_PATTERN.sub("", line).replace("*", "")
+    text = re.sub(r"^[\s>\-+\d.]+", "", text)
+    return bool(GENERATED_LABEL_PREFIX_RE.match(text))
+
+
+def _ngrams(text: str, size: int = 6) -> set[str]:
+    plain = _visible_text(text)
+    return {plain[i:i + size] for i in range(max(0, len(plain) - size + 1))}
+
+
+def _validate_callout_value(card_body: str, card_line: int) -> list[Finding]:
+    """A Callout must add value: its body must not mostly repeat the card's non-Callout text (E095)."""
+    findings: list[Finding] = []
+    non_callout = "\n".join(line for line in card_body.splitlines() if not line.lstrip().startswith(">"))
+    non_callout_grams = _ngrams(non_callout)
+    lines = card_body.splitlines()
+    for index, line in enumerate(lines):
+        directive = re.match(r"^\s*>\s+\[![A-Za-z][A-Za-z0-9_-]*\]\s*(.*)$", line)
+        if not directive:
+            continue
+        body_lines = []
+        for body_line in lines[index + 1:]:
+            if not body_line.lstrip().startswith(">"):
+                break
+            body_lines.append(body_line)
+        grams = _ngrams("\n".join(body_lines))
+        if not grams:
+            continue
+        overlap = len(grams & non_callout_grams) / len(grams)
+        if overlap >= 0.6:
+            findings.append(Finding(card_line, "E095", "A Callout's body mostly repeats the card's non-Callout answer text (≥60% character-gram overlap); a Callout must add value — state the boundary, exception, trap, or reasoning in new words, or drop it."))
+    return findings
+
+
+def _validate_line_color_diversity(card_body: str, card_line: int) -> list[Finding]:
+    """Three consecutive content lines dominated by the same color lose indexing value (E096)."""
+    findings: list[Finding] = []
+    run = 0
+    run_color: str | None = None
+    for line in card_body.splitlines():
+        stripped = line.strip()
+        if (
+            not stripped
+            or re.match(r"^#{1,6}\s+", stripped)
+            or re.match(r"^\s*```\s*$", stripped)
+            or re.match(r"^\{:", stripped)
+        ):
+            run = 0
+            run_color = None
+            continue
+        tokens = COLOR_ANCHOR_TOKEN_RE.findall(line)
+        if not tokens:
+            run = 0
+            run_color = None
+            continue
+        dominant = Counter(tokens).most_common(1)[0]
+        dominant_color, dominant_count = dominant
+        if dominant_color != run_color or dominant_count / len(tokens) < 0.6:
+            run = 1 if dominant_count / len(tokens) >= 0.6 else 0
+            run_color = dominant_color if dominant_count / len(tokens) >= 0.6 else None
+        else:
+            run += 1
+        if run >= 3:
+            findings.append(Finding(card_line, "E096", "Three consecutive answer lines are each dominated by the same color; vary semantic colors across adjacent lines (or add backgrounds) so the palette stays an index."))
+            run = 0
+    return findings
+
+
+def _long_back_items(card_body: str, threshold: int = 20) -> list[str]:
+    """Back list items (direct or nested, outside Callouts/fences) longer than the threshold."""
+    long_items: list[str] = []
+    in_fence = False
+    for raw in card_body.splitlines()[1:]:
+        if re.match(r"^(?:\s*>\s*)?```", raw):
+            in_fence = not in_fence
+            continue
+        if in_fence or raw.lstrip().startswith((">", "{:")):
+            continue
+        item = re.match(r"^\s*(?:[-*]|\d+\.)\s+(\S.*)$", raw)
+        if item and len(_visible_text(item.group(1))) > threshold:
+            long_items.append(raw.strip())
+    return long_items
+
+
+def _validate_emoji_semantics(text: str) -> list[Finding]:
+    """Enforce deck-level emoji semantics: concept-anchored, diverse, not script-inserted.
+
+    - `E094`: the same semantic emoji repeats more than eight times in one deck;
+      one specific emoji maps to one specific concept and no single icon dominates.
+    - `W129`: an emoji is anchored to a generic cue word (注意/重点/要点/考点/
+      提示/陷阱…); anchor it to the specific legal concept instead.
+    - `E130`: the same emoji + following-word pair repeats, a hard signature of
+      scripted batch insertion; place emoji semantically per concept.
+    - `E131`: most semantic emoji sit at sentence ends; each emoji must sit on
+      the concept word it marks.
+    - `E132`: most semantic emoji sit at line heads as label prefixes; embed them
+      in the answer content instead.
+    - `E133`: a large share of semantic emoji float with no neighboring concept
+      word; anchor each icon to its term so it is visually bound.
+    """
+    findings: list[Finding] = []
+    counts: dict[str, int] = {}
+    pairs: dict[str, int] = {}
+    generic_hits = 0
+    sentence_final = 0
+    line_head = 0
+    dangling = 0
+    total_placed = 0
+    for line in text.splitlines():
+        for match in EMOJI_PATTERN.finditer(line):
+            if match.group() in {"✅", "❌"}:
+                continue
+            counts[match.group()] = counts.get(match.group(), 0) + 1
+            window = line[max(0, match.start() - 3): match.end() + 4]
+            if EMOJI_GENERIC_CUE_RE.search(window):
+                generic_hits += 1
+            pair = match.group() + re.sub(r"\s", "", line[match.end(): match.end() + 3])[:2]
+            pairs[pair] = pairs.get(pair, 0) + 1
+            total_placed += 1
+            after = line[match.end(): match.end() + 3].lstrip()
+            if not after or after[0] in "。！？；!?;”』」":
+                sentence_final += 1
+            if re.fullmatch(r"\s*(?:[-*]|>[ ]*)*\s*", line[:match.start()]):
+                line_head += 1
+            if not _emoji_is_anchored(line, match.start(), match.end()):
+                dangling += 1
+    if total_placed >= 5 and sentence_final / total_placed >= 0.7:
+        findings.append(Finding(1, "E131", f"{sentence_final}/{total_placed} semantic emoji are piled at sentence ends; hard gate — put each emoji directly on the concept word it marks (right after or before the term, one emoji per parallel concept) so the term and the icon are visually bound."))
+    if total_placed >= 5 and line_head / total_placed >= 0.7:
+        findings.append(Finding(1, "E132", f"{line_head}/{total_placed} semantic emoji are bunched at line heads as label prefixes; hard gate — embed emoji inside the answer content next to the concept words they mark (one per parallel concept) so the icons appear in the content, not only at the headline."))
+    if total_placed >= 5 and dangling / total_placed >= 0.5:
+        findings.append(Finding(1, "E133", f"{dangling}/{total_placed} semantic emoji float without a neighboring concept word (dangling at line ends, clause boundaries, or between punctuation); anchor each icon directly beside its term (词前或词后紧贴概念词), never as loose decoration."))
+    for emoji, count in counts.items():
+        if count > 8:
+            findings.append(Finding(1, "E094", f"Emoji {emoji} repeats {count} times in this deck; one specific emoji maps to one specific concept — diversify so no single icon dominates."))
+    if generic_hits:
+        findings.append(Finding(1, "W129", f"{generic_hits} emoji anchor to generic cue words (注意/重点/要点/考点/提示/陷阱…); anchor each emoji to the specific legal concept inside the knowledge point instead of a commonplace cue word."))
+    for pair, count in pairs.items():
+        if count >= 6 and re.search(r"[\u4e00-\u9fff]", pair):
+            findings.append(Finding(1, "E130", f"Emoji-word pair {pair} repeats {count} times; hard gate — this is scripted batch emoji insertion. Place emoji semantically per concept, never by mechanical word replacement."))
+    return findings
+
+
+def _parse_report_yaml(text: str) -> tuple[int, int, int, str, dict[str, int] | None] | None:
     blocks = list(REPORT_YAML_RE.finditer(text))
     if len(blocks) != 1:
         return None
@@ -139,7 +332,12 @@ def _parse_report_yaml(text: str) -> tuple[int, int, int, str] | None:
     note = re.search(r'^source:\s*\n  note:\s*"(?P<note>[^"\n]+)"\s*\n  protocol:\s*"(?P<protocol>DAMO 闪卡 schema 1)"\s*$', body, re.MULTILINE)
     if not note:
         return None
-    return values["candidates"], values["accepted"], values["rejected"], note.group("note")
+    priorities: dict[str, int] | None = None
+    if PRIORITY_REPORT_KEY_RE.search(body):
+        priority_values = {match.group("key"): int(match.group("value")) for match in PRIORITY_COUNT_RE.finditer(body)}
+        if set(priority_values) == {"P1", "P2", "P3", "P4"}:
+            priorities = priority_values
+    return values["candidates"], values["accepted"], values["rejected"], note.group("note"), priorities
 
 
 def _card_body(lines: list[str], ial_start: int, renderer: str | None) -> tuple[int | None, str]:
@@ -724,11 +922,13 @@ def _normalized_answer_fact(line: str) -> str:
 
 def _source_maps(
     source_text: str,
-) -> tuple[set[str], dict[str, set[str]], list[str], dict[str, list[str]]]:
+) -> tuple[set[str], dict[str, set[str]], list[str], dict[str, list[str]], set[str], dict[str, set[str]]]:
     global_fragments = set(STYLE_ANCHOR_RE.findall(source_text))
     topic_fragments: dict[str, set[str]] = {}
     global_visible_lines = [_visible_text(line) for line in source_text.splitlines() if _visible_text(line)]
     topic_visible_lines: dict[str, list[str]] = {}
+    global_images = set(IMAGE_REF_RE.findall(source_text))
+    topic_images: dict[str, set[str]] = {}
     current_topic: str | None = None
     for line in source_text.splitlines():
         provider = PROVIDER_IAL_RE.fullmatch(line.strip())
@@ -736,13 +936,15 @@ def _source_maps(
             current_topic = provider.group(1)
             topic_fragments.setdefault(current_topic, set())
             topic_visible_lines.setdefault(current_topic, [])
+            topic_images.setdefault(current_topic, set())
             continue
         if current_topic is not None:
             topic_fragments[current_topic].update(STYLE_ANCHOR_RE.findall(line))
+            topic_images[current_topic].update(IMAGE_REF_RE.findall(line))
             visible = _visible_text(line)
             if visible:
                 topic_visible_lines[current_topic].append(visible)
-    return global_fragments, topic_fragments, global_visible_lines, topic_visible_lines
+    return global_fragments, topic_fragments, global_visible_lines, topic_visible_lines, global_images, topic_images
 
 
 def _style_text(fragment: str) -> str:
@@ -759,11 +961,13 @@ def _source_scope_topic(topic_id: str, known_topics: set[str]) -> str | None:
 
 def _priority_distribution_findings(priorities: list[str], line: int = 1) -> list[Finding]:
     count = len(priorities)
-    if count < 6:
+    if count < 4:
         return []
     findings: list[Finding] = []
     histogram = Counter(priorities)
-    if histogram["P2"] / count >= 0.5:
+    if histogram["P2"] * 2 > count:
+        findings.append(Finding(line, "E089", f"P2 is the default tier for {histogram['P2']}/{count} cards (more than half the deck); recompare every P2 card against the source and re-rank — P2 is not a fallback."))
+    elif histogram["P2"] / count >= 0.5:
         findings.append(Finding(line, "W121", f"P2 dominates {histogram['P2']}/{count} cards; recompare priorities against the source instead of using P2 as a fallback."))
     if count >= 8 and len(histogram) < 3:
         findings.append(Finding(line, "W122", f"This {count}-card deck uses only {len(histogram)} priority level(s); audit source-relative separation without mechanically filling tiers."))
@@ -797,16 +1001,22 @@ def validate(
     accepted_priorities: list[str] = []
     deck_card_foregrounds: list[Counter[str]] = []
     deck_callout_card_count = 0
+    mnemonic_card_count = 0
+    emoji_card_count = 0
     source_global_styles: set[str] = set()
     source_topic_styles: dict[str, set[str]] = {}
     source_global_visible_lines: list[str] = []
     source_topic_visible_lines: dict[str, list[str]] = {}
+    source_global_images: set[str] = set()
+    source_topic_images: dict[str, set[str]] = {}
     if source_text is not None:
         (
             source_global_styles,
             source_topic_styles,
             source_global_visible_lines,
             source_topic_visible_lines,
+            source_global_images,
+            source_topic_images,
         ) = _source_maps(source_text)
     for start, end, attrs, raw, _keys in cards:
         if not any(key.startswith("custom-dm-") for key in attrs):
@@ -853,12 +1063,38 @@ def validate(
         root_index, card_body = _card_body(lines, start, renderer)
         root = lines[root_index].strip() if root_index is not None else ""
         front = _front_line(card_body, renderer)
+        front_without_tags = re.sub(r"#[^#\s]+#", "", front)
+        front_length = len(_visible_text(front_without_tags))
+        if front_length > 70:
+            findings.append(Finding(start + 1, "E092", f"Card front is too long ({front_length} visible characters; keep a question or mnemonic cue within about 70). Move the extra context into the back, or keep it on the front with <br /> line breaks or a text-block Callout — never a long front."))
+        in_fence = False
         for body_line in card_body.splitlines():
-            if GENERATED_LABEL_RE.match(body_line):
-                findings.append(Finding(start + 1, "E044", "Write the front and answer items directly; generated 问题：/答案： prefixes are forbidden."))
+            if re.match(r"^\s*(?:>\s*)?```", body_line):
+                in_fence = not in_fence
+                continue
+            if in_fence:
+                continue
+            if _has_generated_label_prefix(body_line):
+                findings.append(Finding(start + 1, "E044", "Write the question and answer items directly; no 问题：/题干：/答案：/解析：/问： label prefix is allowed on any card line (front, back, or Callout body)."))
                 break
         if not KNOWLEDGE_TAG_RE.search(card_body):
             findings.append(Finding(start + 1, "E033", "Accepted cards need a source-grounded knowledge tag on the root line."))
+        for tag in KNOWLEDGE_TAG_RE.findall(card_body):
+            positional = [segment for segment in tag.strip("#").split("/") if POSITIONAL_TAG_SEGMENT_RE.match(segment)]
+            if positional:
+                findings.append(Finding(start + 1, "E101", "Knowledge tags must use stable source-named concepts, not position labels: remove the " + "、".join(positional) + " segment from " + tag + " and replace it with the chapter or topic name (e.g. 专题二 → 诉的基本理论)."))
+        if renderer == "mark" and _list_item_indents(card_body):
+            findings.append(Finding(start + 1, "E093", "A cloze/mark card is front-only and has no back; bare child list items are parsed as the back card. Wrap any sub-list inside a Callout (e.g. a `> [!TIP]` block containing the items) or use <br /> line breaks instead."))
+        findings.extend(_validate_callout_value(card_body, start + 1))
+        findings.extend(_validate_line_color_diversity(card_body, start + 1))
+        if source_text is not None:
+            scoped_images = (
+                source_topic_images[source_scope_topic]
+                if source_scope_topic in source_topic_images
+                else source_global_images
+            )
+            if scoped_images and not re.search(r"!\[[^\]]*\]\([^)]+\)", card_body):
+                findings.append(Finding(start + 1, "W126", "The card's source range carries a Markdown diagram; copy it onto the card back beneath a governing answer child so the illustration stays with the rule."))
         for priority in PRIORITY_TAG_RE.findall(card_body):
             if priority not in {"P1", "P2", "P3", "P4"}:
                 findings.append(Finding(start + 1, "E034", "Flashcard priority tag must be #闪卡/优先级/P1# through P4."))
@@ -886,6 +1122,22 @@ def validate(
         has_callout = _has_substantive_callout(card_body)
         if has_callout:
             deck_callout_card_count += 1
+        if kind == "mnemonic":
+            mnemonic_card_count += 1
+        card_has_emoji = _has_semantic_emoji_cue(card_body)
+        if card_has_emoji:
+            emoji_card_count += 1
+        simple_card = not _is_rich_complex_card(card_body, kind, renderer)
+        if rich_style and not card_has_emoji and not simple_card:
+            findings.append(Finding(start + 1, "E090", "This non-simple card needs at least one semantic emoji cue beyond ✅/❌; position it beside the labeled legal relationship, boundary, or conclusion."))
+        elif rich_style and card_has_emoji and renderer != "callout":
+            front_line = _front_line(card_body, renderer) or (card_body.splitlines()[0] if card_body else "")
+            back_part = "\n".join(card_body.splitlines()[1:])
+            if not (_has_semantic_emoji_cue(front_line) and _has_semantic_emoji_cue(back_part)):
+                findings.append(Finding(start + 1, "W127", "A card that uses emoji should carry at least one on both the front and the back; keep a semantic cue on each side."))
+            shared = _semantic_emoji_set(front_line) & _semantic_emoji_set(back_part)
+            if shared:
+                findings.append(Finding(start + 1, "E100", "This card reuses the same emoji on the front and the back (" + "、".join(sorted(shared)) + "); duplicating one marker is the lazy way to fake the emoji cue — the front anchors its question concept, so the back must anchor a different concept with a different emoji."))
         if rich_style and CALLOUT_STRONG_CUE_RE.search(_visible_text(card_body)) and not has_callout:
             findings.append(Finding(start + 1, "E085", "This card contains an explicit exception, trap, confusion, risk, or memory-link cue; render that semantic peak as a callout root or a nested answer Callout."))
         elif rich_style and CALLOUT_SOFT_CUE_RE.search(_visible_text(card_body)) and not has_callout:
@@ -942,6 +1194,9 @@ def validate(
                     )
                     if not has_child:
                         findings.append(Finding(start + 1, "W114", "Answer line combines multiple semantic clauses; split it into a governing parent and source-shaped child items."))
+            long_back_items = _long_back_items(card_body)
+            if long_back_items:
+                findings.append(Finding(start + 1, "E097", f"{len(long_back_items)} back item(s) exceed 20 visible characters; split each by semantics into a governing parent plus child items — use 1. ordered lists for steps, procedures, or sequences — instead of one long line."))
             basic_records.append(
                 (
                     start + 1,
@@ -1079,17 +1334,30 @@ def validate(
         if len(locations) > max_cards_per_topic:
             findings.append(Finding(locations[0], "E013", f"Topic ID {topic_id!r} is reused by {len(locations)} cards; confirm a narrower atomic topic mapping or raise the reviewed limit."))
     findings.extend(_priority_distribution_findings(accepted_priorities, accepted_card_lines[0] if accepted_card_lines else 1))
+    findings.extend(_validate_emoji_semantics(text))
+    if rich_style and accepted_card_lines and _is_rich_complex_deck(text, len(accepted_card_lines)):
+        if emoji_card_count / len(accepted_card_lines) <= 0.8:
+            findings.append(Finding(1, "E091", f"Rich decks must keep overall emoji coverage above 80% of accepted cards; {emoji_card_count}/{len(accepted_card_lines)} carry a semantic emoji cue. Add concept-anchored emoji to the bare cards (simple cards are the only tolerated minority)."))
+    if source_text is not None and mnemonic_card_count == 0 and (
+        MNEMONIC_SOURCE_CUE_RE.search(source_text) or MEMORY_CALLOUT_CUE_RE.search(source_text)
+    ):
+        findings.append(Finding(1, "W128", "The source contains mnemonic material (a 口诀 label or an implicit mnemonic via inline-code sequence or memory Callout); turn it into a mnemonic card with a highlighted cue and decoded segments so it stays retrievable."))
     if rich_style:
         findings.extend(_validate_rich_deck(text, deck_card_styles, deck_card_foregrounds, len(accepted_card_lines), deck_callout_card_count))
     if require_report:
         report_values = _parse_report_yaml(text)
         if report_values is None:
-            findings.append(Finding(max(1, len(lines)), "E070", "Dedicated output requires exactly one valid ```yaml report block with report.candidates, report.accepted, report.rejected, and report.rejection_reasons."))
+            findings.append(Finding(max(1, len(lines)), "E070", "Dedicated output requires exactly one valid ```yaml report block with report.candidates, report.accepted, report.rejected, report.rejection_reasons, and report.priorities (P1-P4 counts)."))
         else:
-            candidate, accepted, rejected, _source_note = report_values
+            candidate, accepted, rejected, _source_note, priorities = report_values
             if candidate != accepted + rejected or accepted != len(accepted_card_lines):
                 line = next((number for number, line in enumerate(lines, start=1) if line.strip() == "```yaml"), max(1, len(lines)))
                 findings.append(Finding(line, "E032", "Report counts must reconcile and accepted must equal rendered card count."))
+            actual_priorities = Counter(accepted_priorities)
+            expected_priorities = {f"P{i}": actual_priorities[f"P{i}"] for i in range(1, 5)}
+            if priorities != expected_priorities:
+                line = next((number for number, line in enumerate(lines, start=1) if line.strip() == "```yaml"), max(1, len(lines)))
+                findings.append(Finding(line, "E088", f"Report priority counts must match the accepted cards' #闪卡/优先级/# distribution: expected {expected_priorities}, got {priorities}."))
             report_block = next((match for match in REPORT_YAML_RE.finditer(text)), None)
             last_nonblank = max((number for number, line in enumerate(lines, start=1) if line.strip()), default=1)
             report_end = text[:report_block.end()].rstrip("\n").count("\n") + 1 if report_block else 1
@@ -1100,6 +1368,34 @@ def validate(
             findings.append(Finding(number, "E014", "Runtime scheduling or Riff field leaked into output."))
         if AUDIT_PREAMBLE_RE.match(line):
             findings.append(Finding(number, "E042", "Internal source/protocol/style audit must not be emitted as a top-level card-deck preamble."))
+    for number, line in enumerate(lines, start=1):
+        if not re.match(r"^\s*>\s+\[![A-Z]+\]", line):
+            continue
+        if number > 1:
+            previous = lines[number - 2]
+            if (
+                previous.strip()
+                and not previous.lstrip().startswith(">")
+                and not re.match(r"^#{1,6}\s+", previous)
+                and not re.match(r"^\s*```\s*$", previous)
+            ):
+                findings.append(Finding(number, "E098", "A Callout directive must be preceded by a blank line (or the start of a block, another quote line, a heading, or a fence boundary); directly after a list item or paragraph it is parsed as continuation text and will not be recognized."))
+    in_fence = False
+    for number, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence or not stripped:
+            continue
+        content = stripped
+        while content.startswith(">"):
+            content = content[1:].lstrip()
+        if not re.match(r"^[-+*]\s+", content):
+            continue
+        after_marker = re.sub(r"^[-+*]\s+", "", content)
+        if LIST_ORDERED_MARKER_START_RE.match(after_marker):
+            findings.append(Finding(number, "E099", "A list item's text begins with an ordered-list marker (1. / 1、 / 1) / （1） / ①); the card parser reads it as a nested ordered list and misrecognizes the structure — remove the marker from the item text, or give each numbered child its own indented list line."))
     return sorted(set(findings), key=lambda item: (item.line, item.code, item.message))
 
 
@@ -1123,12 +1419,24 @@ def main() -> int:
     parser.add_argument("output", help="Draft Markdown path, or - to read the draft from standard input.")
     parser.add_argument("--source", type=Path, help="Source note used to verify provider-scoped style inheritance.")
     parser.add_argument("--mode", choices=("ordinary", "dedicated"), default="dedicated")
-    parser.add_argument("--require-report", action="store_true")
-    parser.add_argument("--rich-style", action="store_true", help="Apply the legal-goldquest rich visual contract to medium/complex dedicated decks.")
+    parser.add_argument("--require-report", action=argparse.BooleanOptionalAction, default=True, help="Require the bottom YAML report in dedicated mode (strict default). Relaxed mode is only available by passing the COMPLETE relaxation set --no-require-report --no-rich-style together; if any relaxation parameter is missing, validation refuses to run.")
+    parser.add_argument("--rich-style", action=argparse.BooleanOptionalAction, default=True, help="Apply the legal-goldquest rich visual contract to medium/complex dedicated decks (strict default).")
     parser.add_argument("--max-cards-per-topic", type=int, default=4)
     parser.add_argument("--max-answer-items", type=int, default=4)
     parser.add_argument("--max-answer-chars", type=int, default=84)
     args = parser.parse_args()
+    if args.mode == "dedicated":
+        relaxed = [flag for flag, enabled in (("--no-require-report", args.require_report), ("--no-rich-style", args.rich_style)) if not enabled]
+        if relaxed:
+            missing = [flag for flag in ("--no-require-report", "--no-rich-style") if flag not in relaxed]
+            if missing:
+                print(
+                    "Relaxed mode requires the COMPLETE relaxation set; missing: "
+                    + ", ".join(missing)
+                    + ". Strict mode is the default in dedicated mode: pass --no-require-report --no-rich-style together to relax, or drop the relaxation flags.",
+                    file=sys.stderr,
+                )
+                return 2
     output_label = "<stdin>" if args.output == "-" else args.output
     text = sys.stdin.read() if args.output == "-" else Path(args.output).read_text(encoding="utf-8")
     source_text = args.source.read_text(encoding="utf-8") if args.source else None

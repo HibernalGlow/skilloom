@@ -10,6 +10,8 @@ An original exercise front is never itself a card target. Do not copy a source q
 
 Case and exercise blocks themselves are never card targets: a `案例分析`, `> [!QUESTION]`, 真题, or 习题 range is processed as evidence only — extract a party-neutral reusable rule at most, and record the whole block as `case-narrative` when it would otherwise be replayed. If a source range has already been cardified (content carrying `custom-dm-*` attributes or `#闪卡/优先级/P1#`-`P4#` tags), treat it as already-cardified evidence: do not re-card it, and when the content is kept as ordinary prose, strip every card-recognizable tag and attribute completely — `custom-dm-*` IALs, `custom-riff-*` fields, and `#闪卡/优先级/P#` tags must not reach the output (`E087`).
 
+When a source range contains a Markdown diagram (`![...](...)`), copy it onto the card back beneath a governing answer child; dropping it is a review finding (`W126`).
+
 | Field | Required value |
 | --- | --- |
 | `fact-key` | stable working key within the source range |
@@ -32,8 +34,9 @@ A card is atomic when all of these checks pass:
 3. **One grading decision.** A learner can mark the card correct or incorrect against one expected fact or one fixed closed set. Split independently gradable branches.
 4. **Closed-list exception.** Multiple child items may remain together only when the front names the closed class or cardinality and every item is a peer on the same axis, such as “三大基本原则”. Four items is a ceiling, not evidence of atomicity.
 5. **Prompt sufficiency.** The front supplies enough legal context to identify one answer without leaking it. Avoid vague prompts such as “有哪些要点？” when several dimensions are possible.
-6. **Answer economy.** Keep the direct answer before optional context. If an answer needs explanation from another axis, make another card.
-7. **Semantic back structure.** Reuse the source note's wording, hierarchy, order, and suitable containers. A simple answer may stay as first-level children. Route a non-simple back through [answer-structure.md](answer-structure.md) when the source contains hierarchy, sequence, warning/exception, a true comparison matrix, or a recall-sized relationship diagram. A procedure, chronology, priority, or source-significant sequence uses ordered `1.` children; a peer set remains unordered.
+6. **Short front.** A front that is a question or a mnemonic cue stays short — within about 70 visible characters (`E092`). Do not turn the front into a case paragraph; move the extra context into the back or onto the front as `<br />` line breaks or a text-block Callout inside the same list item. A cloze/mark card is front-only: a bare child sub-list is parsed as the back card (`E093`) — if you still need a sub-list, wrap it inside a Callout (e.g. a `> [!TIP]` block whose quoted lines hold the items), because the Callout keeps it off the back.
+7. **Answer economy.** Keep the direct answer before optional context. If an answer needs explanation from another axis, make another card.
+7. **Semantic back structure.** Reuse the source note's wording, hierarchy, order, and suitable containers. A simple answer may stay as first-level children. Route a non-simple back through [answer-structure.md](answer-structure.md) when the source contains hierarchy, sequence, warning/exception, a true comparison matrix, or a recall-sized relationship diagram. A procedure, chronology, priority, or source-significant sequence uses ordered `1.` children; a peer set remains unordered. **Split long items at every level**: when a sentence or a sub-list item's text exceeds about 42 visible characters or joins several semantic clauses, split it by semantics into a deeper child level — a flat long item is rejected (`E097`).
 
 Completion criterion: for every accepted card, write one short expected-answer statement; no other accepted card has the same statement or a superset that merely summarizes it, and every non-simple back uses the source-grounded structure selected by [answer-structure.md](answer-structure.md).
 
@@ -43,7 +46,7 @@ Completion criterion: for every accepted card, write one short expected-answer s
 | --- | --- | --- | --- |
 | `basic` | A direct question has one specific answer or one fixed closed set. | `list` | The first list-item paragraph is the question and ends in `？` or `?`; its child list starts the answer. Do not add `问题：` or `答案：`. |
 | `cloze` | Hiding one short term, date, actor, threshold, or contrast is more natural than asking a question. | `mark` | Root is a complete source-grounded statement with one short `==target==`; add context only when needed to disambiguate. |
-| `mnemonic` | The source supplies a口诀, compact sequence, or auditable character/segment mapping. | `list` | Root names the exact recall subject and highlights the complete source-written cue; children decode its segments. It is not a fake question. |
+| `mnemonic` | The source supplies a口诀, compact sequence, or auditable character/segment mapping — whether labeled explicitly or only marked implicitly by inline code, a memory Callout, or a 谐音/缩写/取字/首字 mapping. | `list` | Root names the exact recall subject and highlights the complete source-written cue; children decode its segments. It is not a fake question. |
 
 Use `blockquote` only when the quotation itself is the retrieval unit. Use a `callout` root when an inherent warning, exception, trap, or decisive boundary is the whole retrieval unit; otherwise keep the list root and place a short nested Callout around the local exception, conclusion peak, or memory relation, indented into the answer sub-list (deeper than the direct answer items). Changing renderer never changes `custom-dm-card-kind`.
 
@@ -82,6 +85,11 @@ The hidden span is the answer. Keep surrounding words sufficient to distinguish 
 {: custom-dm-source-key="beisong-2026-mafeng-kd31-jiben-jingji-zhidu" custom-dm-card-id="fc-theory-xianfa-ownership-state-mnemonic-v1" custom-dm-card-schema="1" custom-dm-card-kind="mnemonic" custom-dm-card-renderer="list" custom-qb-note-topic-id="theory-law-economic-system-ownership-state"}
 ```
 
+**Detect implicit mnemonics, not just the word 口诀.** Many mnemonics are not labeled "口诀" in the source; they are marked implicitly and must still become mnemonic cards (`W128` warns when the source carries mnemonic material but the deck has no mnemonic card). Look for:
+- a compact inline-code sequence, e.g. `` `国有城土海水矿` ``, `` `公检法` `` — a short code span that is not a statute reference or attribute name;
+- a memory Callout (`> [!TIP]` etc.) whose title or body names 记忆/口诀/助记/联想/谐音/取字/首字;
+- a 谐音、缩写、首字/取字 mapping or a compact sequence whose characters map to source terms.
+When found, card it as `mnemonic`: root names the recall subject, highlight the complete source-written cue, and decode each segment in a child line.
 Every highlighted cue and decoded segment must occur verbatim in the source provider range. Preserve a source-written sequence; do not create a shorter reordered “组合”. When each source sentence contributes one character or segment, highlight that exact contribution in every mapping child.
 
 ### Optional blockquote and callout renderers

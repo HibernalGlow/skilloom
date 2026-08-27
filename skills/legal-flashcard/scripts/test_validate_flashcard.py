@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import re
+import subprocess
+import sys
+import tempfile
 import unittest
+from pathlib import Path
 
 from validate_flashcard import has_blocking_findings, validate, validate_ordinary
 
@@ -37,11 +41,18 @@ class FlashcardValidatorTests(unittest.TestCase):
             cards.append(card.replace("#闪卡/优先级/P1#", f"#闪卡/优先级/{priority}#"))
         return "\n".join(cards)
 
-    def test_priority_distribution_warns_when_p2_is_a_fallback(self):
+    def test_priority_distribution_rejects_p2_as_default_tier(self):
         findings = validate(self._priority_deck(["P1", "P2", "P2", "P2", "P2", "P2", "P2", "P3"]))
+        codes = {finding.code for finding in findings}
 
-        self.assertIn("W121", {finding.code for finding in findings})
-        self.assertFalse(has_blocking_findings([finding for finding in findings if finding.code == "W121"]))
+        self.assertIn("E089", codes)
+        self.assertTrue(has_blocking_findings([finding for finding in findings if finding.code == "E089"]))
+
+    def test_priority_distribution_warns_when_p2_supplies_half_the_deck(self):
+        codes = {finding.code for finding in validate(self._priority_deck(["P1", "P2", "P2", "P2", "P3", "P4"]))}
+
+        self.assertIn("W121", codes)
+        self.assertNotIn("E089", codes)
 
     def test_priority_distribution_warns_when_a_large_deck_has_no_p4(self):
         codes = {
@@ -53,15 +64,59 @@ class FlashcardValidatorTests(unittest.TestCase):
         self.assertIn("W123", codes)
 
     def test_priority_distribution_does_not_force_small_deck_quotas(self):
-        codes = {finding.code for finding in validate(self._priority_deck(["P2"] * 4))}
+        codes = {finding.code for finding in validate(self._priority_deck(["P1", "P2", "P3", "P3"]))}
 
-        self.assertFalse({"W121", "W122", "W123"} & codes)
+        self.assertFalse({"E089", "W121", "W122", "W123"} & codes)
 
     def test_rejects_generated_question_and_answer_prefixes(self):
         prefixed = VALID.replace("- **成立要件**", "- 问题：**成立要件**").replace(
             "    - 要件一。", "    - 答案：要件一。"
         )
         self.assertIn("E044", {finding.code for finding in validate(prefixed)})
+
+    def test_rejects_label_prefixes_behind_emoji_or_bold_or_on_the_back(self):
+        cases = (
+            VALID.replace("- **成立要件**", "- 🔒 问题：**成立要件**"),  # emoji before the label
+            VALID.replace("- **成立要件**", "- **题干**：成立要件是什么？"),  # bolded stem label
+            VALID.replace("- **成立要件**", "- 问：成立要件是什么？"),  # shorthand
+            VALID.replace("    - 要件一。", "    - 解析：要件一的内容。"),  # back label
+            # label inside a nested Callout on the back
+            VALID.replace(
+                "    - 要件一。",
+                "    - 要件一。\n        > [!TIP] 补充\n        >\n        > - 问：补一句。",
+            ),
+        )
+        for text in cases:
+            with self.subTest(fragment=text.splitlines()[-2]):
+                self.assertIn("E044", {finding.code for finding in validate(text)})
+
+    def test_allows_label_like_words_that_are_not_generated_prefixes(self):
+        # 问题在/工作的 phrasing is a sentence, not a label prefix.
+        ok = VALID.replace("    - 要件一。", "    - 问题在于善意取得的构成。")
+        self.assertNotIn("E044", {finding.code for finding in validate(ok)})
+        # Fenced source quotes may contain 问题： without tripping the generated-prefix gate.
+        fenced = VALID.replace(
+            "    - 要件一。",
+            "```md\n问题：甲与乙签订仓库租赁合同。\n```",
+        )
+        self.assertNotIn("E044", {finding.code for finding in validate(fenced)})
+
+    def test_rejects_positional_segments_in_knowledge_tags(self):
+        cases = (
+            VALID.replace("#法考/民法/债法/成立要件#", "#法考/民诉/专题二/诉的分离#"),
+            VALID.replace("#法考/民法/债法/成立要件#", "#法考/刑法/第19讲/财产犯罪#"),
+            VALID.replace("#法考/民法/债法/成立要件#", "#法考/民诉/02/诉的分离#"),
+            VALID.replace("#法考/民法/债法/成立要件#", "#法考/行政法/专题十/判定#"),
+        )
+        for text in cases:
+            with self.subTest(fragment=text.splitlines()[0][:40]):
+                self.assertIn("E101", {finding.code for finding in validate(text)})
+
+    def test_accepts_stable_concept_knowledge_tags(self):
+        good = VALID.replace("#法考/民法/债法/成立要件#", "#法考/民诉/诉的基本理论/诉的分离#")
+        codes = {finding.code for finding in validate(good)}
+        self.assertNotIn("E101", codes)
+        self.assertNotIn("E101", {finding.code for finding in validate(VALID)})
 
     def test_basic_front_requires_question_mark(self):
         declarative = VALID.replace("是什么？ #法考", "的规则 #法考")
@@ -248,10 +303,13 @@ class FlashcardValidatorTests(unittest.TestCase):
 
 ## 制度区分
 
-- **共同诉讼**{: style="color: var(--b3-font-color10);"}的两类基本形态如何区分？ #法考/民诉/共同诉讼/制度区分# #闪卡/优先级/P1#
+- **共同诉讼**{: style="color: var(--b3-font-color10);"}的两类基本形态如何区分🧭？ #法考/民诉/共同诉讼/制度区分# #闪卡/优先级/P1#
     - **必要共同诉讼**{: style="color: var(--b3-font-color10);"}：诉讼标的是**共同**{: style="background-color: var(--b3-font-background11);"}的。
-        - 处理结果：<em>合一审理、合一判决</em>，最终**统一裁判**{: style="color: var(--b3-font-color8);"}。
-    - **普通共同诉讼**{: style="color: var(--b3-font-color12);"}：诉讼标的是<u>同一种类</u>的。
+        - **处理结果**{: style="color: var(--b3-font-color8);"}：
+            - **合一审理**{: style="color: var(--b3-font-color13);"}、**合一判决**。
+            - 最终**统一裁判**{: style="color: var(--b3-font-color8);"}。
+    - **普通共同诉讼**{: style="color: var(--b3-font-color12);"}：
+        - 诉讼标的是**同一种类**{: style="color: var(--b3-font-color13);"}的。
         - 审理方式：可以`合并审理`，也可以**分开审理**{: style="color: var(--b3-font-color9);"}。
         | 制度 | 标的关系 |
         | --- | --- |
@@ -279,17 +337,18 @@ class FlashcardValidatorTests(unittest.TestCase):
             class B,C,D answer;
         ```
         > [!IMPORTANT] 核心边界
-        > - <em>起诉时</em>**人数尚未确定**{: style="color: var(--b3-font-color12);"}。
+        > - 🚨 <em>起诉时</em>**人数尚未确定**{: style="color: var(--b3-font-color12);"}。
         > - ~~跳过公告、登记直接裁判~~不是**启动方式**{: style="color: var(--b3-font-color13);"}。
 {: custom-dm-source-key="example-rich" custom-dm-card-id="fc-example-rich-process-v1" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="example-rich-process"}
 
 ## 区分口诀
 
-- **区分口诀**{: style="color: var(--b3-font-color6);"}：==必要共标的，普通同种类；确定全体推，不定公告登。== #法考/民诉/共同诉讼/区分口诀# #闪卡/优先级/P1#
+- 🧠 **区分口诀**{: style="color: var(--b3-font-color6);"}：==必要共标的，普通同种类；确定全体推，不定公告登。== #法考/民诉/共同诉讼/区分口诀# #闪卡/优先级/P1#
     - ==必要共标的==：诉讼标的是**共同**{: style="background-color: var(--b3-font-background11);"}的。
     - ==普通同种类==：诉讼标的是<u>同一种类</u>的。
     - ==确定全体推==：全体**当事人**{: style="color: var(--b3-font-color10);"}**推选代表人**{: style="color: var(--b3-font-color12);"}。
-    - ==不定公告登==：公告、登记后**推选或商定**{: style="background-color: var(--b3-font-background13);"}代表人。
+    - ==不定公告登==：
+        - 公告、登记后**推选或商定**{: style="background-color: var(--b3-font-background13);"}代表人。
 {: custom-dm-source-key="example-rich" custom-dm-card-id="fc-example-rich-mnemonic-v1" custom-dm-card-schema="1" custom-dm-card-kind="mnemonic" custom-dm-card-renderer="list" custom-qb-note-topic-id="example-rich-mnemonic"}
 
 ```yaml
@@ -298,6 +357,11 @@ report:
   accepted: 3
   rejected: 0
   rejection_reasons: {}
+  priorities:
+    P1: 3
+    P2: 0
+    P3: 0
+    P4: 0
 source:
   note: "示例/专题六 共同诉讼"
   protocol: "DAMO 闪卡 schema 1"
@@ -682,7 +746,7 @@ source:
         cards = []
         for number in range(1, 6):
             cards.append(VALID.replace("fc-civil-elements-v1", f"fc-civil-elements-v{number}"))
-        deck = "\n".join(cards) + "\n```yaml\nreport:\n  candidates: 5\n  accepted: 5\n  rejected: 0\n  rejection_reasons: {}\nsource:\n  note: \"民法/成立要件\"\n  protocol: \"DAMO 闪卡 schema 1\"\n```\n"
+        deck = "\n".join(cards) + "\n```yaml\nreport:\n  candidates: 5\n  accepted: 5\n  rejected: 0\n  rejection_reasons: {}\n  priorities:\n    P1: 5\n    P2: 0\n    P3: 0\n    P4: 0\nsource:\n  note: \"民法/成立要件\"\n  protocol: \"DAMO 闪卡 schema 1\"\n```\n"
         self.assertIn("E013", {finding.code for finding in validate(deck, require_report=True)})
         self.assertNotIn("E032", {finding.code for finding in validate(deck, require_report=True)})
         self.assertIn("E032", {finding.code for finding in validate(deck.replace("accepted: 5", "accepted: 4"), require_report=True)})
@@ -703,7 +767,7 @@ source:
         self.assertEqual(sum(finding.code == "E042" for finding in findings), 9)
 
     def test_requires_one_final_source_protocol_line(self):
-        report = "```yaml\nreport:\n  candidates: 1\n  accepted: 1\n  rejected: 0\n  rejection_reasons: {}\nsource:\n  note: \"民法/成立要件\"\n  protocol: \"DAMO 闪卡 schema 1\"\n```\n"
+        report = "```yaml\nreport:\n  candidates: 1\n  accepted: 1\n  rejected: 0\n  rejection_reasons: {}\n  priorities:\n    P1: 1\n    P2: 0\n    P3: 0\n    P4: 0\nsource:\n  note: \"民法/成立要件\"\n  protocol: \"DAMO 闪卡 schema 1\"\n```\n"
         self.assertNotIn("E071", {finding.code for finding in validate(VALID + report, require_report=True)})
         self.assertIn("E070", {finding.code for finding in validate(VALID, require_report=True)})
         misplaced = report + VALID
@@ -712,6 +776,284 @@ source:
     def test_plain_text_report_is_rejected(self):
         plain = "生成报告：候选 1；接受 1；拒绝 0。\n"
         self.assertIn("E070", {finding.code for finding in validate(VALID + plain, require_report=True)})
+
+    def test_report_requires_priority_counts_matching_accepted_cards(self):
+        missing = "```yaml\nreport:\n  candidates: 1\n  accepted: 1\n  rejected: 0\n  rejection_reasons: {}\nsource:\n  note: \"民法/成立要件\"\n  protocol: \"DAMO 闪卡 schema 1\"\n```\n"
+        wrong = missing.replace("  rejection_reasons: {}\n", "  rejection_reasons: {}\n  priorities:\n    P1: 0\n    P2: 1\n    P3: 0\n    P4: 0\n")
+        for label, report in (("missing", missing), ("mismatched", wrong)):
+            with self.subTest(label=label):
+                self.assertIn("E088", {finding.code for finding in validate(VALID + report, require_report=True)})
+        correct = missing.replace("  rejection_reasons: {}\n", "  rejection_reasons: {}\n  priorities:\n    P1: 1\n    P2: 0\n    P3: 0\n    P4: 0\n")
+        self.assertNotIn("E088", {finding.code for finding in validate(VALID + correct, require_report=True)})
+
+    def test_warns_when_source_diagram_is_not_copied_to_card_back(self):
+        source = SOURCE.replace(
+            "#### 法律效果",
+            "![程序流程图](assets/procedure.png)\n\n#### 法律效果",
+        )
+        self.assertIn("W126", {finding.code for finding in validate(VALID, source_text=source)})
+        with_image = VALID.replace(
+            "\n{: custom-dm-source-key=",
+            "\n    - 图示：\n        ![程序流程图](assets/procedure.png)\n"
+            "{: custom-dm-source-key=",
+        )
+        self.assertNotIn("W126", {finding.code for finding in validate(with_image, source_text=source)})
+
+    def test_rich_deck_requires_emoji_coverage_above_eighty_percent(self):
+        cards = []
+        for number in range(1, 4):
+            cards.append(VALID.replace("fc-civil-elements-v1", f"fc-civil-emoji-v{number}"))
+        deck = "\n".join(cards)
+        self.assertIn("E091", {finding.code for finding in validate(deck, rich_style=True)})
+        markers_only = deck.replace("是什么？", "是什么✅？", 1)
+        self.assertIn("E091", {finding.code for finding in validate(markers_only, rich_style=True)})
+        covered = deck.replace("是什么？", "是什么🚨？")
+        self.assertNotIn("E091", {finding.code for finding in validate(covered, rich_style=True)})
+
+    def test_rich_nonsimple_card_requires_semantic_emoji(self):
+        rich_card = VALID.replace("    - 要件一。", "    - 要件一。\n    - 要件二。\n    - 要件三。")
+        self.assertIn("E090", {finding.code for finding in validate(rich_card, rich_style=True)})
+        marked = rich_card.replace("是什么？", "是什么🎯？")
+        self.assertNotIn("E090", {finding.code for finding in validate(marked, rich_style=True)})
+
+    def test_prefers_emoji_on_both_front_and_back(self):
+        back_only = VALID.replace("    - 要件一。", "    - 🚨 要件一。")
+        self.assertIn("W127", {finding.code for finding in validate(back_only, rich_style=True)})
+        both = VALID.replace("是什么？", "是什么🎯？").replace("    - 要件一。", "    - 🚨 要件一。")
+        self.assertNotIn("W127", {finding.code for finding in validate(both, rich_style=True)})
+
+    def test_rejects_reusing_the_same_emoji_on_front_and_back(self):
+        lazy = VALID.replace("是什么？", "是什么🔒？").replace("    - 要件一。", "    - 🔒 要件一。")
+        self.assertIn("E100", {finding.code for finding in validate(lazy, rich_style=True)})
+        honest = VALID.replace("是什么？", "是什么🔒？").replace("    - 要件一。", "    - ⚖️ 要件一。")
+        findings = {finding.code for finding in validate(honest, rich_style=True)}
+        self.assertNotIn("E100", findings)
+        self.assertNotIn("W127", findings)
+        # Repeating the same emoji on the back only is fine; the ban is front/back reuse.
+        repeated_back = VALID.replace("是什么？", "是什么🔒？").replace(
+            "    - 要件一。", "    - ⚖️ 要件一。\n    - ⚖️ 要件二。"
+        )
+        self.assertNotIn("E100", {finding.code for finding in validate(repeated_back, rich_style=True)})
+        self.assertNotIn("E100", {finding.code for finding in validate(VALID, rich_style=True)})
+
+    def test_warns_when_source_mnemonic_material_is_not_cardified(self):
+        explicit = SOURCE + "\n口诀：国有城土海水矿。\n"
+        self.assertIn("W128", {finding.code for finding in validate(VALID, source_text=explicit)})
+        implicit = SOURCE + "\n> [!TIP] 记忆方法\n> 国有城土海水矿。\n"
+        self.assertIn("W128", {finding.code for finding in validate(VALID, source_text=implicit)})
+        self.assertNotIn("W128", {finding.code for finding in validate(VALID, source_text=SOURCE)})
+
+    def test_accepts_mnemonic_card_for_implicit_source_cue(self):
+        mnemonic_card = VALID.replace('custom-dm-card-kind="basic"', 'custom-dm-card-kind="mnemonic"').replace(
+            "是什么？", "的口诀：==国有城土海水矿=="
+        ).replace("    - 要件一。", "    - ==城土==：城市土地。")
+        explicit = SOURCE + "\n口诀：国有城土海水矿。\n"
+        self.assertNotIn("W128", {finding.code for finding in validate(mnemonic_card, source_text=explicit)})
+
+    def test_rejects_overlong_card_front(self):
+        long_question = "甲公司与乙公司签订合同后因第三人丙的违约行为导致标的物灭失，且双方对风险负担、违约责任竞合以及合同解除后损害赔偿范围的处理规则存在争议时应当如何认定"
+        long_front = VALID.replace(
+            '**成立要件**{: style="color: var(--b3-font-color10);"}是什么？', long_question + "？"
+        )
+        self.assertIn("E092", {finding.code for finding in validate(long_front)})
+        self.assertNotIn("E092", {finding.code for finding in validate(VALID)})
+
+    def test_mark_card_must_not_carry_back_sublist(self):
+        make_mark = lambda text: (
+            text.replace('custom-dm-card-renderer="list"', 'custom-dm-card-renderer="mark"')
+            .replace('custom-dm-card-kind="basic"', 'custom-dm-card-kind="cloze"')
+            .replace("是什么？", "的成立要件是：==要件一==。")
+        )
+        mark_with_children = make_mark(VALID)
+        mark_no_children = mark_with_children.replace("    - 要件一。\n", "").replace(
+            '        - **适用边界**{: style="background-color: var(--b3-font-background11);"}明确。\n', ""
+        )
+        self.assertIn("E093", {finding.code for finding in validate(mark_with_children)})
+        self.assertNotIn("E093", {finding.code for finding in validate(mark_no_children)})
+
+    def test_mark_card_allows_sublist_wrapped_in_callout(self):
+        mark = (
+            VALID.replace('custom-dm-card-renderer="list"', 'custom-dm-card-renderer="mark"')
+            .replace('custom-dm-card-kind="basic"', 'custom-dm-card-kind="cloze"')
+            .replace("是什么？", "的成立要件是：==要件一==。")
+        )
+        wrapped = mark.replace(
+            "    - 要件一。\n",
+            "    > [!TIP] 情境辅助\n"
+            "    > - 情形一：甲乙约定。\n"
+            "    > - 情形二：丙丁约定。\n",
+        ).replace('        - **适用边界**{: style="background-color: var(--b3-font-background11);"}明确。\n', "")
+        self.assertNotIn("E093", {finding.code for finding in validate(wrapped)})
+
+    def test_deck_emoji_semantics_gates(self):
+        repeated_cards = []
+        for number in range(1, 10):
+            card = VALID.replace("fc-civil-elements-v1", f"fc-civil-emoji-sem-v{number}")
+            repeated_cards.append(card.replace("    - 要件一。", "    - 🚨 要件一。"))
+        self.assertIn("E094", {finding.code for finding in validate("\n".join(repeated_cards))})
+
+        generic = VALID.replace("    - 要件一。", "    - 🚨 注意：伪造文件不构成表见事由。")
+        self.assertIn("W129", {finding.code for finding in validate(generic)})
+
+        batch_cards = []
+        for number in range(1, 7):
+            card = VALID.replace("fc-civil-elements-v1", f"fc-civil-emoji-batch-v{number}")
+            batch_cards.append(card.replace("    - 要件一。", "    - 🚨 注意：伪造文件。"))
+        self.assertIn("E130", {finding.code for finding in validate("\n".join(batch_cards))})
+
+    def test_warns_when_deck_emoji_pile_up_at_sentence_ends(self):
+        tail_cards = []
+        endings = ["成立要件已经明确🚨。", "要件确立后生效💡。", "边界情形排除❌除外🛑。", "结论应按约定处理📌。", "期间届满不再延长⏳。", "例外情形单独列出⚖️。"]
+        for number, ending in enumerate(endings, start=1):
+            card = VALID.replace("fc-civil-elements-v1", f"fc-civil-emoji-tail-v{number}")
+            tail_cards.append(card.replace("    - 要件一。", f"    - {ending}"))
+        self.assertIn("E131", {finding.code for finding in validate("\n".join(tail_cards))})
+        attached = VALID.replace("    - 要件一。", "    - 要件一已明确✅、要件二待查🔍、要件三排除。")
+        self.assertNotIn("E131", {finding.code for finding in validate(attached)})
+
+    def test_warns_when_deck_emoji_bunch_up_at_line_heads(self):
+        heads = "\n".join(
+            VALID.replace("fc-civil-elements-v1", f"fc-civil-emoji-head-v{number}").replace(
+                "    - 要件一。",
+                f"    - {'🧭' if number % 2 else '⏳'} **第{number}要**：规则表述内容。",
+            )
+            for number in range(1, 7)
+        )
+        self.assertIn("E132", {finding.code for finding in validate(heads)})
+        mixed = VALID.replace("    - 要件一。", "    - 要件一已明确✅、要件二待查🔍、要件三排除；以小前提📦涵摄。")
+        self.assertNotIn("E132", {finding.code for finding in validate(mixed)})
+
+    def test_rejects_dangling_emoji_without_a_concept_neighbor(self):
+        cards = []
+        fragments = ["额外情形。🚨", "、📦、", "；⏳、", "提交。🛑；", "、🎯；", "排除。🧭"]
+        for number, fragment in enumerate(fragments, start=1):
+            card = VALID.replace("fc-civil-elements-v1", f"fc-civil-emoji-float-v{number}")
+            cards.append(card.replace("    - 要件一。", f"    - {fragment}"))
+        self.assertIn("E133", {finding.code for finding in validate("\n".join(cards))})
+        attached = VALID.replace(
+            "    - 要件一。",
+            "    - 要件已明确🚨、期限届满⏳、双方共同申请🧭、按约定处理📚、余额计税⚖️。",
+        )
+        self.assertNotIn("E133", {finding.code for finding in validate(attached)})
+        self.assertNotIn("E131", {finding.code for finding in validate(attached)})
+
+    def test_rejects_long_unsplit_back_items(self):
+        long_flat = VALID.replace(
+            "    - 要件一。",
+            "    - 表见代理的成立需要相对人有理由相信行为人有代理权，且行为人与相对人之间的法律行为合法有效。",
+        )
+        self.assertIn("E097", {finding.code for finding in validate(long_flat)})
+        nested_ok = VALID.replace(
+            "    - 要件一。",
+            "    - 表见代理须符合**外观要件**：\n"
+            "        - 相对人有理由相信行为人有**代理权**。\n"
+            "        - 相对人**善意无过失**。\n"
+            "        - 行为人与相对人之间的法律行为**有效**。",
+        )
+        self.assertNotIn("E097", {finding.code for finding in validate(nested_ok)})
+        self.assertNotIn("E097", {finding.code for finding in validate(VALID)})
+
+    def test_callout_directive_requires_preceding_blank_line(self):
+        no_blank = VALID.replace(
+            "    - 要件一。\n",
+            "    - 要件一。\n    > [!CAUTION] 例外\n    > 例外内容。\n",
+        ).replace(
+            '        - **适用边界**{: style="background-color: var(--b3-font-background11);"}明确。\n', ""
+        )
+        self.assertIn("E098", {finding.code for finding in validate(no_blank)})
+        with_blank = no_blank.replace("    - 要件一。\n    > [!", "    - 要件一。\n\n    > [!")
+        self.assertNotIn("E098", {finding.code for finding in validate(with_blank)})
+        self.assertNotIn("E098", {finding.code for finding in validate(VALID)})
+
+    def test_list_item_text_must_not_start_with_an_ordered_marker(self):
+        cases = (
+            VALID.replace("    - 要件一。\n", "    - 1. 债务加入生效后。\n"),
+            VALID.replace("    - 要件一。\n", "    - 要件一。\n        - （1）第一子项。\n"),
+            VALID.replace("    - 要件一。\n", "> - ① 加引述的项。\n>   内容。\n"),
+            VALID.replace("    - 要件一。\n", "    - 2、第二项。\n"),
+        )
+        for text in cases:
+            with self.subTest(fragment=text.splitlines()[-3]):
+                self.assertIn("E099", {finding.code for finding in validate(text)})
+
+    def test_ordered_children_and_non_marker_numbers_are_allowed(self):
+        ordered_children = VALID.replace("    - 要件一。\n", "    1. 要件一。\n    2. 要件二。\n")
+        self.assertNotIn("E099", {finding.code for finding in validate(ordered_children)})
+        decimal = VALID.replace("    - 要件一。\n", "    - 利率调为 1.5 倍。\n")
+        self.assertNotIn("E099", {finding.code for finding in validate(decimal)})
+        self.assertNotIn("E099", {finding.code for finding in validate(VALID)})
+
+    def test_rejects_callout_that_repeats_the_answer(self):
+        lazy = VALID.replace(
+            "    - 要件一。",
+            "    - 包括`公章`、`证书`、`文件`、**职务**{: style=\"color: var(--b3-font-color12);\"}等。\n"
+            "    - **根本要求**{: style=\"color: var(--b3-font-color8);\"}是本身必须真实；若公章、证书、文件系**伪造**，则绝对不构成表见事由。",
+        ).replace(
+            '\n{: custom-dm-source-key=',
+            '\n        > [!CAUTION] 伪造文件不构成表见事由\n'
+            '        > 公章、证书、文件系**伪造**的，绝对==不构成==**表见事由**。\n'
+            '{: custom-dm-source-key=',
+        )
+        self.assertIn("E095", {finding.code for finding in validate(lazy)})
+        valuable = lazy.replace(
+            "> 公章、证书、文件系**伪造**的，绝对==不构成==**表见事由**。",
+            "> 伪造不产生真实授权外观，相对人的信赖没有保护基础，只能按**无权处分**{: style=\"color: var(--b3-font-color10);\"}向后追，不能主张表见代理。",
+        )
+        self.assertNotIn("E095", {finding.code for finding in validate(valuable)})
+
+    def test_rejects_adjacent_card_lines_dominated_by_same_color(self):
+        monotone = VALID.replace(
+            "    - 要件一。",
+            "    - 要件一{: style=\"color: var(--b3-font-color12);\"}。\n"
+            "    - 要件二{: style=\"color: var(--b3-font-color12);\"}。\n"
+            "    - 要件三{: style=\"color: var(--b3-font-color12);\"}。",
+        )
+        self.assertIn("E096", {finding.code for finding in validate(monotone)})
+        diverse = VALID.replace(
+            "    - 要件一。",
+            "    - 要件一{: style=\"color: var(--b3-font-color12);\"}。\n"
+            "    - 要件二{: style=\"color: var(--b3-font-color8);\"}。\n"
+            "    - 要件三{: style=\"color: var(--b3-font-color13);\"}。",
+        )
+        self.assertNotIn("E096", {finding.code for finding in validate(diverse)})
+
+
+class CliStrictModeTests(unittest.TestCase):
+    # VALID carries no YAML report: strict default (report required) must fail it.
+    def run_cli(self, flags: list[str]) -> subprocess.CompletedProcess[str]:
+        validator = Path(__file__).resolve().with_name("validate_flashcard.py")
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as handle:
+            handle.write(VALID)
+            path = handle.name
+        try:
+            return subprocess.run(
+                [sys.executable, "-X", "utf8", str(validator), path, *flags],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_strict_gates_are_on_by_default(self):
+        result = self.run_cli([])
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("E070", result.stdout)
+
+    def test_relaxed_mode_requires_the_complete_relaxation_set(self):
+        only_report = self.run_cli(["--no-require-report"])
+        self.assertEqual(only_report.returncode, 2)
+        self.assertIn("--no-rich-style", only_report.stderr)
+        only_rich = self.run_cli(["--no-rich-style"])
+        self.assertEqual(only_rich.returncode, 2)
+        self.assertIn("--no-require-report", only_rich.stderr)
+        both = self.run_cli(["--no-require-report", "--no-rich-style"])
+        self.assertEqual(both.returncode, 0)
+        self.assertIn("PASS", both.stdout)
+
+    def test_explicit_strict_flags_behave_identically(self):
+        result = self.run_cli(["--require-report", "--rich-style"])
+        self.assertEqual(result.returncode, 1)
 
 
 if __name__ == "__main__":

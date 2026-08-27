@@ -1,41 +1,48 @@
-# 已写入思源文档的一次性自适应修订
+# 思源已写入文档的修订
 
-本 reference 只在用户明确授权修改已写入的 SiYuan 文档时读取。目标是一次导出、一次本地编辑、一次 CLI 写回、一次复导校验。
+本 reference 只在用户明确授权修改已写入的 SiYuan 文档时读取。
 
-## 最短路径
+## 数据主权与修改方向
 
-1. 用 [`siyuan-export.md`](siyuan-export.md) 的脚本以 `--ial all` 导出 `before.md`。
-2. 复制为 `after.md`，按用户要求自由增删、重排和改写普通内容；保留需要继续存在的特殊块 `id` IAL。
-3. 先运行 dry-run；它会列出同 ID 变更，或重建中的普通增删、无 ID 新块行和特殊 ID 保留情况：
+**SiYuan 是闪卡数据的唯一主存储，本地的 `30-闪卡` Markdown 只是导出镜像。** 闪卡数据很重要，不能因为整理或优化而在资源里被删除或覆盖。因此后续任何优化（例如补充 emoji、改优先级、调整结构）都只能按下面的方向进行：
 
-```powershell
-python -X utf8 skills/legal-flashcard/scripts/siyuan_live_patch.py `
-  --workspace "$SIYUAN_WORKSPACE" --before <work>/before.md --after <work>/after.md
-```
+1. **通过思源命令行修改思源中的数据**（唯一入口）。
+2. **（可选）把修改好的内容通过导出脚本覆盖到本地文件**——本地文件永远只是思源数据的镜像，只在导出时被覆盖。
 
-4. 对最终 portable 导出运行适用的 MarkNote、Flashcard 或 GoldQuest validator，再追加 `--confirm` 执行一次：
+**例外**：只有当思源中的目标文档是空的、或只有一些无关记录时，才允许只修改本地的 Markdown 文件（此时没有主数据需要保护，修改后如需进思源再走创建流程，而不是覆盖）。
 
-```powershell
+**红线**：不得从本地文件反向覆盖思源数据——不用整篇 `import md` 覆盖已写入的文档、不用本地编辑结果整体回写删除思源块、不编辑 `.sy`。一切写操作都经 `siyuan` CLI 以块为单位进行。
 
-python -X utf8 skills/legal-flashcard/scripts/siyuan_live_patch.py `
-  --workspace "$SIYUAN_WORKSPACE" --before <work>/before.md --after <work>/after.md --confirm
-```
+## 步骤一：CLI 修改思源
 
-5. 重新导出 portable Markdown，复跑同一组 validator。full-IAL 快照供脚本识别块身份，不直接交给只接受 DAMO 语义字段的卡片 validator。
+1. **定位目标块**：用检索或块读取拿到精确的块 ID，优先精确到段落/listItem，不整篇读根节点。
+   ```powershell
+   siyuan -w "$SIYUAN_WORKSPACE" search "<关键词>" -f json --type heading --type paragraph --type listItem --page-size 3
+   siyuan -w "$SIYUAN_WORKSPACE" block kramdown --id <block-id>
+   ```
+2. **改正文**：`siyuan block update --id <id> [--data "<markdown>" | --file <path>]`。`block update` 只替换该块内容，不重建它的子孙块；块类型不允许改变时加 `--lock-type`。
+3. **结构变化**：新增用 `block append --parent <id>`（子块末尾）、`block prepend --parent <id>`（子块开头）或 `block insert --parent <id> [--previous <sibling-id>]`（指定位置）；删除用 `block delete --id <id>`；移动用 `block move`。新块 ID 由内核分配，不需要手写。
+4. **改属性**：`siyuan attr set --id <id> --attr <name>=<value>`，例如 `--attr custom-qb-note-topic-id=civil-elements`。改属性前先 `attr get --id <id>` 复核现值。
+5. **逐条复核**：每次写回后用 `block kramdown --id <id>` 核对修改结果；范围较广或批量修改前先 `--dry-run`。
 
-## 风险分层
+### 身份与风险
 
-- **普通块**：只有 SiYuan 基础 `id`、`updated` 和结构信息，且没有外部身份、数据库绑定、引用或 DAMO/Riff 属性。它们可在一次文档重建中新增、删除、重排和改写。
-- **特殊块**：有 `custom-*`、`custom-dm-*`、`custom-qb-*`、Riff/复习/数据库/引用相关属性，或是这些块的必要祖先。结构重建必须保留其原 `id`；脚本会在写回前检查。
+- **普通块**：只有基础 `id`、`updated` 和结构信息，无数据库绑定、引用或 DAMO/Riff 属性，可自由改写、删除、重排。
+- **特殊块**：带 `custom-*`、`custom-dm-*`、`custom-qb-*`、Riff/复习/数据库/引用相关属性，或是这些块的必要祖先。逐块 `update` / `attr set` 天然保留块 ID 与子孙结构；删除特殊块前必须确认其外部身份不再被引用。
+- `custom-dm-card-id` 是可编辑的 DAMO 业务身份，不等同于 SiYuan 块 `id`，默认允许修订；需要冻结的属性不要用 `attr set` 覆盖。
 
-`custom-dm-card-id` 是可编辑的 DAMO 业务身份，不等同于 SiYuan 块 `id`，默认允许修订。需要冻结时显式传 `--protect-attr custom-dm-card-id`；需要冻结全部 `custom-*` 时传 `--protect-custom-attrs`。复习调度、设备状态和未来运行时字段不由本技能生成或猜测。
+## 步骤二（可选）：导出刷新本地镜像
 
-完整 IAL 未携带的反链或数据库成员信息可从 `siyuan block get`、`attr get` 或数据库查询中发现；把这些块以重复的 `--special-id <id>` 交给脚本，无需把查询结果放进 Agent 上下文。
+CLI 修改完成并复核后，若本地 `30-闪卡` 文件需要同步：
 
-## 结构变化边界
+1. 用 [`siyuan-export.md`](siyuan-export.md) 的脚本以 portable IAL 导出该文档（如需完整块身份供归档可用 `--ial all`），输出覆盖到本地对应文件。
+2. 对导出结果运行适用 validator（Flashcard / MarkNote / GoldQuest）确认修改未破坏门禁。
 
-`after.md` 中新增块不要手写来自 `before.md` 的 `id`；让 SiYuan 分配新 ID。删除特殊块必须传 `--allow-delete-special <id>`，否则脚本拒绝整篇重建。若只是正文、颜色、标签、优先级或属性变化且 ID 集合不变，脚本按块调用 `block update` 与 `attr set`，不重建文档。
+## 例外：思源文档为空或只有无关记录
 
-脚本不会编辑 `.sy`、不会整篇 `import md`，也不会把 `custom-dm-card-id`、标签或样式误当作基础身份覆盖。`style` 和行内样式均随正文/属性写回。
+仅当思源中的目标文档为空、或其中只有无关记录（例如从未导入的留档壳）时，才允许直接修改本地的 Markdown 文件，此时不需要也不应当试图回写思源；若之后需要把这份内容放进思源，走创建/导入流程（见 [`siyuan-paste.md`](siyuan-paste.md)），而不是覆盖。
 
-完成条件：dry-run 计划只涉及授权范围；特殊块 ID 未被意外删除；新增普通块由 SiYuan 生成 ID；confirm 执行成功；复导后的 Markdown 通过适用 validator。
+## 完成条件
+
+- 每次写回都针对已确认的块；dry-run（如使用）只涉及授权范围；特殊块与约定冻结的属性未被改动；写回后经 `block kramdown` 复核，或导出后通过适用 validator。
+- 本地文件只在导出步骤被覆盖；不存在从本地编辑反向覆盖思源数据的情况。
