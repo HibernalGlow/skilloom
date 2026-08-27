@@ -193,8 +193,13 @@ class ConceptHeadingValidationTests(unittest.TestCase):
     def test_accepts_promoted_concept_and_question_callout_counter(self) -> None:
         promoted = "### 1. 六赃\n\n六种非法获取公私财物的犯罪。\n"
         exercise = """> [!QUESTION] ✏️ 合同效力判断
-> ### 1.
+> ```md
+> [判断] 1.
 > 合同效力：甲与乙签订合同，该合同是否有效？
+> ```
+>
+> **回答与解析：**
+> 1. 合同有效。
 """
 
         self.assertNotIn("705", {finding.code for finding in MODULE.validate_text(promoted, "legal-marknote")})
@@ -290,6 +295,14 @@ class RichPresentationValidationTests(unittest.TestCase):
     def test_repeated_subject_requires_active_color(self) -> None:
         text = "甲提出申请，甲随后补正材料。"
         self.assertIn("625", {finding.code for finding in MODULE.validate_text(text, "legal-marknote")})
+
+    def test_rejects_list_items_starting_with_an_ordered_marker(self) -> None:
+        for line in ("- 1. 债务加入生效后。", "- （1）主体适格。", "- ① 一部单行刑法。"):
+            with self.subTest(line=line):
+                result = {finding.code for finding in MODULE.validate_text(line, "legal-marknote")}
+                self.assertIn("311", result)
+        result = {finding.code for finding in MODULE.validate_text("- 利率提高到 1.5 倍。", "legal-marknote")}
+        self.assertNotIn("311", result)
 
 
 

@@ -42,6 +42,38 @@ class GoldquestDensityValidationTests(unittest.TestCase):
 
         self.assertEqual(["632", "632"], [finding.code for finding in result.findings])
 
+    def test_rejects_whole_option_strikethrough(self) -> None:
+        question_lines = [
+            "    - [ ] A. 村委会应当返还所得收益",
+            "    - [ ] B. 村委会无需承担责任",
+        ]
+        analysis_lines = [
+            "- ❌ A. ~~村委会应当返还所得收益~~",
+            "    - **破绽**：A项应予返还，**不当选**。",
+            "- ✅ B. 村委会==无需承担责任==",
+            "    - <u>依据</u>：村委会以自己名义处分财产，**当选**。",
+        ]
+
+        result = MODULE.validate_option_analysis(question_lines, analysis_lines, 1, "B")
+
+        self.assertIn("646", [finding.code for finding in result.findings])
+
+    def test_rejects_wrong_option_marked_by_color_only(self) -> None:
+        question_lines = [
+            "    - [ ] A. 村委会应当返还所得收益",
+            "    - [ ] B. 村委会无需承担责任",
+        ]
+        analysis_lines = [
+            "- ❌ A. 村委会**应当返还**{: style=\"color: var(--b3-font-color13);\"}所得收益",
+            "    - **破绽**：A项应予返还，**不当选**。",
+            "- ✅ B. 村委会==无需承担责任==",
+            "    - <u>依据</u>：村委会自己处分财产，**当选**。",
+        ]
+
+        result = MODULE.validate_option_analysis(question_lines, analysis_lines, 1, "B")
+
+        self.assertIn("631", [finding.code for finding in result.findings])
+
     def test_requires_topic_summary_for_multi_question_provider_document(self) -> None:
         text = """# 专题
 {: custom-qb-note-topic-id="civil-procedure-topic"}
@@ -601,6 +633,33 @@ class QuestionTopicIalValidationTests(unittest.TestCase):
         self.assertIn("805", codes)
         self.assertIn("809", codes)
         self.assertIn("812", codes)
+
+    def test_rejects_generated_label_prefixes(self) -> None:
+        text = f"""##### 1.
+* **题干**：甲向乙交付货物, 乙未付款.
+* **问题**：下列哪一选项是正确的?
+{ANSWER_BLOCK}
+"""
+
+        self.assertIn("647", {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")})
+
+    def test_accepts_label_free_question_lines(self) -> None:
+        text = f"""##### 1.
+* 甲向乙交付货物, 乙未付款.
+* 下列哪一选项是正确的?
+{ANSWER_BLOCK}
+"""
+
+        self.assertNotIn("647", {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")})
+
+    def test_rejects_list_items_starting_with_an_ordered_marker(self) -> None:
+        for line in ("- 1. 债务加入生效后。", "- （1）主体适格。", "- ① 一部单行刑法。"):
+            with self.subTest(line=line):
+                result = {finding.code for finding in MODULE.validate_text(line, "legal-goldquest")}
+                self.assertIn("311", result)
+        # A decimal and a mid-content enumeration stay clear of the hard gate.
+        result = {finding.code for finding in MODULE.validate_text("- 利率提高到 1.5 倍。", "legal-goldquest")}
+        self.assertNotIn("311", result)
 
 
 if __name__ == "__main__":

@@ -21,6 +21,9 @@ LIST_ITEM_PATTERN = re.compile(r"^(?P<indent>\s*)(?:[-+*]|\d+[.)])\s+")
 INLINE_ENUMERATION_PATTERN = re.compile(
     r"(?<![\w第])(?:\d{1,3}[.)、．]|[（(]\s*\d{1,3}\s*[）)]|[①-⑳])(?=\s*[^\d\s])"
 )
+LIST_ORDERED_MARKER_START_PATTERN = re.compile(
+    r"^(?:(?:\d{1,3})\s*[.)、．]|[（(]\s*\d{1,3}\s*[）)]|[①-⑳])(?=\s*[^\d\s]|\s*$)"
+)
 
 
 @dataclass(frozen=True)
@@ -114,15 +117,26 @@ def validate_marknote_prose_structure(text: str) -> tuple[ProseGateFinding, ...]
                 )
             )
         list_match = LIST_ITEM_PATTERN.match(content)
-        if list_match and INLINE_ENUMERATION_PATTERN.search(content[list_match.end():]):
-            findings.append(
-                ProseGateFinding(
-                    "W",
-                    "507",
-                    number,
-                    "A list item contains an inline enumeration; give each child its own indented list line instead of keeping its marker in the parent text, preserving every inline Markdown and SiYuan IAL anchor intact.",
+        if list_match:
+            after_marker = content[list_match.end():]
+            if LIST_ORDERED_MARKER_START_PATTERN.match(after_marker):
+                findings.append(
+                    ProseGateFinding(
+                        "E",
+                        "311",
+                        number,
+                        "A list item's content begins with an ordered-list marker (1. / 1、 / 1) / （1） / ①); the renderer reads it as a nested ordered list and misrecognizes the structure — drop the marker or write each numbered child as its own indented list line, preserving every inline Markdown and SiYuan IAL anchor intact.",
+                    )
                 )
-            )
+            elif INLINE_ENUMERATION_PATTERN.search(after_marker):
+                findings.append(
+                    ProseGateFinding(
+                        "W",
+                        "507",
+                        number,
+                        "A list item contains an inline enumeration; give each child its own indented list line instead of keeping its marker in the parent text, preserving every inline Markdown and SiYuan IAL anchor intact.",
+                    )
+                )
         if list_match:
             flush()
             pending_list_line = number
