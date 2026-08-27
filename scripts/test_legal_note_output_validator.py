@@ -1,13 +1,32 @@
 from __future__ import annotations
 
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from legal_note_output_validator import validate_text  # noqa: E402
+from legal_note_output_validator import validate_goldquest_source_content, validate_text  # noqa: E402
+
+VALIDATOR = Path(__file__).resolve().with_name("legal_note_output_validator.py")
+
+
+def run_validator(flags: list[str], content: str) -> subprocess.CompletedProcess[str]:
+    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as handle:
+        handle.write(content)
+        path = handle.name
+    try:
+        return subprocess.run(
+            [sys.executable, "-X", "utf8", str(VALIDATOR), path, "--profile", "legal-marknote", *flags],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+    finally:
+        Path(path).unlink(missing_ok=True)
 
 
 def codes(
@@ -35,7 +54,7 @@ def codes(
 def goldquest_options(analysis: str, *, option_a: str = "要约一经发出，即不得撤回。") -> str:
     return f"""##### 1.
 {{: custom-qb-id="civil-option-1" custom-qb-question-topic-ids="civil-offer" custom-qb-answer="B"}}
-* **问题**：关于要约与承诺，下列说法正确的是？
+* 关于要约与承诺，下列说法正确的是？
     - [ ] A. {option_a}
     - [ ] B. 承诺在到达要约人时生效。
 ###### 答案与解析
@@ -213,6 +232,33 @@ class LegalNoteOutputValidatorTests(unittest.TestCase):
 
         self.assertNotIn("507", codes(text))
 
+    def test_rejects_list_items_starting_with_an_ordered_marker(self) -> None:
+        cases = (
+            "- 1. 债务加入生效后。",
+            "- 1、第一项。",
+            "- （1）主体适格。",
+            "- （2） 主体不适格的除外。",
+            "- ① 一部单行刑法。",
+            "    - ② 嵌套子项同样禁止。",
+        )
+
+        for text in cases:
+            with self.subTest(text=text):
+                self.assertIn("311", codes(text))
+                self.assertIn("311", codes(text, "legal-goldquest"))
+
+    def test_accepts_numbers_that_are_not_ordered_markers(self) -> None:
+        decimal = "- 利率提高到 1.5 倍。\n"
+        self.assertNotIn("311", codes(decimal))
+        # A mid-content enumeration stays a W507 warning, not the hard E311.
+        mid = "- **现场笔录**{: style=\"color: var(--b3-font-color10);\"}：1. 由执法人员和当事人签名。\n"
+        result = codes(mid)
+        self.assertNotIn("311", result)
+        self.assertIn("507", result)
+        # Real indented ordered children are the sanctioned form.
+        children = "- **现场笔录**：\n    1. 由执法人员和当事人签名。\n    2. 当事人有异议时，执法人员应出庭。\n"
+        self.assertNotIn("311", codes(children))
+
     def test_goldquest_also_rejects_plain_soft_breaks(self) -> None:
         text = """第一句完整。
 第二句完整。
@@ -361,13 +407,58 @@ tags: 行政法, 强制执行
         self.assertTrue({"303", "304"} <= codes(text))
 
     def test_accepts_question_callout(self) -> None:
-        text = "> [!QUESTION] ✏️ 检察院控诉职能与监督职能的区分\n> 问题与解析。"
-        self.assertNotIn("303", codes(text))
-        self.assertNotIn("307", codes(text))
+        text = """> [!QUESTION] ✏️ 检察院控诉职能与监督职能的区分
+> ```md
+> [判断] 1.
+> 检察院的控诉职能与监督职能如何区分？
+> ```
+>
+> **回答与解析：**
+> 1. 控诉职能针对个案，监督职能针对诉讼活动。
+"""
+        self.assertFalse({"303", "307", "308", "309"} & codes(text))
 
     def test_rejects_generic_question_callout_title(self) -> None:
-        text = "> [!QUESTION] ✏️ 习题1\n> 问题与解析。"
+        text = """> [!QUESTION] ✏️ 习题1
+> ```md
+> [判断] 1.
+> 检察院的控诉职能与监督职能如何区分？
+> ```
+>
+> **回答与解析：**
+> 1. 控诉职能针对个案，监督职能针对诉讼活动。
+"""
         self.assertIn("307", codes(text))
+
+    def test_question_callout_requires_stem_code_block(self) -> None:
+        text = """> [!QUESTION] ✏️ 表见代理的构成要件
+> 表见代理的构成要件包括哪些？
+>
+> **回答与解析：**
+> 1. 行为人无代理权。
+"""
+        self.assertIn("308", codes(text))
+
+    def test_question_callout_requires_answer_inside_callout_after_stem_block(self) -> None:
+        stem_only = """> [!QUESTION] ✏️ 表见代理的构成要件
+> ```md
+> [判断] 1.
+> 表见代理的构成要件包括哪些？
+> ```
+"""
+        answer_outside = stem_only + "\n**回答与解析：**\n1. 行为人无代理权。\n"
+        answer_before = """> [!QUESTION] ✏️ 表见代理的构成要件
+> **回答与解析：**
+> 1. 行为人无代理权。
+>
+> ```md
+> [判断] 1.
+> 表见代理的构成要件包括哪些？
+> ```
+"""
+        for label, text in (("stem-only", stem_only), ("answer-outside", answer_outside), ("answer-before", answer_before)):
+            with self.subTest(label=label):
+                self.assertIn("309", codes(text))
 
     def test_rejects_unbroken_enumeration_and_plain_long_cell(self) -> None:
         text = "| 项目 | 1. 要件一 2. 要件二 3. 要件三 4. 要件四 |\n| 长文 | " + "普通说明。" * 24 + " |"
@@ -567,8 +658,10 @@ tags: 行政法, 强制执行
 
     def test_keeps_exercise_counter_heading_inside_question_callout(self) -> None:
         text = """> [!QUESTION] ✏️ 合同效力判断
-> ### 1.
+> ```md
+> [判断] 1.
 > 合同效力：甲与乙签订合同，该合同是否有效？
+> ```
 >
 > **回答与解析：**
 > 1. 合同有效。
@@ -658,8 +751,7 @@ tags: 行政法, 强制执行
     def test_accepts_separate_stem_and_one_line_subquestions(self) -> None:
         text = """##### 1. 发起人责任·判断
 {: custom-qb-id="commercial-company-promoter-001" custom-qb-question-topic-ids="commercial-company-promoter-liability"}
-* **题干**：甲、乙设立公司，甲与丙签订仓库租赁合同。
-* **问题**：
+* 甲、乙设立公司，甲与丙签订仓库租赁合同。
     1. 公司成立后由谁负责？
     2. 公司未成立时由谁负责？
 ###### 答案与解析
@@ -898,6 +990,301 @@ class GoldQuestOptionAnalysisGateTests(unittest.TestCase):
         )
 
         self.assertNotIn("633", codes(output, "legal-goldquest", source=source))
+
+
+class GoldquestSourceContentGateTests(unittest.TestCase):
+    GQ_SOURCE = """### 考点1 测试考点
+64.甲向乙交付货物, 乙未付款.下列哪一选项是正确的?(模拟, 单)
+A. 乙应当付款
+B. 乙无需付款
+C. 甲无权请求付款
+D. 合同无效
+
+65.丙将房屋出售给丁并办理登记.下列哪一选项是正确的?(模拟, 单)
+A. 丁取得房屋所有权
+B. 丙仍为所有权人
+C. 丁未取得所有权
+D. 合同无效
+"""
+
+    GQ_ONE = """##### [测试·单选] 64.
+{: custom-qb-id="q-64" custom-qb-answer="A" custom-qb-question-topic-ids="t"}
+* 甲向乙交付货物, 乙未付款.下列哪一选项是正确的?
+    - [ ] A. 乙应当付款
+    - [ ] B. 乙无需付款
+    - [ ] C. 甲无权请求付款
+    - [ ] D. 合同无效
+"""
+
+    GQ_BOTH = GQ_ONE + """##### [测试·单选] 65.
+{: custom-qb-id="q-65" custom-qb-answer="A" custom-qb-question-topic-ids="t"}
+* 丙将房屋出售给丁并办理登记.下列哪一选项是正确的?
+    - [ ] A. 丁取得房屋所有权
+    - [ ] B. 丙仍为所有权人
+    - [ ] C. 丁未取得所有权
+    - [ ] D. 合同无效
+"""
+
+    def source_gate_codes(self, output: str, source: str) -> set[str]:
+        return {finding.code for finding in validate_goldquest_source_content(output, source)}
+
+    def test_rejects_dropped_question_within_covered_scope(self) -> None:
+        codes = self.source_gate_codes(self.GQ_ONE, self.GQ_SOURCE)
+        self.assertIn("814", codes)
+
+    def test_accepts_full_source_coverage(self) -> None:
+        codes = self.source_gate_codes(self.GQ_BOTH, self.GQ_SOURCE)
+        self.assertNotIn("814", codes)
+
+    def test_skips_sections_the_output_does_not_cover(self) -> None:
+        source = self.GQ_SOURCE + """### 考点2 另一考点
+66.戊向己借款.下列哪一选项是正确的?(模拟, 单)
+A. 己应当还款
+B. 戊无权请求还款
+C. 借款合同无效
+D. 利息过高
+"""
+        codes = self.source_gate_codes(self.GQ_ONE, source)
+        self.assertIn("814", codes)  # 考点1 内 65 缺失仍报
+
+    def test_skips_partial_scope_with_low_section_coverage(self) -> None:
+        expanded = self.GQ_SOURCE + "\n".join(
+            f"{num}.模拟题干第{num}题事实充分足以匹配.{num}下列哪一选项是正确的?(模拟, 单)\n"
+            f"A. 选项{num}甲\nB. 选项{num}乙\nC. 选项{num}丙\nD. 选项{num}丁\n"
+            for num in range(66, 72)
+        )
+        # 考点1 扩到 8 题, 输出只覆盖 1 → 覆盖 12.5% < 50% → 作用域不确定, 不报缺题
+        codes = self.source_gate_codes(self.GQ_ONE, expanded)
+        self.assertNotIn("814", codes)
+
+    def test_warns_when_covered_question_analysis_is_heavily_compressed(self) -> None:
+        analysis = "\n".join(
+            f"解析要点第{i}条: 该规则要求当事人全面履行义务并承担相应责任, 不得擅自变更."
+            for i in range(1, 30)
+        )
+        source = self.GQ_SOURCE.replace("D. 合同无效\n", "D. 合同无效\n" + analysis + "\n")
+        codes = self.source_gate_codes(self.GQ_BOTH, source)
+        self.assertIn("815", codes)
+
+
+class EmojiSemanticsGateTests(unittest.TestCase):
+    def test_rejects_repeated_same_emoji(self) -> None:
+        repeated = "🚨 伪造文件" * 9
+        self.assertIn("510", codes(repeated, "legal-marknote"))
+        moderate = "🚨 伪造文件" * 6 + " ⚖️ 合同效力 " + "🔍 检索"
+        self.assertNotIn("510", codes(moderate, "legal-marknote"))
+
+    def test_warns_when_emoji_anchors_generic_cue_word(self) -> None:
+        generic = "🚨 注意：伪造文件不构成表见事由"
+        self.assertIn("511", codes(generic, "legal-marknote"))
+        concept = "⚖️ 合同效力：双方共同申请"
+        self.assertNotIn("511", codes(concept, "legal-marknote"))
+
+    def test_warns_on_batch_like_emoji_word_pair(self) -> None:
+        batch = "🚨 注意：伪造" * 6
+        self.assertIn("512", codes(batch, "legal-marknote"))
+        concept_repeat = "🚚 指示交付" * 5
+        self.assertNotIn("512", codes(concept_repeat, "legal-marknote"))
+
+    def test_warns_when_emoji_pile_up_at_sentence_ends(self) -> None:
+        tail = "房地一体登记应一并申请无先后顺序🚨。\n住宅用地届满自动续期不丧失所有权🧭。\n过户须由双方共同申请⏳。\n应纳税所得额减原值与费用⚖️。\n本案按全额计税错误📚。\n以户为承包单位不得继承💡。"
+        self.assertIn("513", codes(tail, "legal-marknote"))
+        attached = "简易交付🚚、指示交付📦、占有改定⛓；\n住宅用地届满**自动续期**⏳；\n双方**共同申请**🧭；\n应纳税所得额**减原值与费用**⚖️。"
+        self.assertNotIn("513", codes(attached, "legal-marknote"))
+
+    def test_warns_when_emoji_bunch_up_at_line_heads(self) -> None:
+        heads = "- 🚚 **指示交付**：第三人占有动产。\n- ⏳ **自动续期**：届满自动续期。\n- 🧭 **共同申请**：双方共同申请。\n- ⚖️ **合同效力**：合同有效。\n- 📚 **计税口径**：减原值与费用。"
+        self.assertIn("514", codes(heads, "legal-marknote"))
+        mixed = "简易交付🚚、指示交付📦、占有改定⛓；\n期限届满**自动续期**⏳；\n双方**共同申请**🧭；\n甲将花瓶卖给黄某📦完成交付。\n以户为承包单位**不得继承**💡。"
+        self.assertNotIn("514", codes(mixed, "legal-marknote"))
+
+    def test_rejects_dangling_emoji_without_a_concept_neighbor(self) -> None:
+        floating = "额外情形。🚨\n、📦、\n；⏳、\n提交。🛑；\n、🎯；\n排除。🧭"
+        self.assertIn("515", codes(floating, "legal-marknote"))
+        attached = "要件已明确🚨、期限届满⏳、双方共同申请🧭、按约定处理📚、余额计税⚖️。"
+        codeset = codes(attached, "legal-marknote")
+        self.assertNotIn("515", codeset)
+        self.assertNotIn("513", codeset)
+
+    def test_callout_directive_requires_preceding_blank_line(self) -> None:
+        no_blank = "- 设立居住权的住宅原则上不得出租。\n> [!CAUTION] 例外\n> 另有约定除外。"
+        self.assertIn("310", codes(no_blank, "legal-marknote"))
+        with_blank = "- 设立居住权的住宅原则上不得出租。\n\n> [!CAUTION] 例外\n> 另有约定除外。"
+        self.assertNotIn("310", codes(with_blank, "legal-marknote"))
+
+    def test_rejects_adjacent_lines_dominated_by_same_color(self) -> None:
+        monotone = "- **一个**{: style=\"color: var(--b3-font-color12);\"}、**两个**{: style=\"color: var(--b3-font-color12);\"}。\n- **三个**{: style=\"color: var(--b3-font-color12);\"}都同色。\n- **四个**{: style=\"color: var(--b3-font-color12);\"}仍同色。"
+        self.assertIn("204", codes(monotone, "legal-marknote"))
+        diverse = "- **一个**{: style=\"color: var(--b3-font-color12);\"}、**两个**{: style=\"color: var(--b3-font-color8);\"}。\n- **三个**{: style=\"color: var(--b3-font-color13);\"}不同色。"
+        self.assertNotIn("204", codes(diverse, "legal-marknote"))
+
+
+class GoldquestKnowledgePlacementGateTests(unittest.TestCase):
+    GOOD = """##### [测试·单选] 1.
+{: custom-qb-id="q-1" custom-qb-answer="A" custom-qb-question-topic-ids="t"}
+* 甲向乙交付货物,乙未付款.下列说法正确的是?
+    - [ ] A. 乙应当付款
+    - [ ] B. 乙无需付款
+###### 答案与解析
+- 正确答案：A。
+{: custom-qb-section="solution"}
+###### 逐项辨析
+- ❌ B项 乙无需付款
+    - **破绽**：交货后付款是双方约定的主给付义务，乙不履行即违约。
+- ✅ A项 乙应当付款
+    - **破题点**：乙未付款构成违约，甲有权请求继续履行。
+"""
+
+    def test_rejects_fixed_knowledge_map_section(self) -> None:
+        separated = self.GOOD.replace(
+            "###### 逐项辨析",
+            "###### 规则地图\n- **主给付义务**：交货后付款。\n###### 逐项辨析",
+        )
+        self.assertIn("816", codes(separated, "legal-goldquest"))
+        self.assertNotIn("816", codes(self.GOOD, "legal-goldquest"))
+
+    def test_rejects_inline_knowledge_block_before_replays(self) -> None:
+        separated = self.GOOD.replace(
+            "###### 逐项辨析\n- ❌ B项",
+            "###### 逐项辨析\n- 🧭 **设立路径**：交货后付款。\n    - **从约定取得**：合同生效即设立。\n- ❌ B项",
+        )
+        self.assertIn("816", codes(separated, "legal-goldquest"))
+
+    def test_rejects_callout_that_restates_the_analysis(self) -> None:
+        lazy = self.GOOD.replace(
+            "\n{: custom-qb-section=\"solution\"}",
+            "\n{: custom-qb-section=\"solution\"}\n> [!NOTE] 违约\n> 乙未付款构成违约，甲有权请求继续履行。",
+        )
+        self.assertIn("817", codes(lazy, "legal-goldquest"))
+        good_callout = self.GOOD.replace(
+            "\n{: custom-qb-section=\"solution\"}",
+            "\n{: custom-qb-section=\"solution\"}\n> [!NOTE] 📚 法条\n> 民法典第579条：当事人一方未支付价款或报酬的，对方可以请求其支付。",
+        )
+        self.assertNotIn("817", codes(good_callout, "legal-goldquest"))
+
+    def test_goldquest_rejects_generated_label_prefixes(self) -> None:
+        labeled = """##### 1.
+{: custom-qb-id="q-64" custom-qb-answer="A" custom-qb-question-topic-ids="t"}
+* **题干**：甲向乙交付货物, 乙未付款.
+* **问题**：下列哪一选项是正确的?
+    - [ ] A. 乙应当付款
+    - [ ] B. 乙无需付款
+###### 答案与解析
+- 正确答案：A。
+{: custom-qb-section="solution"}
+"""
+        result = codes(labeled, "legal-goldquest")
+        self.assertIn("647", result)
+        plain = labeled.replace("* **题干**：甲向乙交付货物, 乙未付款.\n", "* 甲向乙交付货物, 乙未付款.\n").replace(
+            "* **问题**：下列哪一选项是正确的?", "* 下列哪一选项是正确的?"
+        )
+        result = codes(plain, "legal-goldquest")
+        self.assertNotIn("647", result)
+        # Label variants behind emoji or bold, and on analysis lines, are rejected too.
+        sneaky = plain.replace("* 甲向乙交付货物", "* 🔒 问题：甲向乙交付货物").replace(
+            "- 正确答案：A。", "- 正确答案：A。\n- 解析：乙未付款无请求权。"
+        )
+        result = codes(sneaky, "legal-goldquest")
+        self.assertIn("647", result)
+
+
+class CliStrictModeTests(unittest.TestCase):
+    WARN_ONLY = '- **现场笔录**{: style="color: var(--b3-font-color10);"}：1. 由执法人员和当事人签名。\n'
+
+    def test_strict_is_the_default_even_without_the_flag(self) -> None:
+        result = run_validator([], self.WARN_ONLY)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("507", result.stdout)
+
+    def test_explicit_strict_flag_behaves_identically(self) -> None:
+        result = run_validator(["--strict"], self.WARN_ONLY)
+        self.assertEqual(result.returncode, 1)
+
+    def test_relaxed_mode_requires_the_complete_relaxation_set(self) -> None:
+        partial = run_validator(["--lenient"], self.WARN_ONLY)
+        self.assertEqual(partial.returncode, 2)
+        self.assertIn("--max-table-columns", partial.stderr)
+        missing_rows = run_validator(["--lenient", "--max-table-columns", "3"], self.WARN_ONLY)
+        self.assertEqual(missing_rows.returncode, 2)
+        self.assertIn("--max-table-rows", missing_rows.stderr)
+
+    def test_complete_relaxation_set_passes_warnings(self) -> None:
+        result = run_validator(["--lenient", "--max-table-columns", "3", "--max-table-rows", "3"], self.WARN_ONLY)
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("507", result.stdout)
+
+    def test_strict_lenient_conflict_is_rejected(self) -> None:
+        result = run_validator(["--strict", "--lenient", "--max-table-columns", "3", "--max-table-rows", "3"], self.WARN_ONLY)
+        self.assertEqual(result.returncode, 2)
+
+
+class MermaidSemanticsGateTests(unittest.TestCase):
+    """Perfunctory Mermaid diagrams (E901 isolated pairs, E902 keyword chains) are hard failures."""
+
+    def test_rejects_stacked_isolated_keyword_pairs(self) -> None:
+        text = """> ```mermaid
+> flowchart TD
+>     A["申请信息公开"] --> B["行使权利=守法"]
+>     C["环保局败诉"] --> D["承担法律责任=强制作用"]
+>     E["起诉环保局"] --> F["公民监督=社会监督"]
+>     G["诉权对象特定"] --> H["相对权利"]
+> ```
+"""
+        self.assertIn("901", codes(text))
+
+    def test_rejects_short_keyword_chain(self) -> None:
+        text = """> ```mermaid
+> flowchart TD
+>     A["法律"] --> B["公序良俗"]
+>     B --> C["权利"]
+> ```
+"""
+        self.assertIn("902", codes(text))
+
+    def test_accepts_clause_level_reasoning_chain(self) -> None:
+        """A bare chain whose nodes are full propositions does analysis and stays legal."""
+        text = """> ```mermaid
+> flowchart TD
+>     A["代位权成立"] --> B["相对人向债权人履行"]
+>     B --> C["申腾公司是权利人"]
+>     C --> D["由申腾公司申请执行"]
+> ```
+"""
+        self.assertFalse({"901", "902"} & codes(text))
+
+    def test_accepts_decision_tree_with_edge_labels_and_diamonds(self) -> None:
+        text = """> ```mermaid
+> flowchart TD
+>     A["张某起诉"] --> B{"同一法律关系"}
+>     B -->|"同一借款合同关系"| C["一个诉讼标的"]
+>     B -->|"不同法律关系"| D["多个诉讼标的"]
+> ```
+"""
+        self.assertFalse({"901", "902"} & codes(text))
+
+    def test_accepts_semantic_classdef_skeleton(self) -> None:
+        """Flashcard retrieval skeletons style roles with classDef; role styling is semantics."""
+        text = """> ```mermaid
+> flowchart LR
+>     N[法律规范] --> P1[①]
+>     F[法律事实] --> P2[②]
+>     P1 --> R[③]
+>     P2 --> R
+>     classDef known fill:#e8f1ff,stroke:#2563eb;
+>     classDef recall fill:#fff3bf,stroke:#d97706;
+>     class N,F known;
+>     class P1,P2,R recall;
+> ```
+"""
+        self.assertFalse({"901", "902"} & codes(text))
+
+    def test_single_edge_diagram_is_not_judged(self) -> None:
+        text = """> ```mermaid
+> flowchart TD
+>     A["考点4 法律的作用"] --> B["规范作用"]
+> ```
+"""
+        self.assertFalse({"901", "902"} & codes(text))
 
 
 if __name__ == "__main__":

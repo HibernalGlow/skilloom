@@ -67,6 +67,18 @@ def _has_local_cue(body: str) -> bool:
     return any(pattern.search(body) for pattern in LOCAL_CUE_PATTERNS)
 
 
+STRIKE_SPAN_RE = re.compile(r"~~([^~]+)~~")
+
+
+def _whole_option_strike(body: str) -> bool:
+    """True when a strike span covers almost the whole option body."""
+    plain = _normalize_option_text(body)
+    if len(plain) < 8:
+        return False
+    struck = "".join(_normalize_option_text(part) for part in STRIKE_SPAN_RE.findall(body))
+    return len(struck) / len(plain) >= 0.9
+
+
 def _has_immediate_reason(lines: list[str], offset: int, option_indent: str) -> bool:
     base_indent = len(option_indent.expandtabs(4))
     for candidate in lines[offset + 1:]:
@@ -135,10 +147,16 @@ def validate_option_analysis(
                 cue_problems.append(f"use {expected_emoji} to match custom-qb-answer")
         elif match.group("emoji") not in {"✅", "❌"}:
             cue_problems.append("add a decision emoji after custom-qb-answer is supplied")
-        if not _has_local_cue(match.group("body")):
+        body = match.group("body")
+        wrong_option = match.group("emoji") == "❌" or (answer_labels and label not in answer_labels)
+        if wrong_option and not STRIKE_SPAN_RE.search(body):
+            cue_problems.append("mark the wrong part with a strikethrough fragment inside the original option text (colors alone do not show where it is wrong)")
+        if not _has_local_cue(body):
             cue_problems.append("place strikethrough, highlight, color, or underline inside the original option text")
         if cue_problems:
             findings.append(OptionGateFinding("631", number, "Option cue is incomplete: " + "; ".join(cue_problems) + "."))
+        if _whole_option_strike(body):
+            findings.append(OptionGateFinding("646", number, "Do not strikethrough the whole option; strike only the decisive flawed fragment — the swapped subject, condition, degree, time, or legal effect."))
         if not _has_immediate_reason(analysis_lines, offset, match.group("indent")):
             findings.append(OptionGateFinding("632", number, "A marked option needs an immediately following indented reason item."))
 

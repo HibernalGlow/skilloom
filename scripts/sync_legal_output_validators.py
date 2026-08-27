@@ -38,6 +38,13 @@ SYNC_GROUPS = (
             ROOT / "skills" / "legal-goldquest" / "scripts" / "legal_goldquest_semantic_structure_gate.py",
         ),
     ),
+    (
+        ROOT / "scripts" / "legal_mermaid_semantics_gate.py",
+        (
+            ROOT / "skills" / "legal-marknote" / "scripts" / "legal_mermaid_semantics_gate.py",
+            ROOT / "skills" / "legal-goldquest" / "scripts" / "legal_mermaid_semantics_gate.py",
+        ),
+    ),
 )
 
 

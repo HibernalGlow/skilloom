@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from legal_goldquest_option_gate import validate_option_analysis  # noqa: E402
 from legal_goldquest_semantic_structure_gate import validate_semantic_structure, visual_families  # noqa: E402
 from legal_marknote_prose_gate import validate_marknote_prose_structure  # noqa: E402
+from legal_mermaid_semantics_gate import validate_mermaid_semantics  # noqa: E402
 
 ALLOWED_CALLOUTS = {"TIP", "NOTE", "IMPORTANT", "CAUTION", "WARNING", "QUESTION"}
 GENERIC_QUESTION_TITLE_PATTERN = re.compile(
@@ -41,12 +42,13 @@ TABLE_SEPARATOR_PATTERN = re.compile(r"^:?-{3,}:?$")
 MERGE_SPAN_PATTERN = re.compile(r"\b(?P<name>colspan|rowspan)=['\"](?P<value>\d+)['\"]")
 MERGE_PLACEHOLDER_PATTERN = re.compile(r"\bclass=['\"]fn__none['\"]")
 CONTRAST_PAIRS = (("有效", "无效"), ("成立", "不成立"), ("原则", "例外"), ("允许", "禁止"))
-# W509 verifies a visible semantic cue, not an emoji dictionary or a fixed
+# E509 verifies a visible semantic cue, not an emoji dictionary or a fixed
 # position. Meaning and placement are reviewed in the skill contract because a
 # Unicode regex cannot determine whether an icon fits a legal relationship.
 EMOJI_PATTERN = re.compile(
-    r"[\U0001F000-\U0001FAFF\u2600-\u27BF](?:\ufe0f|\U0001F3FB-\U0001F3FF|\u200d[\U0001F000-\U0001FAFF\u2600-\u27BF])*"
+    r"[\U0001F000-\U0001FAFF\u2300-\u23FF\u2600-\u27BF\u2B00-\u2BFF](?:\ufe0f|\U0001F3FB-\U0001F3FF|\u200d[\U0001F000-\U0001FAFF\u2300-\u27BF\u2B00-\u2BFF])*"
 )
+GENERATED_LABEL_PREFIX_PATTERN = re.compile(r"(?:问题|题干|答案|解析|问)[：:]")
 DECISION_OPTION_LINE_PATTERN = re.compile(r"^\s*(?:[-+*]|\d+[.)])\s+[✅❌]\s*(?:[A-Z]|[甲乙丙丁戊])(?:[.、:：\s])")
 LEGACY_ANSWER_MASK_PATTERN = re.compile(
     r"<div><style>b\{background:#c9cdd3;color:transparent;border-radius:4px;padding:0 6px\}b:hover\{background:#fff2c2;color:#c0392b\}</style>答案：<b>[^<]+</b></div>",
@@ -94,6 +96,22 @@ def prose_visible_length(value: str) -> int:
     return visible_length(plain)
 
 
+LIST_ITEM_START_PATTERN = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
+LIST_ITEM_VISIBLE_LIMIT = 20
+
+
+def _list_item_visible_length(line: str) -> int:
+    """Visible length of a list item's content (main or nested), 0 when not a list item
+    or when the line is a task checkbox, a quote, or a table row."""
+    match = LIST_ITEM_START_PATTERN.match(line)
+    if not match:
+        return 0
+    content = line[match.end():]
+    if content.startswith((">", "[", "|")):
+        return 0
+    return prose_visible_length(content)
+
+
 def prose_without_fenced_blocks(value: str) -> str:
     lines: list[str] = []
     in_fence = False
@@ -117,6 +135,125 @@ def has_semantic_emoji_cue(value: str, *, exclude_decision_options: bool = False
             if match.group() not in {"✅", "❌"}:
                 return True
     return False
+
+
+EMOJI_GENERIC_CUE_RE = re.compile(r"重点|难点|要点|注意|提示|警惕|小心|牢记|警示|易错|陷阱|考点|归纳|小结|总结")
+COLOR_ANCHOR_TOKEN_RE = re.compile(r"b3-font-(?:color|background)(?:[2-9]|1[0-3])")
+
+
+def validate_line_color_diversity(text: str) -> list[Finding]:
+    """Forbid adjacent lines dominated by the same color.
+
+    A color is a semantic index: when three or more consecutive content lines
+    are each dominated (>=60% of their anchors) by the same color, the palette
+    stops distinguishing anything and the run fails `E204`.
+    """
+    findings: list[Finding] = []
+    lines = text.splitlines()
+    in_fence = False
+    run_color: str | None = None
+    run_count = 0
+    run_start = 0
+    for number, line in enumerate(lines, start=1):
+        if re.match(r"^(?:\s*>\s*)?```", line):
+            in_fence = not in_fence
+            continue
+        if in_fence or re.match(r"^#{1,6}\s+", line) or line.lstrip().startswith("{:"):
+            run_color = None
+            run_count = 0
+            continue
+        colors = COLOR_ANCHOR_TOKEN_RE.findall(line)
+        if not colors:
+            run_color = None
+            run_count = 0
+            continue
+        dominant, dominant_count = Counter(colors).most_common(1)[0]
+        if dominant_count / len(colors) < 0.6:
+            run_color = None
+            run_count = 0
+            continue
+        if dominant == run_color:
+            run_count += 1
+        else:
+            run_color = dominant
+            run_count = 1
+            run_start = number
+        if run_count == 3:
+            findings.append(Finding("E", "204", run_start, f"Three consecutive lines are each dominated by color {dominant}; adjacent lines must vary their semantic colors so the palette stays an index instead of a wash."))
+    return findings
+
+
+def _emoji_is_anchored(line: str, start: int, end: int) -> bool:
+    """Return whether an emoji occurrence has a neighboring content word (CJK/letter/digit)
+    directly before or after it, ignoring whitespace and inline markup runes."""
+    before = re.sub(r"[\s`*=~<>/]+$", "", line[:start])
+    after = re.sub(r"^[\s`*=~<>/]+", "", line[end:])
+    word = r"[\u4e00-\u9fffA-Za-z0-9]"
+    return bool(
+        (before and re.search(word, before[-1]))
+        or (after and re.search(word, after[0]))
+    )
+
+
+def validate_emoji_semantics(text: str) -> list[Finding]:
+    """Enforce emoji semantics: concept-anchored, diverse, not script-inserted.
+
+    - `E510`: the same semantic emoji repeats more than eight times in one
+      document; one specific emoji should map to one specific concept and no
+      single icon should dominate.
+    - `W511`: an emoji is anchored to a generic cue word (注意/重点/要点/考点/
+      提示/陷阱…); anchor it to the specific legal concept instead.
+    - `E512`: the same emoji + following-word pair repeats, a hard signature of
+      scripted batch insertion; place emoji semantically per concept.
+    - `E513`: most semantic emoji sit at sentence ends (piled after 。！？； or
+      at the line end); each emoji must sit directly on the concept word it marks.
+    - `E514`: most semantic emoji sit at line heads as label prefixes; embed them
+      inside the analysis next to the concepts instead of only at the headline.
+    - `E515`: a large share of semantic emoji float with no neighboring concept
+      word (dangling at clause boundaries or between punctuation); anchor each
+      icon to its term (right before or after it) so it is visually bound.
+    """
+    findings: list[Finding] = []
+    counts: dict[str, int] = {}
+    pairs: dict[str, int] = {}
+    generic_hits = 0
+    sentence_final = 0
+    line_head = 0
+    dangling = 0
+    total_placed = 0
+    for line in text.splitlines():
+        for match in EMOJI_PATTERN.finditer(line):
+            if match.group() in {"✅", "❌"}:
+                continue
+            counts[match.group()] = counts.get(match.group(), 0) + 1
+            window = line[max(0, match.start() - 3): match.end() + 4]
+            if EMOJI_GENERIC_CUE_RE.search(window):
+                generic_hits += 1
+            pair = match.group() + re.sub(r"\s", "", line[match.end(): match.end() + 3])[:2]
+            pairs[pair] = pairs.get(pair, 0) + 1
+            total_placed += 1
+            after = line[match.end(): match.end() + 3].lstrip()
+            if not after or after[0] in "。！？；!?;”』」":
+                sentence_final += 1
+            if re.fullmatch(r"\s*(?:[-*]|>[ ]*)*\s*", line[:match.start()]):
+                line_head += 1
+            if not _emoji_is_anchored(line, match.start(), match.end()):
+                dangling += 1
+    if total_placed >= 5 and sentence_final / total_placed >= 0.7:
+        findings.append(Finding("E", "513", 1, f"{sentence_final}/{total_placed} semantic emoji are piled at sentence ends; hard gate — put each emoji directly on the concept word it marks (right after or before the term, one emoji per parallel concept) so the term and the icon are visually bound."))
+    if total_placed >= 5 and line_head / total_placed >= 0.7:
+        findings.append(Finding("E", "514", 1, f"{line_head}/{total_placed} semantic emoji are bunched at line heads as label prefixes; hard gate — embed emoji inside the analysis sentences next to the concept words they mark (one per parallel concept) so the icons appear in the content, not only at the headline."))
+    if total_placed >= 5 and dangling / total_placed >= 0.5:
+        findings.append(Finding("E", "515", 1, f"{dangling}/{total_placed} semantic emoji float without a neighboring concept word (dangling at line ends, clause boundaries, or between punctuation); anchor each icon directly beside its term (词前或词后紧贴概念词), never as loose decoration."))
+    for emoji, count in counts.items():
+        if count > 8:
+            findings.append(Finding("E", "510", 1, f"Emoji {emoji} repeats {count} times in this document; one specific emoji maps to one specific concept — diversify so no single icon dominates."))
+    if generic_hits:
+        findings.append(Finding("W", "511", 1, f"{generic_hits} emoji anchor to generic cue words (注意/重点/要点/考点/提示/陷阱…); anchor each emoji to the specific legal concept inside the knowledge point instead of a commonplace cue word."))
+    for pair, count in pairs.items():
+        if count >= 6 and re.search(r"[\u4e00-\u9fff]", pair):
+            findings.append(Finding("E", "512", 1, f"Emoji-word pair {pair} repeats {count} times; hard gate — this is scripted batch emoji insertion. Place emoji semantically per concept, never by mechanical word replacement."))
+    return findings
 
 
 def split_table_cells(line: str) -> list[str]:
@@ -283,6 +420,15 @@ def validate_callouts_and_fences(text: str) -> list[Finding]:
 
         callout = re.match(r"^\s*>\s*\[!([^\]]+)\]", line)
         if callout:
+            if number > 1:
+                previous = lines[number - 2]
+                if (
+                    previous.strip()
+                    and not previous.lstrip().startswith(">")
+                    and not re.match(r"^#{1,6}\s+", previous)
+                    and not re.match(r"^\s*```\s*$", previous)
+                ):
+                    findings.append(Finding("E", "310", number, "A Callout directive must be preceded by a blank line (or the start of a block, another quote line, a heading, or a fence boundary); directly after a list item or paragraph it is parsed as continuation text and will not be recognized."))
             kind = callout.group(1)
             if kind != kind.upper() or kind not in ALLOWED_CALLOUTS:
                 findings.append(Finding("E", "303", number, f"Callout type must be one of: {', '.join(sorted(ALLOWED_CALLOUTS))}."))
@@ -291,11 +437,25 @@ def validate_callouts_and_fences(text: str) -> list[Finding]:
                 if not title.startswith("✏️ ") or not title.removeprefix("✏️ ").strip() or GENERIC_QUESTION_TITLE_PATTERN.fullmatch(title):
                     findings.append(Finding("E", "307", number, "QUESTION callout title must start with '✏️ ' and name a specific topic or tested rule."))
             cursor = number
+            body_lines: list[str] = []
+            body_valid = True
             while cursor < len(lines) and lines[cursor].strip():
                 if not re.match(r"^\s*>($|\s)", lines[cursor]):
                     findings.append(Finding("E", "304", cursor + 1, "Every nonblank line inside a callout must start with '> '."))
+                    body_valid = False
                     break
+                if cursor > number:
+                    body_lines.append(lines[cursor])
                 cursor += 1
+            if kind == "QUESTION" and body_valid:
+                fence_indexes = [index for index, body_line in enumerate(body_lines) if re.match(r"^\s*>\s*```", body_line)]
+                if not fence_indexes:
+                    findings.append(Finding("E", "308", number, "QUESTION callout must place the question stem in a ```md code block inside the callout."))
+                elif not any(
+                    re.match(r"^\s*>\s*\S", body_line) and not re.match(r"^\s*>\s*```", body_line)
+                    for body_line in body_lines[fence_indexes[-1] + 1:]
+                ):
+                    findings.append(Finding("E", "309", number, "QUESTION callout must keep its answer inside the callout after the stem code block."))
     if in_fence:
         findings.append(Finding("E", "305", len(lines) or 1, "Code fence is not closed."))
     return findings
@@ -728,6 +888,8 @@ def validate_marknote_richness(text: str) -> list[Finding]:
         prose_length = prose_visible_length(stripped)
         if prose_length > 42:
             findings.append(Finding("E", "621", number, "MarkNote prose lines must stay within 42 visible characters; split the logic into semantic sublists."))
+        if _list_item_visible_length(line) > LIST_ITEM_VISIBLE_LIMIT:
+            findings.append(Finding("E", "648", number, "List items must stay within 20 visible characters; split the content semantically into a governing parent and child items (main and nested items both)."))
         if prose_length >= 14 and not COLOR_ATTRIBUTE_PATTERN.search(stripped):
             findings.append(Finding("E", "622", number, "Each substantive MarkNote line needs at least one short semantic color anchor."))
         body_lines.append(line)
@@ -772,7 +934,7 @@ def validate_marknote_richness(text: str) -> list[Finding]:
     if medium_complexity and background_anchor_count < 3:
         findings.append(Finding("E", "627", 1, "Medium-or-higher complexity MarkNote needs at least three short background-color anchors for visual hierarchy."))
     if medium_complexity and not has_semantic_emoji_cue(body):
-        findings.append(Finding("W", "509", 1, "Medium-or-higher complexity MarkNote needs at least one semantic emoji cue in its prose; its position follows the labeled legal relationship."))
+        findings.append(Finding("E", "509", 1, "Medium-or-higher complexity MarkNote needs at least one semantic emoji cue in its prose; its position follows the labeled legal relationship."))
     findings.extend(validate_concept_list_palette(text))
     return findings
 
@@ -1054,13 +1216,19 @@ def validate_goldquest(text: str) -> list[Finding]:
             if markers:
                 prefix = question_line[:markers[0].start()]
                 prefix = re.sub(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)", "", prefix).strip()
-                if prefix and not re.fullmatch(r"\*\*问题", prefix):
-                    findings.append(Finding("E", "628", relative_index, "A numbered GoldQuest subquestion must start its own list line, separate from the shared stem."))
+                if prefix:
+                    findings.append(Finding("E", "628", relative_index, "A numbered GoldQuest subquestion must start its own list line, separate from the shared stem (no 题干：/问题： labels)."))
         if sum(len(markers) for _, _, markers in parenthesized_subquestions) >= 2:
-            has_stem_label = any(re.match(r"^\s*[-*+]\s+\*\*题干\*\*[：:]", line) for line in question_lines)
-            has_question_label = any(re.match(r"^\s*[-*+]\s+\*\*问题\*\*[：:]", line) for line in question_lines)
-            if not (has_stem_label and has_question_label):
-                findings.append(Finding("E", "629", index + 1, "Multi-part GoldQuest questions need separate **题干** and **问题** blocks before the one-line subquestions."))
+            stem_lines = [
+                line
+                for line in question_lines
+                if line.strip()
+                and not IAL_PATTERN.fullmatch(line.strip())
+                and not re.search(r"-\s*\[[ xX]\]", line)
+                and not re.search(r"[（(]\s*\d+\s*[）)]", line)
+            ]
+            if not stem_lines:
+                findings.append(Finding("E", "629", index + 1, "Multi-part GoldQuest questions need a shared stem line before the one-line numbered subquestions; 题干：/问题： labels are forbidden."))
         question_attrs = next(
             (
                 ial_attributes(lines[candidate])
@@ -1177,6 +1345,8 @@ def validate_goldquest(text: str) -> list[Finding]:
             prose_length = prose_visible_length(stripped)
             if prose_length > 42 and number not in option_gate.replay_lines:
                 findings.append(Finding("E", "621", number, "Analysis prose lines must stay within 42 visible characters; split the logic into a lead line and semantic sublist."))
+            if _list_item_visible_length(line) > LIST_ITEM_VISIBLE_LIMIT and number not in option_gate.replay_lines:
+                findings.append(Finding("E", "648", number, "Analysis list items must stay within 20 visible characters; split the content semantically into a governing parent and child items (main and nested items both; the verbatim option replay is exempt)."))
             if prose_length >= 14 and not COLOR_ATTRIBUTE_PATTERN.search(stripped):
                 findings.append(Finding("E", "622", number, "Each substantive analysis line needs at least one short semantic color anchor."))
             if sentence_count == 0 and visible_length(stripped) >= 35:
@@ -1226,7 +1396,7 @@ def validate_goldquest(text: str) -> list[Finding]:
         if medium_complexity and background_anchor_count < 3:
             findings.append(Finding("E", "627", analysis_start + 1, "Medium-or-higher complexity analysis needs at least three short background-color anchors for strong visual hierarchy."))
         if medium_complexity and not has_semantic_emoji_cue(analysis_text, exclude_decision_options=True):
-            findings.append(Finding("W", "509", analysis_start + 1, "Medium-or-higher complexity analysis needs at least one semantic emoji cue outside decision-option lines; its position follows the labeled legal relationship."))
+            findings.append(Finding("E", "509", analysis_start + 1, "Medium-or-higher complexity analysis needs at least one semantic emoji cue outside decision-option lines; its position follows the labeled legal relationship."))
     return findings
 
 
@@ -1382,6 +1552,268 @@ def validate_source_preservation(
     return findings
 
 
+SOURCE_QUESTION_LINE_RE = re.compile(r"^(?:#{0,6}\s*)?(\d{1,3})\.")
+SOURCE_OPTION_LINE_RE = re.compile(r"(?m)^[A-D][\.、．:：]")
+SOURCE_SECTION_RE = re.compile(r"^#{3,4}\s+考点\s*\d+")
+SOURCE_BOILERPLATE_RE = re.compile(r"解题思路|题支逐项解析|题干信息解读|命题陷阱|总结与归纳|关键词为|本题考点|综上所述|正确答案|说法(?:错误|正确)|当选|有体系|框架图|图片|图片来源")
+GOLDQUEST_GENERIC_PROMPT_RE = re.compile(r"下列(?:说法|哪一|表述)|据此可知|对此,?下列")
+SOURCE_PUNCT = str.maketrans({"：": ":", "，": ",", "。": ".", "；": ";", "（": "(", "）": ")", "“": '"', "”": '"', "、": ",", "《": "<", "》": ">"})
+
+
+def _source_plain(value: str) -> str:
+    value = re.sub(r"\{:\s*[^}\n]+\}", "", value)
+    value = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", value)
+    value = re.sub(r"`", "", value)
+    value = re.sub(r"[*_=~<>]", "", value)
+    value = re.sub(r"(?m)^>\s*", "", value)
+    value = re.sub(r"(?m)^#{1,6}\s+", "", value)
+    value = re.sub(r"(?m)^\s*(?:[-+*]|\d+[.)])\s+", "", value)
+    value = re.sub(r"\[[ xX]\]\s*", "", value)
+    value = re.sub(r"\s+", "", value)
+    return value.translate(SOURCE_PUNCT)
+
+
+def _goldquest_source_sections(source_text: str) -> dict[str, str]:
+    """Split the source into knowledge-point sections (考点 headings).
+
+    Section numbers restart across chapters, so every 考点 heading is its own
+    scope; a source without 考点 headings stays one section. Comparison must
+    stay inside one knowledge-point scope instead of crossing ranges.
+    """
+    lines = source_text.splitlines()
+    sections: dict[str, str] = {}
+    current = None
+    buffer: list[str] = []
+    for line in lines:
+        if SOURCE_SECTION_RE.match(line):
+            if current is not None:
+                sections[current] = "\n".join(buffer)
+            current = line.strip()
+            buffer = [line]
+        elif current is not None:
+            buffer.append(line)
+    if current is not None:
+        sections[current] = "\n".join(buffer)
+    return sections or {"<source>": source_text}
+
+
+def _goldquest_source_questions(section_text: str) -> dict[str, list[str]]:
+    lines = section_text.splitlines()
+    starts: list[tuple[int, str]] = []
+    for index, line in enumerate(lines):
+        match = SOURCE_QUESTION_LINE_RE.match(line.strip())
+        if match:
+            starts.append((index, match.group(1)))
+    segments: dict[str, list[str]] = {}
+    for position, (index, number) in enumerate(starts):
+        end = starts[position + 1][0] if position + 1 < len(starts) else len(lines)
+        segment = "\n".join(lines[index:end])
+        if SOURCE_OPTION_LINE_RE.search(segment):
+            segments.setdefault(number, []).append(segment)
+    return segments
+
+
+def _goldquest_source_stem(segment: str) -> str:
+    for line in segment.splitlines():
+        plain = _source_plain(line)
+        if len(plain) >= 16:
+            prompt = GOLDQUEST_GENERIC_PROMPT_RE.search(plain)
+            if prompt and prompt.start() >= 12:
+                plain = plain[:prompt.start()]
+            return plain
+    return ""
+
+
+def _goldquest_traceable(value: str, plain_output: str, window: int = 12) -> bool:
+    plain = _source_plain(value)
+    if len(plain) < window:
+        return True
+    return any(plain[index:index + window] in plain_output for index in range(len(plain) - window + 1))
+
+
+GOLDQUEST_MAP_HEADING_RE = re.compile(r"^######\s+(?:规则地图|知识地图|考点地图|知识要点|争点|规则与法源|事实涵摄|命题思路)")
+
+
+def validate_goldquest_knowledge_placement(text: str) -> list[Finding]:
+    """Keep knowledge inside the per-option analysis instead of restating it.
+
+    - `E816`: a fixed 规则地图-style knowledge section splits the knowledge
+      from the per-option analysis — the complete knowledge belongs inside
+      each option's analysis, Mermaid being the only separate exposition, and
+      the skill forbids disguised fixed templates.
+    - `E817`: a Callout body near-verbatim repeats the question's own text; a
+      Callout must add new value (statute text, trap, boundary, memory link).
+    """
+    findings: list[Finding] = []
+    for number, line in enumerate(text.splitlines(), start=1):
+        if GOLDQUEST_MAP_HEADING_RE.match(line):
+            findings.append(Finding("E", "816", number, "A fixed 规则地图-style knowledge section splits knowledge from the per-option analysis. Migration is mandatory before any removal: first merge EVERY rule, element, legal effect, and application in this section into the corresponding option analysis, then drop the section; a rule that fits no option stays as a NOTE Callout or a Mermaid node. Never delete the section wholesale without migrating its content — the knowledge inside it is required, not optional."))
+    blocks: list[list[str]] = []
+    current: list[str] = []
+    for line in text.splitlines():
+        if re.match(r"^#####\s+(?!#)", line):
+            if current:
+                blocks.append(current)
+            current = [line]
+        else:
+            current.append(line)
+    if current:
+        blocks.append(current)
+    for block in blocks:
+        analysis_region: list[str] = []
+        started = False
+        in_fence = False
+        for line in block:
+            if re.match(r"^######\s+答案与解析", line):
+                started = True
+                continue
+            if not started:
+                continue
+            if re.match(r"^(?:\s*>\s*)?```", line):
+                in_fence = not in_fence
+                continue
+            if in_fence or re.match(r"^#{2,6}\s+", line) or line.lstrip().startswith("{:"):
+                continue
+            analysis_region.append(line)
+        first_replay = next(
+            (index for index, line in enumerate(analysis_region) if re.match(r"^[-*]\s+[❌✅]\s*[A-D]", line)),
+            None,
+        )
+        if first_replay is None:
+            continue
+        separated = False
+        for index in range(first_replay):
+            line = analysis_region[index]
+            if re.match(r"^[-*]\s+(?!正确答案)", line) and not re.match(r"^[-*]\s+[❌✅]", line):
+                cursor = index + 1
+                while cursor < len(analysis_region) and not analysis_region[cursor].strip():
+                    cursor += 1
+                if cursor < len(analysis_region) and re.match(r"^\s{2,}(?:[-*]|\d+\.)\s+\S", analysis_region[cursor]):
+                    base = len(line) - len(line.lstrip())
+                    if len(analysis_region[cursor]) - len(analysis_region[cursor].lstrip()) > base:
+                        separated = True
+                        break
+        if separated:
+            findings.append(Finding("E", "816", 1, "The analysis opens with a knowledge block (a bold parent with children) before the per-option replays; put the complete knowledge directly inside each option's analysis — Mermaid is the only separate exposition."))
+        callout_sections: list[list[str]] = []
+        other_lines: list[str] = []
+        in_fence = False
+        index = 0
+        while index < len(block):
+            line = block[index]
+            if re.match(r"^(?:\s*>\s*)?```", line):
+                in_fence = not in_fence
+                index += 1
+                continue
+            if in_fence:
+                index += 1
+                continue
+            if re.match(r"^\s*>\s+\[![A-Z]+\]", line):
+                section = [line]
+                index += 1
+                while index < len(block) and re.match(r"^\s*>", block[index]):
+                    section.append(block[index])
+                    index += 1
+                callout_sections.append(section)
+                continue
+            other_lines.append(line)
+            index += 1
+        other_plain = _source_plain("\n".join(other_lines))
+        for callout_section in callout_sections:
+            callout_plain = _source_plain("\n".join(callout_section))
+            if not other_plain or len(callout_plain) < 15:
+                continue
+            callout_indexes = {block.index(line) for line in callout_section}
+            rest_lines = [line for position, line in enumerate(block) if position not in callout_indexes]
+            rest_plain = _source_plain("\n".join(rest_lines))
+            grams = {callout_plain[pos:pos + 6] for pos in range(0, len(callout_plain) - 5)}
+            hits = sum(1 for gram in grams if gram in rest_plain)
+            if len(grams) and hits / len(grams) >= 0.6:
+                findings.append(Finding("E", "817", 1, "A Callout body mostly repeats the analysis text; the Callout must add new value (statute text, trap, boundary, memory link) instead of restating what the per-option analysis already covers."))
+                break
+    return findings
+
+
+def validate_goldquest_source_content(text: str, source_text: str) -> list[Finding]:
+    """Compare an organized GoldQuest document against the original source file.
+
+    The source is split into knowledge-point sections first so that per-考点
+    outputs are compared only against the 考点 they cover, never across ranges.
+    A section is in scope when the output preserves at least half of its
+    questions; any question in an in-scope section whose stem leaves no trace
+    is a dropped question and fails `E814`. For in-scope questions that are
+    present, source reasoning/statute lines with no trace become a `W815`
+    warning so compressed statutes and definitions are reviewed.
+    """
+    findings: list[Finding] = []
+    plain_output = _source_plain(text)
+    total_lines = 0
+    lost_lines = 0
+    missing: list[tuple[str, str, str]] = []
+    for section, section_text in _goldquest_source_sections(source_text).items():
+        questions = _goldquest_source_questions(section_text)
+        if not questions:
+            continue
+        covered_numbers: set[str] = set()
+        section_missing: list[tuple[str, str]] = []
+        for number, seg_list in questions.items():
+            for segment in seg_list:
+                stem = _goldquest_source_stem(segment)
+                if stem and _goldquest_traceable(stem, plain_output):
+                    covered_numbers.add(number)
+                    for line in segment.splitlines():
+                        plain = _source_plain(line)
+                        if (
+                            len(plain) < 12
+                            or re.match(r"^#{1,6}\s+", line)
+                            or re.match(r"^```", line.strip())
+                            or re.match(r"^\|.*\|$", line.strip())
+                            or SOURCE_BOILERPLATE_RE.search(plain)
+                        ):
+                            continue
+                        total_lines += 1
+                        if not _goldquest_traceable(plain, plain_output, window=6):
+                            lost_lines += 1
+                else:
+                    section_missing.append((number, stem or segment[:40]))
+        if covered_numbers and len(covered_numbers) / len(questions) >= 0.5:
+            for number, stem in section_missing:
+                missing.append((section, number, stem))
+    if missing:
+        detail = "; ".join(
+            f"{section} {number}({stem[:40]})" for section, number, stem in missing[:5]
+        )
+        findings.append(Finding("E", "814", 1, f"Source questions missing from the organized output within the covered knowledge-point scope: {detail}. Compare against the original file in the same 考点 scope and restore every dropped question with its options and analysis."))
+    if total_lines >= 25 and lost_lines / total_lines > 0.55:
+        findings.append(Finding("W", "815", 1, f"{lost_lines}/{total_lines} source reasoning or statute lines from covered questions have no trace in the output; restore dropped statutes, definitions, and reasoning steps."))
+    return findings
+
+
+def _line_head_label_prefix(line: str) -> bool:
+    """Return whether a line opens with a generated 问题：/题干：/答案：/解析：/问： label,
+    tolerating list/quote markers, bold asterisks, digits, and leading emoji so none can mask it."""
+    text = EMOJI_PATTERN.sub("", line).replace("*", "")
+    text = re.sub(r"^[\s>\-+\d.]+", "", text)
+    return bool(GENERATED_LABEL_PREFIX_PATTERN.match(text))
+
+
+def validate_generated_label_prefixes(text: str) -> list[Finding]:
+    """Reject generated 问题：/题干：/答案：/解析：/问： label prefixes at line heads (fences skipped)."""
+    findings: list[Finding] = []
+    lines = text.splitlines()
+    in_fence = False
+    for number, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if _line_head_label_prefix(line):
+            findings.append(Finding("E", "647", number, "Write the stem, question, and analysis directly; no 问题：/题干：/答案：/解析：/问： label prefix is allowed at the head of an output line."))
+    return findings
+
+
 def validate_text(
     text: str,
     profile: str,
@@ -1396,6 +1828,11 @@ def validate_text(
     findings.extend(validate_emphasis_syntax(text))
     findings.extend(validate_colors(text))
     findings.extend(validate_callouts_and_fences(text))
+    if profile in {"legal-marknote", "legal-goldquest"}:
+        findings.extend(validate_emoji_semantics(text))
+        findings.extend(validate_line_color_diversity(text))
+    if profile in {"legal-marknote", "legal-goldquest"}:
+        findings.extend(Finding("E", item.code, item.line, item.message) for item in validate_mermaid_semantics(text))
     allowed_list_cells = {
         normalized_table_content(cell)
         for block in table_blocks(source_text or "")
@@ -1440,8 +1877,12 @@ def validate_text(
     findings.extend(validate_topic_ials(text, profile, require_note_topic))
     if profile == "legal-goldquest":
         findings.extend(validate_goldquest(text))
+        findings.extend(validate_goldquest_knowledge_placement(text))
+        findings.extend(validate_generated_label_prefixes(text))
     if source_text is not None:
         findings.extend(validate_source_preservation(text, source_text, profile, allow_structural_repair))
+    if profile == "legal-goldquest" and source_text is not None:
+        findings.extend(validate_goldquest_source_content(text, source_text))
     return sorted(findings, key=lambda finding: (finding.line, finding.level != "E", finding.code))
 
 
@@ -1458,9 +1899,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--profile", choices=("legal-marknote", "legal-goldquest"), default=infer_profile(Path(__file__).resolve()))
     parser.add_argument("--source", type=Path, help="Original source file for preservation checks.")
     parser.add_argument("--require-source", action="store_true", help="Fail when --source is omitted.")
-    parser.add_argument("--strict", action="store_true", help="Treat advisory warnings as gate failures.")
-    parser.add_argument("--max-table-columns", type=int, help="Override the table column gate (default 3; strict default 2).")
-    parser.add_argument("--max-table-rows", type=int, help="Override the table data-row gate (default 3; strict default 2).")
+    parser.add_argument("--strict", action="store_true", help="Strict mode (the default). Advisory warnings are gate failures and the table gate is 2 x 2; kept for compatibility with existing invocations.")
+    parser.add_argument("--lenient", action="store_true", help="Relaxed mode. Only available when the COMPLETE relaxation set is passed: --lenient --max-table-columns N --max-table-rows N; if any relaxation parameter is missing, validation refuses to run.")
+    parser.add_argument("--max-table-columns", type=int, help="Override the strict table column gate (default 2). Without --lenient this is a scoped per-table exception; warnings stay strict. With --lenient it is part of the complete relaxation set.")
+    parser.add_argument("--max-table-rows", type=int, help="Override the strict table data-row gate (default 2). Without --lenient this is a scoped per-table exception; warnings stay strict. With --lenient it is part of the complete relaxation set.")
     parser.add_argument("--require-topic-ial", action="store_true", help="Require at least one MarkNote note-topic provider declaration.")
     parser.add_argument(
         "--allow-structural-repair",
@@ -1479,19 +1921,33 @@ def main() -> int:
     if args.require_source and args.source is None:
         print(f"{args.output}:1: E700: --source is required by this gate.")
         return 1
+    if args.strict and args.lenient:
+        print("--strict and --lenient are mutually exclusive: strict mode is the default; relaxed mode requires the complete relaxation set (--lenient --max-table-columns N --max-table-rows N).", file=sys.stderr)
+        return 2
+    if args.lenient:
+        missing = [name for name, value in (("--max-table-columns", args.max_table_columns), ("--max-table-rows", args.max_table_rows)) if value is None]
+        if missing:
+            print(
+                "Relaxed mode requires the COMPLETE relaxation set; missing: "
+                + ", ".join(missing)
+                + ". Pass --lenient --max-table-columns N --max-table-rows N together; strict mode is the default and table-size overrides alone are a scoped exception that keeps warnings strict.",
+                file=sys.stderr,
+            )
+            return 2
     if (args.max_table_columns is not None and args.max_table_columns < 1) or (args.max_table_rows is not None and args.max_table_rows < 1):
         print("--max-table-columns and --max-table-rows must be positive integers.", file=sys.stderr)
         return 2
     text = args.output.read_text(encoding="utf-8")
     source_text = args.source.read_text(encoding="utf-8") if args.source else None
+    strict = not args.lenient
     findings = validate_text(
         text,
         args.profile,
         source_text,
         args.require_topic_ial,
         args.allow_structural_repair,
-        args.max_table_columns if args.max_table_columns is not None else (2 if args.strict else 3),
-        args.max_table_rows if args.max_table_rows is not None else (2 if args.strict else 3),
+        args.max_table_columns if args.max_table_columns is not None else (2 if strict else 3),
+        args.max_table_rows if args.max_table_rows is not None else (2 if strict else 3),
     )
     if args.format == "json":
         print(json.dumps([asdict(finding) for finding in findings], ensure_ascii=False, indent=2))
@@ -1502,7 +1958,7 @@ def main() -> int:
         print(f"PASS {args.profile} output validation: {args.output}")
     has_errors = any(finding.level == "E" for finding in findings)
     has_warnings = any(finding.level == "W" for finding in findings)
-    return 1 if has_errors or (args.strict and has_warnings) else 0
+    return 1 if has_errors or (strict and has_warnings) else 0
 
 
 if __name__ == "__main__":
