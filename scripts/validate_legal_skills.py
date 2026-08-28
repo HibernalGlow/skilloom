@@ -202,6 +202,15 @@ CONTRACTS = (
             ("颜色编码系统", "七、高级技巧"),
         ),
     ),
+    SkillContract(
+        "siyuan-export",
+        (
+            ("export_siyuan_markdown.py", "## Export route"),
+            ("paste_siyuan_markdown.py", "## Import route"),
+            ("$siyuan-cli", "SKILL.md"),
+            ("权威副本", "SKILL.md"),
+        ),
+    ),
 )
 
 

@@ -65,6 +65,8 @@ Color and bold weight are supporting channels, not a complete typography system.
 
 For a multi-scene node, normally use at least three appropriate treatment families across the node so every emphasis does not collapse into the same colored highlight. This is a node-level diversity check, not a demand that every scene or phrase use three styles. Keep repeated legal meanings consistent, and omit a treatment when it has no semantic job.
 
+Apply the vocabulary at container level, not only at scene level. A card, side panel, note box, or callout whose body is a bare default-ink run under a title or label fails QA even when the rest of the scene is well treated. Segment copied prose at its semantic joints before rendering: an enumeration becomes chips, rows, or mini-cards that can enter staggered; a multi-clause sentence becomes a condition → action, term → expansion, or claim → negation structure with every clause visibly treated. Text that still reads top-to-bottom like the source note after recoloring, reordering, or re-boxing has not been visualized.
+
 Never draw a thick circle, cross, or strike-through over readable glyphs. Keep underlines thin, backgrounds translucent, and negation marks outside the text bounds. Text must remain fully readable at every motion checkpoint. When the repository's structure descriptor is present, declare the chosen scene anchor and treatments there and keep its `data-visual-anchor` and `data-text-treatments` hooks aligned with the rendered source.
 
 ## Make a theme more than a recolor
