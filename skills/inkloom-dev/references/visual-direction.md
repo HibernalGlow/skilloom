@@ -67,7 +67,39 @@ For a multi-scene node, normally use at least three appropriate treatment famili
 
 Apply the vocabulary at container level, not only at scene level. A card, side panel, note box, or callout whose body is a bare default-ink run under a title or label fails QA even when the rest of the scene is well treated. Segment copied prose at its semantic joints before rendering: an enumeration becomes chips, rows, or mini-cards that can enter staggered; a multi-clause sentence becomes a condition → action, term → expansion, or claim → negation structure with every clause visibly treated. Text that still reads top-to-bottom like the source note after recoloring, reordering, or re-boxing has not been visualized.
 
+## Segmenting prose: joint types, width budget, and motion
+
+Cut the prose at its semantic joints. Enumeration, abbreviation → expansion, condition → consequence, named variants, and rule-plus-negation are common joints, not a closed set and not visual templates. After cutting, design each unit's rendering from the node's own direction—palette, surfaces, composition grammar, motion vocabulary. The same joint must not converge on one shared rendering across nodes: if two nodes realize a joint with near-identical chips, rows, or cards, that is fingerprint reuse and fails `pnpm animation:styles` exactly like a copied theme. Name treatments by their semantic job, and let each node invent its own visuals for that job.
+
+Width budget before writing the JSX:
+
+- Compute the inner width first: container width − horizontal padding − borders − per-unit (text ≈ fontSize × CJK char count + padding + border) − gaps. WenKai advance is ~1× fontSize; leave ≥10px slack.
+- Space-separated interpuncts (` · `) cost ~22px each in a 22px row; use tight `·` inside constrained rows.
+- Set `whiteSpace: 'nowrap'` on chip and label text and `flexWrap: 'wrap'` on the group, so overflow degrades into a clean second row instead of breaking a label mid-word.
+- Never solve overflow by dropping below the 22px knowledge-text floor; shrink padding, gaps, or glyph size first, or split the row. An orphan single character wrapped onto its own line, or a name broken after its third character, fails page QA.
+- Keep new entry beats inside the scene's existing frame budget from `storyboard.ts`: the last delay plus its span must finish before the scene end; do not extend `SCENES` to accommodate decoration.
+
+Keep the declaration surfaces in sync when a segment design introduces a new treatment family, icon, or container: `ALLOWED_TEXT_TREATMENTS` in the InkLoom `scripts/validate-animation-structure.mjs`, the scene's `data-text-treatments` hook, `textTreatments` in `visual-structure.json`, the `tokens` list for newly rendered icons, and `finalKnowledge` plus the scene's `data-final-knowledge` comment for new containers. Authoring `chip` without registering it in the validator fails `pnpm animation:styles` with "unsupported text treatment"; a marker declared in JSON but missing from TSX fails the same audit in the other direction.
+
 Never draw a thick circle, cross, or strike-through over readable glyphs. Keep underlines thin, backgrounds translucent, and negation marks outside the text bounds. Text must remain fully readable at every motion checkpoint. When the repository's structure descriptor is present, declare the chosen scene anchor and treatments there and keep its `data-visual-anchor` and `data-text-treatments` hooks aligned with the rendered source.
+
+## Recurring concepts become recurring tokens
+
+At outline time, before any scene is authored, list the concepts that will recur across the node — recurring procedures, operative verdicts, key documents, parties — and assign each one a single compact, semantically accurate pictogram from the node's own direction vocabulary. From then on the token travels with the word: every heading, chip, stamp, condition row, and terminal state that names the concept repeats the same glyph beside or inside the label. A viewer should be able to follow where 补正, 解释, or 定案根据 appear on a frame by shape and color alone, because the token carries the concept between occurrences and turns repetition into memory. A token that shows up once at a concept's first appearance and then disappears throws the audience back to reading every later occurrence; that regression is the contact-sheet failure this rule exists to prevent.
+
+Keep the mapping node-local. The same concept may take a different glyph in a neighboring node — the glyph is part of the node's fingerprint — and copying another node's token map is fingerprint reuse like any copied theme. Record the map in `visual-direction.json` so audits can verify it:
+
+```json
+{
+  "conceptTokens": {
+    "补正": "Wrench",
+    "合理解释": "MessageSquareText",
+    "定案根据": "FileCheck"
+  }
+}
+```
+
+`pnpm animation:styles` validates the field's shape when present, and the structure audit verifies that each named pictogram actually renders in the node's Remotion source. The field is optional so existing nodes stay valid; declare it for every new node that has recurring concepts.
 
 ## Make a theme more than a recolor
 
@@ -125,6 +157,8 @@ Use `catalog.status: "featured"` only for the original node selected to demonstr
   }
 }
 ```
+
+An optional `conceptTokens` object (concept → pictogram component name) records the node's recurring-concept tokens; see "Recurring concepts become recurring tokens" above.
 
 When a genuinely new direction is authored, complete these steps in the same change:
 
