@@ -1,0 +1,4 @@
+interface:
+  display_name: "Legal Question Author"
+  short_description: "Generate personalized Damophus legal question-bank Markdown"
+  default_prompt: "根据 Damophus 错题、收藏和题目资料，批量生成可导入题库的法考客观题或主观题成文稿，并严格校验 custom-qb 元数据。"
