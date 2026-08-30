@@ -14,7 +14,7 @@ Then, per document:
 1. Serve every embed from the online jsDelivr proxy URL defined in [animated-avif.md](animated-avif.md): insert `![](<proxy-url>)` blocks and let the AVIF stay on the CDN. When both the proxy and the production host are unreachable, report that instead of downloading the asset into the workspace.
 2. Verify each candidate proxy URL with a real GET before editing, and read the animation's manifest to enumerate every scene AVIF, because an already-embedded document may predate scenes that were added later.
 3. Refresh stale embeds: an existing InkLoom image that references a local asset (`assets/…<scene-id>.avif`) or the production host keeps its alt text and position and swaps only its URL to the proxy form. Update only the generated image block; surrounding legal content stays untouched.
-4. Insert missing embeds: build the knowledge-point → scene mapping, then insert one proxy-URL image block immediately after the block that explains that exact point, following the anchor discipline of Locate the exact insertion points. When no animation matches the document, report that instead of forcing an insert.
+4. Insert missing embeds: build the knowledge-point → scene mapping, then insert one proxy-URL image block immediately after the most precise block that states that exact point, following the anchor discipline of Locate the exact insertion points — one image per anchor, and never two image blocks adjacent. When no animation matches the document, report that instead of forcing an insert.
 5. Completion: every manifest scene is either embedded at its matching point or reported as intentionally absent, no InkLoom image in the document still references a local asset or the production host, and every embedded URL passed the GET check.
 
 ## Direct block-ID animated-image mode
@@ -47,7 +47,7 @@ A bare block ID matching `^[0-9]{14}-[a-z0-9]{7}$`, for example `20260729232455-
    ![InkLoom 动图：<scene-title>](https://gcore.jsdelivr.net/gh/inkloomer/inkloom@main/public/animation-avif/<animation-id>/<scene-id>.avif)
    ```
 
-5. Treat `--previous <target-id>` as the preceding-sibling anchor, so the new block becomes the target's immediate next sibling. Validate first, then apply the identical command:
+5. Treat `--previous <target-id>` as the preceding-sibling anchor, so the new block becomes the target's immediate next sibling. The target must be the precise text block that states the point; refuse to insert when the target is itself an image block or its next sibling already is one — stacking images is prohibited (the helper rejects both cases). Validate first, then apply the identical command:
 
    ```bash
    siyuan -w "$SIYUAN_WORKSPACE" --dry-run block insert --parent <parent-id> --previous <target-id> --data '<image-markdown>'
@@ -81,8 +81,11 @@ A bare block ID matching `^[0-9]{14}-[a-z0-9]{7}$`, for example `20260729232455-
 
 1. Search the existing note with `$siyuan-cli` and identify the document ID, notebook ID, human path, parent block ID, and every source-point block that an animation scene explains.
 2. Read each candidate with `siyuan block kramdown --id <block-id>` and inspect the nearby headings or sibling blocks. Do not insert based on a search snippet alone.
-3. Build an explicit mapping of `source-point block ID -> animation route -> scene key -> scene title`. Preserve narrative order and insert each iframe immediately after the block explaining that exact point.
-4. If the positions or scene matches are not unambiguous, stop and ask for the intended anchors. Do not append all animations to the document end or substitute one generic first-page iframe.
+3. Anchor to the most precise block that states the point — never the loosest container that merely contains it. When the point lives in one list item, one callout's inner paragraph, one table row, or one prose paragraph, that block is the anchor; a heading or parent container is acceptable only when the whole section as a unit is what the scene explains. Do not anchor to a block whose next sibling is already an image block: that would stack two images.
+4. One image per anchor. Two scenes must never share one anchor block, and two image blocks must never be adjacent siblings; if two knowledge points collapse onto one block, re-anchor each to its own smaller sub-block, and when the document has no such sub-blocks, stop and ask instead of stacking.
+5. Build an explicit mapping of `source-point block ID -> animation route -> scene key -> scene title`. Preserve narrative order and insert each iframe immediately after the block explaining that exact point.
+6. If the positions or scene matches are not unambiguous, stop and ask for the intended anchors. Do not append all animations to the document end or substitute one generic first-page iframe.
+7. After every insert or move, read `siyuan block children` for each edited parent and verify that no two image blocks are adjacent and each image immediately follows the precise block it explains. Fix a violated placement by re-anchoring, never by leaving the stack.
 
 ## Insert without rewriting source blocks
 
@@ -99,6 +102,7 @@ A bare block ID matching `^[0-9]{14}-[a-z0-9]{7}$`, for example `20260729232455-
 
 ## Embed in Markdown
 
-1. Apply the same knowledge-point mapping when the user explicitly requests iframe insertion into a Markdown file: place each scene-specific iframe immediately after the paragraph, list, heading section, or callout it explains.
-2. Preserve the Markdown source and surrounding content. Add new iframe blocks only; do not move sections, convert the note into MDX, or duplicate the whole animation page.
-3. Use production URLs for portable or published Markdown. For an explicitly temporary local workflow, `http://localhost:4321/inkloom/<page-route>/?scene=first-instance` is allowed, but mark it temporary and replace the host before publication or cross-device use.
+1. Apply the same knowledge-point mapping when the user explicitly requests iframe insertion into a Markdown file: place each scene-specific iframe immediately after the paragraph, list item, or callout it explains — tightly attached to that text, with no heading, blank region, or unrelated block between the text and its image.
+2. Never stack two images. One image per text block; when two knowledge points live in one block, re-anchor each image to its own smaller sub-block (list item, callout paragraph), and stop to ask when the source has no finer blocks. After editing, re-read the file and verify no two image blocks are adjacent anywhere in the edited region.
+3. Preserve the Markdown source and surrounding content. Add new iframe blocks only; do not move sections, convert the note into MDX, or duplicate the whole animation page.
+4. Use production URLs for portable or published Markdown. For an explicitly temporary local workflow, `http://localhost:4321/inkloom/<page-route>/?scene=first-instance` is allowed, but mark it temporary and replace the host before publication or cross-device use.
