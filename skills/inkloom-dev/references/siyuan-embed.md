@@ -64,6 +64,15 @@ A bare block ID matching `^[0-9]{14}-[a-z0-9]{7}$`, for example `20260729232455-
 
    Running without `--apply` is a diagnostic-only mode for agents developing or debugging the helper; it is not a handoff step for the user. The helper validates the local manifest and AVIF, extracts `parentID`, detects duplicate embed URLs (treating the production and jsDelivr URL of the same asset as one embed), inserts or moves only a generated InkLoom image, verifies the original source block stayed unchanged, and confirms actual sibling order with `block children`. It must not decide what the legal animation should teach or which scene is the semantic match.
 
+## Dual-kernel rule: GUI running means use the HTTP API
+
+The SiYuan desktop client runs a resident kernel that holds every document tree in memory; the `siyuan` CLI spawns a second, independent kernel against the same workspace. When the GUI is open, CLI reads and writes can transiently fail (`tree not found`, `getChildBlocks` returning empty, stale sibling order) — this is a dual-kernel conflict, **not** corruption, and image embeds are not the cause. Verify with `tasklist | grep -i SiYuan` before batch work, then:
+
+1. **Prefer the GUI kernel's HTTP API** (same process as the client, instantly consistent): `POST http://127.0.0.1:6806/api/block/insertBlock` with header `Authorization: Token <apiToken from workspace conf/conf.json>` and body `{"dataType": "markdown", "data": "<image markdown>", "previousID": "<anchor block id>"}`. Read with `/api/block/getChildBlocks` (block `type` is a single letter: `h`/`l`/`p`/`b`/`c`/`t`) and query with `/api/query/sql` (`{"stmt": "..."}`); the GUI kernel's SQL index is current, unlike the CLI's.
+2. The CLI remains fine when the GUI is closed; if a CLI call returns empty while the GUI is open, retry once, then switch to the HTTP API instead of escalating to raw-file edits.
+3. Editing `.sy` files directly is the last resort: the GUI picks up changed files via its file watcher, but a race with the GUI's in-memory state can overwrite the edit. An image block is `NodeParagraph[NodeText(zero-width), NodeImage[NodeBang, NodeOpenBracket, NodeLinkText.Data=<alt>, NodeCloseBracket, NodeOpenParen, NodeLinkDest.Data=<url>, NodeCloseParen], NodeText]`; when cloning an existing block as a template, **assign a fresh block ID** (14-digit timestamp + 7 random chars) and update both the ID and `Properties.id`, or SiYuan deduplicates them away.
+4. Idempotency for batch scene insertion: before inserting, list the document's existing embeds by scene id and skip scenes already present. When several scenes share one anchor, insert in reverse scene order (each insert lands directly after the anchor, so the last insert reads first).
+
 ## Preconditions
 
 1. Complete the Remotion explainers, commit and push the InkLoom website work, and verify each public page at `https://inkloomer.github.io/inkloom/<page-route>/`.
