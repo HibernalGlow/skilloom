@@ -1,6 +1,21 @@
 # Knowledge-point animation embedding
 
-Use this reference when the user supplies a SiYuan block ID for animated-image insertion or explicitly authorizes scene-specific iframe insertion into an existing SiYuan note or Markdown file. Existing note content remains read-only for all other InkLoom tasks.
+Use this reference when the user supplies a SiYuan block ID for animated-image insertion, asks to embed animations into or refresh animation embeds across documents (SiYuan or local Markdown), or explicitly authorizes scene-specific iframe insertion into an existing SiYuan note or Markdown file. Existing note content remains read-only for all other InkLoom tasks.
+
+## Embed by document scenario
+
+Use this mode when the user asks to embed animations into a document, refresh its existing embeds, or catch it up with newly published scenes. Classify each document first, then edit only its live copy — the side the user actually reads and maintains:
+
+- **SiYuan-resident:** a matching document exists in the workspace (locate it by title or human path with `$siyuan-cli`). Edit that SiYuan document only; leave the corresponding local Markdown file untouched.
+- **Markdown-only:** no matching SiYuan document exists and the MD file lives in the local library. Edit the MD file directly with image syntax; run no SiYuan writes. The URL embeds carry over when the note is later imported through `$siyuan-export`.
+
+Then, per document:
+
+1. Serve every embed from the online jsDelivr proxy URL defined in [animated-avif.md](animated-avif.md): insert `![](<proxy-url>)` blocks and let the AVIF stay on the CDN. When both the proxy and the production host are unreachable, report that instead of downloading the asset into the workspace.
+2. Verify each candidate proxy URL with a real GET before editing, and read the animation's manifest to enumerate every scene AVIF, because an already-embedded document may predate scenes that were added later.
+3. Refresh stale embeds: an existing InkLoom image that references a local asset (`assets/…<scene-id>.avif`) or the production host keeps its alt text and position and swaps only its URL to the proxy form. Update only the generated image block; surrounding legal content stays untouched.
+4. Insert missing embeds: build the knowledge-point → scene mapping, then insert one proxy-URL image block immediately after the block that explains that exact point, following the anchor discipline of Locate the exact insertion points. When no animation matches the document, report that instead of forcing an insert.
+5. Completion: every manifest scene is either embedded at its matching point or reported as intentionally absent, no InkLoom image in the document still references a local asset or the production host, and every embedded URL passed the GET check.
 
 ## Direct block-ID animated-image mode
 
@@ -15,7 +30,7 @@ A bare block ID matching `^[0-9]{14}-[a-z0-9]{7}$`, for example `20260729232455-
 
 2. Match the legal point to one semantic InkLoom scene, then run a fast placement preflight before any animation render, page capture, publication, build, or broad repository scan:
 
-   - Read the matching local manifest and confirm the semantic scene and production URL.
+   - Read the matching local manifest and confirm the semantic scene and its image embed URL (the jsDelivr form defined in [animated-avif.md](animated-avif.md)).
    - Search the target document for that exact URL.
    - Read `siyuan block children --id <target-parent-id> -f json`; if the URL already exists, also read the generated image block and its reported parent.
    - If the same generated InkLoom image exists but is not the target's immediate next sibling, immediately send a commentary update stating that the animation already exists and is merely misplaced. Say that it will be moved, not rebuilt. Do not postpone this user-visible diagnosis until after visual QA, rendering, build, or deployment checks.
@@ -23,13 +38,13 @@ A bare block ID matching `^[0-9]{14}-[a-z0-9]{7}$`, for example `20260729232455-
 3. Take the shortest valid path after the preflight:
 
    - **Existing adequate scene, correct position:** report success without writes.
-   - **Existing adequate scene, wrong position:** skip Remotion regeneration. Use the maintained helper to verify the production asset, move only the generated image block, and verify final order.
+   - **Existing adequate scene, wrong position:** skip Remotion regeneration. Use the maintained helper to verify the image asset at its embed URL, move only the generated image block, and verify final order.
    - **Missing or inadequate scene:** improve or add the scene, or create the animation node and thin MDX carrier when none exists. Finish page-still QA and animated-AVIF publication before insertion.
 
-4. Verify the production asset directly, then construct exactly one image block:
+4. Verify the asset directly at its embed URL, then construct exactly one image block. Note-side image embeds use the jsDelivr front, never the production host (see [animated-avif.md](animated-avif.md)):
 
    ```markdown
-   ![InkLoom 动图：<scene-title>](https://inkloomer.github.io/inkloom/animation-avif/<animation-id>/<scene-id>.avif)
+   ![InkLoom 动图：<scene-title>](https://gcore.jsdelivr.net/gh/inkloomer/inkloom@main/public/animation-avif/<animation-id>/<scene-id>.avif)
    ```
 
 5. Treat `--previous <target-id>` as the preceding-sibling anchor, so the new block becomes the target's immediate next sibling. Validate first, then apply the identical command:
@@ -47,12 +62,12 @@ A bare block ID matching `^[0-9]{14}-[a-z0-9]{7}$`, for example `20260729232455-
    pnpm siyuan:embed-scene -- --target-id <block-id> --animation-id <animation-id> --scene-id <scene-id> --apply
    ```
 
-   Running without `--apply` is a diagnostic-only mode for agents developing or debugging the helper; it is not a handoff step for the user. The helper validates the local manifest and AVIF, extracts `parentID`, detects duplicate URLs, inserts or moves only a generated InkLoom image, verifies the original source block stayed unchanged, and confirms actual sibling order with `block children`. It must not decide what the legal animation should teach or which scene is the semantic match.
+   Running without `--apply` is a diagnostic-only mode for agents developing or debugging the helper; it is not a handoff step for the user. The helper validates the local manifest and AVIF, extracts `parentID`, detects duplicate embed URLs (treating the production and jsDelivr URL of the same asset as one embed), inserts or moves only a generated InkLoom image, verifies the original source block stayed unchanged, and confirms actual sibling order with `block children`. It must not decide what the legal animation should teach or which scene is the semantic match.
 
 ## Preconditions
 
 1. Complete the Remotion explainers, commit and push the InkLoom website work, and verify each public page at `https://inkloomer.github.io/inkloom/<page-route>/`.
-2. Use verified production URLs for durable SiYuan embeds. A localhost URL may be used only as an explicitly requested temporary pre-publication placeholder; report it as temporary and replace it with the production host before calling the note finished or portable. Never use a GitHub branch, preview, or repository URL.
+2. Use verified URLs for durable SiYuan embeds: the jsDelivr front defined in [animated-avif.md](animated-avif.md) for image embeds, and production `inkloomer.github.io` URLs for iframe and page embeds. A localhost URL may be used only as an explicitly requested temporary pre-publication placeholder; report it as temporary and replace it before calling the note finished or portable. Never use a preview deployment or raw repository URL; the jsDelivr `main`-branch CDN front is the only sanctioned repository-derived form.
 3. Use `$siyuan-cli`; do not use the HTTP API or manually edit workspace files.
 
 ## Address the matching scene
