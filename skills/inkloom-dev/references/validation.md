@@ -88,6 +88,7 @@ Run the smallest relevant checks after an edit, then run the full build when cha
 
 ## Note-embed checks
 
+- No-stacked-embeds gate: after every SiYuan or Markdown image insertion, re-read the edited region (`siyuan block children` per edited parent, or the file itself) and verify that no two image blocks are adjacent siblings, each image immediately follows the most precise block that states its point, and no image sits against another image with only blank space between. A stacked pair is a failure; fix it by re-anchoring each image to its own smaller text block, or stop and ask when the source has no finer blocks.
 - Require every new player scene to expose a unique, stable, descriptive kebab-case ID. Verify durable iframe URLs use semantic keys such as `?scene=first-instance`; allow displayed numbers such as `?scene=02` only for unmigrated legacy animations. Do not append prose or punctuation to the key.
 - Require verified `https://inkloomer.github.io/inkloom/.../?scene=<key>` URLs for durable SiYuan, portable Markdown, or published Markdown embeds. Never use branch, preview, or repository URLs.
 - Allow `http://localhost:4321/inkloom/.../?scene=<key>` only for an explicitly requested temporary pre-publication workflow. Record every temporary iframe and do not report the note portable, published, or finished until its host is replaced and reverified.
