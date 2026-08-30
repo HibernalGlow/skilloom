@@ -101,6 +101,15 @@ Keep the mapping node-local. The same concept may take a different glyph in a ne
 
 `pnpm animation:styles` validates the field's shape when present, and the structure audit verifies that each named pictogram actually renders in the node's Remotion source. The field is optional so existing nodes stay valid; declare it for every new node that has recurring concepts.
 
+## Anchor every knowledge row; add a watermark totem
+
+Highlights, colored pills, and underline styling are text treatments, not graphics. A scene whose teaching content reads as stacked text pills is a text wall and fails page QA no matter how well the text is styled. Two graphic layers are mandatory in every scene:
+
+- **Row anchors.** Every knowledge-bearing row or card carries its own compact semantic icon beside the label — an icon chip with the pictogram on the node's tone color, a role glyph, or a document mark that participates in the row's entrance. One icon on the panel title does not anchor the rows beneath it. Declare the row-anchor components in the scene's `tokens` so audits pin them.
+- **Watermark totem.** Each scene renders one large translucent pictogram (90 px or more at reduced opacity) behind a panel or in a corner — the panel's totem, chosen from the node's direction vocabulary. The totem is a background graphic layer for image-based recall; it does not replace row anchors, and it must never obscure text.
+
+`pnpm animation:styles` enforces the per-scene floors mechanically: at least 4 row-anchor icon instances, at least 3 distinct semantic icons, and at least 1 watermark totem. The floors are a minimum, not the standard — the contact-sheet review still fails a scene where most rows remain un-anchored text or where the counted icons are decorative. The preferred realization is the row-chip pattern: each row is a labeled chip whose pictogram sits on the row's tone color, with the panel's watermark totem behind the group.
+
 ## Make a theme more than a recolor
 
 A new theme or a complete visual rewrite must change the visible design system, not merely palette values. Establish a coherent combination of typography, composition grammar, surfaces, spatial rhythm, icon treatment, motion vocabulary, and transition behavior. Preserve the node's legal content and public identity while replacing its internal art direction.
