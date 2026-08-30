@@ -53,6 +53,8 @@ Start with the legal relationship and choose the scene's visual anchor from that
 
 The anchor must make the rule more direct. Reject a scanner, lock, track, machine, or other novel metaphor when the viewer must first decode the metaphor before understanding the legal relationship. A scene may have no dominant icon when its path, boundary, comparison, or typography already provides the correct anchor.
 
+Keep the metaphor out of the text layer. The theme may drive imagery — icons, backgrounds, watermark totems, composition, motion — but every displayed word (scene titles, kickers, panel headers, chip labels, stamps, axis names) uses the legal terms the source note itself uses. Do not coin displayed words from the visual theme, such as calling panels 碑记 in a stele node or a gate 闸门 in an interlock node: invented vocabulary makes the viewer translate twice and competes with the real legal terms during recall. Name the panel 交流施教 or 级别管辖, and let the stele or gate live in the graphics.
+
 ## Give text treatments semantic jobs
 
 Color and bold weight are supporting channels, not a complete typography system. Plan a small node-level vocabulary and assign every treatment a stable job:
