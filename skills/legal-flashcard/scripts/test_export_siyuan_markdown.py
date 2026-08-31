@@ -40,6 +40,34 @@ class SiyuanMarkdownExportTests(unittest.TestCase):
         self.assertEqual(filter_kramdown_ial(source, IalOptions("all")), source)
         self.assertEqual(filter_kramdown_ial(source, IalOptions("none")), "")
 
+    def test_drops_lines_that_only_hold_filtered_ial(self) -> None:
+        source = "\n".join(
+            (
+                "```text",
+                '{: id="in-code" updated="x"}',
+                "```",
+                '{: id="after-code" updated="x"}',
+                "Para {: id=\"para\"}",
+                '{: id="kept" updated="x" custom-dm-card-id="card-1"}',
+            )
+        )
+        self.assertEqual(
+            filter_kramdown_ial(source, IalOptions("portable")),
+            "\n".join(
+                (
+                    "```text",
+                    '{: id="in-code" updated="x"}',
+                    "```",
+                    "Para ",
+                    '{: custom-dm-card-id="card-1"}',
+                )
+            ),
+        )
+
+    def test_keeps_pure_ial_lines_when_nothing_is_filtered(self) -> None:
+        source = "Para {: id=\"para\"}\n{: id=\"block\" updated=\"time\"}"
+        self.assertEqual(filter_kramdown_ial(source, IalOptions("all")), source)
+
     def test_converts_merged_table_to_markdown(self) -> None:
         source = (
             '<table><colgroup><col /><col /><col /></colgroup>'
