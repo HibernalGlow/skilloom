@@ -176,8 +176,14 @@ def filter_kramdown_ial(kramdown: str, options: IalOptions) -> str:
             marker = match.group(1)[0]
             fence = marker if fence is None else None if fence == marker else fence
             output.append(line)
+        elif fence:
+            output.append(line)
+        elif re.fullmatch(r"\s*\{:.*\}\s*", line) and not _filter_line(line, options).strip():
+            # A line that held only IAL attributes filtered to nothing must vanish
+            # entirely, or pasting the export back leaves an empty block per line.
+            continue
         else:
-            output.append(line if fence else _filter_line(line, options))
+            output.append(_filter_line(line, options))
     return re.sub(r"^[ \t]+$", "", "\n".join(output), flags=re.MULTILINE)
 
 
