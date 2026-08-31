@@ -254,7 +254,7 @@ def _apply_same_ids(
         if old.content != new.content and new.content is not None:
             _run_siyuan(
                 workspace,
-                ["block", "update", "--id", old.block_id, "--data", new.content, "--lock-type"],
+                ["block", "update", "--id", old.block_id, "--data", new.content],
                 dry_run=not confirm,
             )
         old_attrs = dict(old.attrs)
@@ -323,7 +323,7 @@ def apply_patch(
 
     _run_siyuan(
         workspace,
-        ["block", "update", "--id", root_id, "--file", str(after_path), "--lock-type"],
+        ["block", "update", "--id", root_id, "--file", str(after_path)],
         dry_run=not confirm,
     )
     return [root_id]
