@@ -1,55 +1,58 @@
 ---
 name: inkloom-embed
-description: 把已发布的 InkLoom 动画（AVIF）嵌入思源笔记、真金题、闪卡的方法论——落点铁律、逐知识点锚定、真金题首次出现原则、一图多变、缺动画派子智能体补做、思源 API 通道与陷阱
+description: 把已发布的 InkLoom 动画（AVIF）嵌入法考笔记、真金题、闪卡。用于：插入动画到思源或 md；每小时追新插入循环；审计某科目/文件为何看不到动画；清理死链。制作新动画用 inkloom-dev 或 produce-inkloom-animation。
 ---
 
 # InkLoom 动画嵌入
 
-把 `InkLoom/public/animation-avif/<动画id>/<场景id>.avif`（jsDelivr 已发布）插入到用户的法考笔记体系中。**本技能管"嵌入"，制作动画用 `inkloom-dev` / `produce-inkloom-animation`。**
+一条嵌入任务的执行序列。事实源：动画 = `InkLoom/public/animation-avif/<动画id>/manifest.json`（场景 id/ title 以它为准，URL 逐字对照，拼错即 404）；基线 = `客观/动画嵌入数据/动画源引用.json`；进度 = `客观/动画嵌入台账.md` 四A段。
 
-## 何 时 用
+## 1. 找目标（三个入口）
 
-- 用户要求"把动画插入笔记/真金题/闪卡"
-- 每小时追新循环：扫描 `InkLoom/src/animations/**/animation.meta.ts`（有 sourceReference）且 manifest scenes 非空的动画，与基线（`客观/动画嵌入数据/动画源引用.json`）比对找新增
-- 用户报告"某文件看不到动画"→ 先做覆盖审计（见 references/audit.md）
+- **追新增**：扫描 `InkLoom/src/animations/**/animation.meta.ts`（有 sourceReference）且 manifest scenes 非空，与基线比对；新动画按其 sourceReference 落位
+- **按科目补齐**：某科目的真金题/闪卡没有动画 → 现存动画按 sourceReference 的**专题标题关键词**映射到文件（序号会错位：民诉真金题23督促↔讲义22、刑法动画N↔真金题N-1）；生成分配清单 JSON（客观/动画嵌入数据/_*.json，已 gitignore）。清单按**专题**组织三线（讲义思源/闪卡/真金题），见第 3 节三位一体
+- **用户点名**：直接审计该文件的动画覆盖（references/audit 配方在 quiz-flashcard-embed.md 第三节）
 
-## 落点铁律（用户 2026-08-31 明确）
+## 2. 判定落点（落点铁律，每条分支必经）
 
-1. **思源有对应笔记**（getChildBlocks 实测有实质内容）→ 只插思源，**不插 md**
-2. **思源无笔记/占位壳** → 插**对应的 20-整理 md**（真金题/背诵卷的 20-整理是用户工作文件）
-3. **25-kramdown 永远禁止插入**——它是思源导出产物，重新导出会覆盖
-4. 占位壳判定必须用 `getChildBlocks` 二次核实；**CLI 的 SQL 计数可能陈旧产生假壳**（实测第6讲 12/13 被误判 7/3 块，实际 200/40+ 块）
+思源文档判定**只用 getChildBlocks 实测**（CLI 的 SQL 计数可能陈旧出假壳——实测 200 块文档报 7 块）：
 
-## 插入图片行格式
+- 思源有对应笔记（实质内容）→ 只插思源，md 不动
+- 占位壳 / 无思源文档 → 插**对应的 20-整理 md**（用户工作文件）
+- 25-kramdown 与 10-mineru 是导出/OCR 产物：**不作为落点**，发现误插即清理
+
+图片行格式（唯一合法形态）：
 
 ```
 ![InkLoom 动图：<manifest 场景 title>](https://gcore.jsdelivr.net/gh/inkloomer/inkloom@main/public/animation-avif/<动画id>/<场景id>.avif)
 ```
 
-- URL 必须逐字对照 manifest（场景 id 错拼 = 404 死链；历史错拼例：intervener-two-steps、summons-gate-decision）
-- md 里插入用 Edit 工具逐个插入（用户规则：禁脚本批量改内容；纯死链清理等删除性批量操作可用脚本）
+## 3. 插入（三位一体：按专题同时插三线）
 
-## 嵌入原则（详见 references/）
+用户 2026-08-31 明确：处理一个专题的动画时，**讲义（思源）、闪卡、真金题三条线同时插入**——不要按"线"批量推进（先做完一个科目的真金题再做闪卡），要按"专题"打包，用户复习某专题时三个载体立即全部有动画。每条线各自走落点铁律：思源有内容→思源；壳/无→本地 md。生成分配清单时按专题输出三线任务（讲义思源锚 / 闪卡文件与卡片锚 / 真金题文件与小节锚），派子智能体时每个子智能体拿若干专题的**全套三线任务**。
 
-| 场景 | 原则 | 参考 |
-|---|---|---|
-| 讲义思源/md | 逐知识点锚定：插到解释该知识点的标题/列表项后，同锚 ≤2 张，溢出上移节标题 | anchor-rules.md |
-| 真金题 md | **首次出现原则** + 考点必背小节锚 + 题目解析中的首现插入 | quiz-embed.md |
-| 真金题思源 | 题号N末块锚（下一题标题前块）、考点必背小节锚；讲次错位表见台账 | quiz-embed.md |
-| 闪卡 md | 按知识点插入（卡片 IAL `custom-dm-card-id` 锚或节前动画带） | flashcard-embed.md |
-| 缺动画 | 现存动画没覆盖的知识点 → 派子智能体按 inkloom-dev 规范补做（含一图多变） | missing-animations.md |
+### 按文件类型的锚定分支
 
-## 通道选择（思源）
+- **讲义/笔记（思源或 md）** → 逐知识点锚定：references/anchor-and-siyuan-api.md
+- **真金题** → 考点必背小节锚 + 题目解析首现插入；**防剧透铁律：题目的动图只能插在解析里（###### 答案与解析 之后），绝对不能出现在题干前**（题号后、解析前=剧透；考点标题后=第一题题干前，同样违规）：references/quiz-flashcard-embed.md
+- **闪卡** → 按知识点锚卡片：references/quiz-flashcard-embed.md 第二节
+- **该知识点没有动画** → 派子智能体补做：references/missing-animations.md（先确认用户的整理基准再定 sourceReference）
 
-- GUI 开着（tasklist 有 SiYuan.exe）→ **HTTP API** `http://127.0.0.1:6806`，token 在 `D:\1STUDY\SIYUAN\conf\conf.json`；insertBlock 用 previousID、getChildBlocks 读结构
-- GUI 关闭 → CLI（`siyuan -w %SIYUAN_WORKSPACE%`）可用，但 **SQL 判壳不可信**，children 走 CLI、判壳重开 HTTP 或直接看文件
-- 报 tree not found / children 空 → GUI/CLI 双内核冲突，改 HTTP API 重试
+插入通道：思源 GUI 开着用 HTTP API（127.0.0.1:6806，token 在 D:\1STUDY\SIYUAN\conf\conf.json）；关着用 CLI。md 一律 Edit 工具逐个插入。通道细节与陷阱实录见 references/anchor-and-siyuan-api.md。
 
-## 已知陷阱速查
+## 4. 验收（完成判据——全部满足才算完成）
 
-1. 思源 SQL `blocks.markdown` 列**截断长块**——URL 后半段（动画 id）like 不到，全库审计用宽 like + Python 解析或 children 实测
-2. insertBlock 返回 code 0 但块没出现 = previousID 为 None（锚 id 拼错）——插后必须 getChildBlocks 复测
-3. SQL 索引对新插块滞后——验证用 getChildBlocks
-4. 标题可能带 riff 标记词（如"3. 顺序监护 亲疏"）——SQL 精确匹配失败时 like 兜底
-5. 中文数字专题号（专题十五）+ 文件名序号（15）双轨——映射按**标题关键词**而非序号
-6. 同名场景 id 存在于多个动画（如 retrial）——拼 URL 时动画 id 必须与场景同源 manifest 核对
+- 计数：每文件 `animation-avif` 计数 == 分配场景数；跨文件场景零重复
+- 死链：本次插入的每个 URL 的 (动画id, 场景id) 在 manifest 中存在
+- 内容：git diff 为纯插入（0 行删除 0 行修改），原有内容未动
+- 思源插入：getChildBlocks 复测图在位（SQL 索引滞后不可作验证）
+- 防剧透：真金题中每个图行都位于某题"###### 答案与解析"之后（扫描器跟踪 stem 区图行 + 图块贴题号检查，配方在 quiz-flashcard-embed.md）；子智能体插入任务必须先跑此扫描，违规=0 才算完成
+
+## 5. 收尾
+
+- 更新基线 json（新动画登记）、台账四A段（插了什么/剩什么/教训）
+- git add **限定路径** 提交（并行会话在同仓工作，宽 add 会扫入他人文件）
+
+## 大规模批次的执行方式
+
+单文件手工插入；超过 ~50 场景的批次生成分配清单后派**子智能体**并行（每组 6-10 文件，prompt 含：清单路径、文件基目录、锚定规则、格式、验收要求、禁脚本改文件），主线程按第 4 节验收——子智能体报告不作数，计数与 diff 为准。已知子智能体失误模式：场景 id 拼错动画 id（同名场景 retrial 跨动画）、漏插、堆叠重复、**把图插在题干前**（2026-08-31 刑诉批次 64 处返工）——所以验收第 4 节的防剧透扫描必跑。
