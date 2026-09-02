@@ -662,5 +662,50 @@ class QuestionTopicIalValidationTests(unittest.TestCase):
         self.assertNotIn("311", result)
 
 
+class MermaidSingleChainGateTests(unittest.TestCase):
+    """`E903`: one fence must be one connected reasoning chain."""
+
+    def mermaid_codes(self, diagram: str) -> set[str]:
+        return {finding.code for finding in MODULE.validate_mermaid_semantics(diagram)}
+
+    def test_rejects_stitched_independent_chains(self) -> None:
+        text = """```mermaid
+flowchart TD
+    A[不法侵害正在进行] --> B[正当防卫的时间条件]
+    C[防卫意图] --> D[防卫过当的认定]
+```"""
+
+        self.assertIn("903", self.mermaid_codes(text))
+
+    def test_rejects_chain_plus_orphan_node(self) -> None:
+        text = """```mermaid
+flowchart LR
+    A[不法侵害正在进行时实施的反击行为] --> B[正当防卫的时间条件判断] --> C[事后判断不成立正当防卫]
+    D[防卫过当的过失心态认定问题]
+```"""
+
+        self.assertIn("903", self.mermaid_codes(text))
+
+    def test_accepts_one_connected_reasoning_chain(self) -> None:
+        text = """```mermaid
+flowchart TD
+    A[不法侵害进行中] --> B{时间条件}
+    B -- 行为时判断 --> C[正当防卫成立]
+    B -- 事后判断 --> D[防卫不适时]
+```"""
+
+        self.assertNotIn("903", self.mermaid_codes(text))
+
+    def test_still_reports_901_for_pair_stack(self) -> None:
+        text = """```mermaid
+flowchart TD
+    A[申请信息公开] --> B[行使权利=守法]
+    C[环保局败诉] --> D[承担法律责任=强制作用]
+    E[拒绝公开] --> F[救济途径明确]
+```"""
+
+        self.assertIn("901", self.mermaid_codes(text))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -219,6 +219,9 @@ def validate_mermaid_semantics(text: str) -> tuple[MermaidGateFinding, ...]:
     - `E902`: a bare keyword chain or forest (every node degree <= 2, no edge
       labels, no decision diamonds) — keywords strung together with `-->`
       instead of an analysis.
+    - `E903`: several independent chains (or orphan nodes) stitched into one
+      fence — the block parses as more than one connected component, so it is
+      still N separate diagrams, never one integrated reasoning chain.
     """
     findings: list[MermaidGateFinding] = []
     for diagram in extract_diagrams(text):
@@ -261,6 +264,19 @@ def validate_mermaid_semantics(text: str) -> tuple[MermaidGateFinding, ...]:
                     "Every node has degree <= 2 with no edge label, no decision diamond, and no branch, and the labels stay "
                     "keyword-length (e.g. `法律 --> 公序良俗 --> 权利`): keyword chains strung with `-->` add no analysis over "
                     "a list. Branch from a shared root or decision node and label each edge with the tested relation, or use a list.",
+                )
+            )
+            continue
+        components = diagram.component_count()
+        if components > 1:
+            findings.append(
+                MermaidGateFinding(
+                    "903",
+                    diagram.start_line,
+                    f"The block parses as {components} disconnected components: independent chains (or orphan nodes) stitched into one "
+                    "fence are still separate diagrams, not one reasoning chain. Rewire them into a single connected logic chain through "
+                    "shared or converging nodes so every node is reachable, or keep genuinely unrelated analyses as lists — never pad a "
+                    "diagram out of disjoint `-->` rows.",
                 )
             )
     return tuple(findings)
