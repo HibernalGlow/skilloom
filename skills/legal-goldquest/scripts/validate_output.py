@@ -2037,7 +2037,12 @@ def validate_text(
         findings.extend(validate_emoji_semantics(text))
         findings.extend(validate_line_color_diversity(text))
     if profile in {"legal-marknote", "legal-goldquest"}:
-        findings.extend(Finding("E", item.code, item.line, item.message) for item in validate_mermaid_semantics(text))
+        findings.extend(
+            Finding("E", item.code, item.line, item.message)
+            for item in validate_mermaid_semantics(
+                text, require_case_grounding=profile == "legal-goldquest"
+            )
+        )
     allowed_list_cells = {
         normalized_table_content(cell)
         for block in table_blocks(source_text or "")
