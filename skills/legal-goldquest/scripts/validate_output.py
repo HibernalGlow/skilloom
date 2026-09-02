@@ -222,6 +222,11 @@ def validate_emoji_semantics(text: str) -> list[Finding]:
     dangling = 0
     total_placed = 0
     for line in text.splitlines():
+        if re.match(r"^##\s+📌\s*考点必背\s*$", line):
+            # E634 mandates this exact heading for multi-question documents; its 📌 is
+            # structural navigation required by the gate itself, not a semantic cue
+            # anchoring the generic word 考点 — exempt it from the W511 window check.
+            continue
         for match in EMOJI_PATTERN.finditer(line):
             if match.group() in {"✅", "❌"}:
                 continue
@@ -1814,6 +1819,206 @@ def validate_generated_label_prefixes(text: str) -> list[Finding]:
     return findings
 
 
+GOLDQUEST_QUESTION_HEADING_RE = re.compile(r"^#####\s+")
+GOLDQUEST_SOLUTION_HEADING_RE = re.compile(r"^######\s+答案与解析\s*$")
+GOLDQUEST_INLINE_MARKUP_RE = re.compile(
+    r"\{:\s*[^}\n]*\}"
+    r"|</?(?:u|em|strong|span|mark|sub|sup)\b[^>]*>"
+    r"|!\[[^\]]*\]\([^)]*\)"
+    r"|`[^`]*`"
+    r"|https?://\S+"
+)
+GOLDQUEST_PLACEHOLDER_TEMPLATE_RE = re.compile(
+    r"本题落点清晰|按规则判断|程序与实体效果须分别核对|先看主体再看条件与期限|与本题规则无关"
+)
+GOLDQUEST_PLACEHOLDER_TOKENS = (
+    "与规则不符", "与规则一致", "与规则无关", "与本题无关", "符合规则", "不符合规则",
+    "本题落点清晰", "按规则判断", "规则要点", "程序与实体效果须分别核对",
+    "先看主体再看条件与期限", "本题结论清晰", "按规则核对", "规则无关",
+    "本题", "规则", "正确", "错误", "排除", "当选", "不当选", "符合", "不符",
+    "无关", "一致", "落点", "清晰", "判断", "结论", "定案", "破绽", "破题点",
+    "主体", "条件", "期限", "程序", "实体", "效果", "核对", "分别", "再看", "先看",
+    "须", "看", "为", "是", "的", "了", "中", "在", "与", "和", "及",
+)
+GOLDQUEST_PUNCTUATION_DEBRIS_RE = re.compile(r"。，|，。|；。|：。|。；|。，，|。。")
+GOLDQUEST_TERMINAL_PUNCTUATION = set("。！？；…”』」）》】\"'！？…：:")
+
+
+def _gq_solution_regions(lines: list[str]) -> list[tuple[int, int]]:
+    """Return (start, end) line-index pairs for every question's 答案与解析 region."""
+    regions: list[tuple[int, int]] = []
+    h5_indices = [i for i, line in enumerate(lines) if GOLDQUEST_QUESTION_HEADING_RE.match(line)]
+    for k, start in enumerate(h5_indices):
+        end = h5_indices[k + 1] if k + 1 < len(h5_indices) else len(lines)
+        heading = next(
+            (i for i in range(start + 1, end) if GOLDQUEST_SOLUTION_HEADING_RE.match(lines[i])),
+            None,
+        )
+        if heading is not None:
+            regions.append((heading, end))
+    return regions
+
+
+def _gq_plain(value: str) -> str:
+    value = GOLDQUEST_INLINE_MARKUP_RE.sub("", value)
+    return re.sub(r"[\s#>*`|~=_]+", "", value)
+
+
+def _gq_is_placeholder_line(value: str) -> bool:
+    plain = _gq_plain(value)
+    if not plain:
+        return False
+    if GOLDQUEST_PLACEHOLDER_TEMPLATE_RE.search(plain):
+        return True
+    remainder = plain
+    for token in GOLDQUEST_PLACEHOLDER_TOKENS:
+        remainder = remainder.replace(token, "")
+    return len(remainder) == 0
+
+
+def validate_goldquest_reasoning_integrity(text: str) -> list[Finding]:
+    """Reject placeholder rationales, truncated solution tails, and punctuation debris.
+
+    These encode the two audited failure archetypes: template placeholder
+    solutions that carry no question-specific legal content (E650), and
+    source prose mechanically cut into labeled fragments whose tail was
+    truncated mid-sentence (E651). Punctuation debris (E652) marks broken
+    sentence joining such as '。，'.
+    """
+    findings: list[Finding] = []
+    lines = text.splitlines()
+    placeholder_lines: list[int] = []
+    in_fence = False
+    for number, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if GOLDQUEST_PUNCTUATION_DEBRIS_RE.search(line):
+            findings.append(Finding("E", "652", number, "Punctuation debris (。，/，。/；。); repair the sentence joining instead of stacking terminal marks."))
+        if not stripped or stripped.startswith("|") or re.match(r"^-{3,}$", stripped):
+            continue
+        if re.match(r"^#{1,6}\s+", stripped) or IAL_PATTERN.match(stripped):
+            continue
+        if _gq_is_placeholder_line(line):
+            placeholder_lines.append(number)
+    if placeholder_lines:
+        detail = ", ".join(str(n) for n in placeholder_lines[:6])
+        findings.append(Finding("E", "650", placeholder_lines[0], f"Placeholder rationale lines carry no question-specific legal content ({detail}); restore the source reasoning — name the rule, elements, and case application instead of '与规则不符/符合规则/按规则判断' shells."))
+
+    for start, end in _gq_solution_regions(lines):
+        in_fence = False
+        last_prose: tuple[int, str] | None = None
+        for i in range(start + 1, end):
+            stripped = lines[i].strip()
+            if stripped.startswith("```"):
+                in_fence = not in_fence
+                continue
+            if in_fence or not stripped:
+                continue
+            if stripped.startswith("|") or re.match(r"^-{3,}$", stripped):
+                continue
+            if re.match(r"^#{1,6}\s+", stripped) or IAL_PATTERN.match(stripped):
+                continue
+            last_prose = (i, stripped)
+        if last_prose is None:
+            continue
+        number, stripped = last_prose
+        plain = _gq_plain(stripped)
+        if len(plain) < 10:
+            continue
+        bare = re.sub(r"^\s*(?:>\s*)?[-+*]\s+", "", stripped).strip()
+        if re.search(r"[，、,:]$", bare):
+            findings.append(Finding("E", "651", number, "Solution prose ends mid-sentence (truncated source cut); complete the remaining option reasoning or trim to a complete judgment."))
+    return findings
+
+
+GOLDQUEST_SOURCE_REF_RE = re.compile(r"20\d{2}\s*(?:金题)?[-0-9]{3,}")
+GOLDQUEST_SOURCE_ANALYSIS_MARKER_RE = re.compile(r"[【\[][^\]】]{1,22}(?:解析|思路|分析|解读)[^\]】]{0,22}[】\]]")
+GOLDQUEST_SOURCE_REF_ATTR_RE = re.compile(r"custom-qb-id=\"[^\"]*?(20\d{2}(?:金题)?[-0-9]{3,})")
+
+
+GOLDQUEST_SOURCE_VOLUME_NOISE_RE = re.compile(
+    r"本题(?:综合)?(?:考查|涉及)[^。。；;]{0,60}[。；;]?|综上所述[^。。]{0,20}[。。]?|"
+    r"本题(?:的)?答案为?[^。。]{0,12}[。。]?"
+)
+
+
+def _gq_source_analysis_spans(source_text: str) -> dict[str, str]:
+    """Map each source question ref to its analysis body (marker to next question ref)."""
+    lines = source_text.splitlines()
+    occurrences: list[tuple[int, str]] = []
+    for li, line in enumerate(lines):
+        if line.startswith("|"):
+            continue
+        for match in GOLDQUEST_SOURCE_REF_RE.finditer(line):
+            ref = re.sub(r"[\s金题]", "", match.group(0))
+            occurrences.append((li, ref))
+    spans: dict[str, tuple[int, int]] = {}
+    for k, (li, ref) in enumerate(occurrences):
+        if ref in spans:
+            continue
+        spans[ref] = (li, occurrences[k + 1][0] if k + 1 < len(occurrences) else len(lines))
+    bodies: dict[str, str] = {}
+    for ref, (a, b) in spans.items():
+        segment = "\n".join(lines[a:b])
+        cut = re.search(r"本书答案速查|答案速查|答案索引", segment)
+        if cut:
+            segment = segment[: cut.start()]
+        marker = GOLDQUEST_SOURCE_ANALYSIS_MARKER_RE.search(segment)
+        body = segment[marker.end():] if marker else segment
+        body = GOLDQUEST_SOURCE_VOLUME_NOISE_RE.sub("", body)
+        bodies[ref] = body
+    return bodies
+
+
+def validate_goldquest_solution_volume(text: str, source_text: str) -> list[Finding]:
+    """Flag solutions that shrink a source analysis below a reviewable floor.
+
+    Paired by the year-patent ref inside custom-qb-id. Sources under 900
+    visible characters are skipped (short analyses legitimately condense);
+    below 25% with a ≥600-character absolute loss fails E653, below 45%
+    warns W851 so strict runs force a conscious restore of dropped
+    reasoning steps.
+    """
+    findings: list[Finding] = []
+    source_bodies = _gq_source_analysis_spans(source_text)
+    if not source_bodies:
+        return findings
+    lines = text.splitlines()
+    for start, end in _gq_solution_regions(lines):
+        question_start = max(
+            (i for i in range(start, -1, -1) if GOLDQUEST_QUESTION_HEADING_RE.match(lines[i])),
+            default=None,
+        )
+        if question_start is None:
+            continue
+        ref_match = None
+        for i in range(question_start, start):
+            ref_match = GOLDQUEST_SOURCE_REF_ATTR_RE.search(lines[i])
+            if ref_match:
+                break
+        if not ref_match:
+            continue
+        ref = re.sub(r"金题", "", ref_match.group(1))
+        if ref not in source_bodies:
+            continue
+        source_plain = _gq_plain(source_bodies[ref])
+        if len(source_plain) < 900:
+            continue
+        solution_plain = _gq_plain("\n".join(lines[start:end]))
+        solution_plain = re.sub(r"```mermaid.*?```", "", solution_plain)
+        ratio = len(solution_plain) / len(source_plain)
+        loss = len(source_plain) - len(solution_plain)
+        if ratio < 0.25 and loss >= 600:
+            findings.append(Finding("E", "653", question_start + 1, f"Solution keeps {len(solution_plain)} of {len(source_plain)} source-analysis characters ({ratio:.0%}); restore the dropped reasoning steps, statutes, and examples beside their options."))
+        elif ratio < 0.45:
+            findings.append(Finding("W", "851", question_start + 1, f"Solution keeps only {ratio:.0%} of the {len(source_plain)}-character source analysis; verify every reasoning chain survived the condensation or restore the dropped steps."))
+    return findings
+
+
 def validate_text(
     text: str,
     profile: str,
@@ -1879,10 +2084,12 @@ def validate_text(
         findings.extend(validate_goldquest(text))
         findings.extend(validate_goldquest_knowledge_placement(text))
         findings.extend(validate_generated_label_prefixes(text))
+        findings.extend(validate_goldquest_reasoning_integrity(text))
     if source_text is not None:
         findings.extend(validate_source_preservation(text, source_text, profile, allow_structural_repair))
     if profile == "legal-goldquest" and source_text is not None:
         findings.extend(validate_goldquest_source_content(text, source_text))
+        findings.extend(validate_goldquest_solution_volume(text, source_text))
     return sorted(findings, key=lambda finding: (finding.line, finding.level != "E", finding.code))
 
 
