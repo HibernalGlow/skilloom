@@ -70,7 +70,7 @@ class FencedQuestionIdentityTests(unittest.TestCase):
         errors, _ = self.audit_pair(output)
 
         self.assertTrue(any("crowded onto one line" in error.message for error in errors))
-        self.assertTrue(any("separate  and 问题：" in error.message for error in errors))
+        self.assertTrue(any("separate 题干： and 问题：" in error.message for error in errors))
 
     def test_accepts_labeled_stem_and_one_subquestion_per_line(self) -> None:
         output = SOURCE.replace(

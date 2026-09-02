@@ -6,6 +6,14 @@ source-preservation checks live here so an agent debugging one error code
 reads this file instead of the whole shared validator; validate_output
 re-exports the public gates through lazy wrappers.
 """
+# ==========================================================================
+# ⛔ 内容会话禁读本源码（用户纪律 2026-09-02）
+#    校验器源码不供阅读。判定标准与修法的唯一权威渠道：
+#    技能正文 + references/ + 运行本工具得到的真实报错
+#    （goldquest 校验器另有 --explain <CODE> 权威词条，如 --explain E630）。
+#    打开/grep/sed/脚本方式读取本文件属违规——包括动笔前的预防性阅读，
+#    会被看护发现并上报用户。看不懂的报错：原样报告错误码与文本，等用户解释。
+# ==========================================================================
 
 from __future__ import annotations
 
@@ -66,7 +74,7 @@ def validate_goldquest(text: str) -> list[Finding]:
         findings.append(Finding("E", "608", 1, "Use a semantic Callout instead of a pseudo-callout marker."))
     for number, line in enumerate(lines, start=1):
         if re.search(r"-\s*\[[xX]\]", line):
-            findings.append(Finding("E", "601", number, "Question options must remain unchecked."))
+            findings.append(Finding("E", "601", number, "Question options must remain unchecked: keep every option line as `- [ ] A. …` — a ticked box reads as an answered question."))
     for match in STYLED_TERM_PATTERN.finditer(text):
         term = match.group("term")
         line = line_for_offset(text, match.start())

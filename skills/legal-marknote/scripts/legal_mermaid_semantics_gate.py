@@ -14,6 +14,14 @@ list wearing a diagram costume.  `validate_mermaid_semantics` rejects that
 shape and accepts graphs that reuse nodes, branch, label edges, or use
 decision diamonds.
 """
+# ==========================================================================
+# ⛔ 内容会话禁读本源码（用户纪律 2026-09-02）
+#    校验器源码不供阅读。判定标准与修法的唯一权威渠道：
+#    技能正文 + references/ + 运行本工具得到的真实报错
+#    （goldquest 校验器另有 --explain <CODE> 权威词条，如 --explain E630）。
+#    打开/grep/sed/脚本方式读取本文件属违规——包括动笔前的预防性阅读，
+#    会被看护发现并上报用户。看不懂的报错：原样报告错误码与文本，等用户解释。
+# ==========================================================================
 
 from __future__ import annotations
 

@@ -1,4 +1,12 @@
 """Audit quoted Markdown question groups and their answer sections."""
+# ==========================================================================
+# ⛔ 内容会话禁读本源码（用户纪律 2026-09-02）
+#    校验器源码不供阅读。判定标准与修法的唯一权威渠道：
+#    技能正文 + references/ + 运行本工具得到的真实报错
+#    （goldquest 校验器另有 --explain <CODE> 权威词条，如 --explain E630）。
+#    打开/grep/sed/脚本方式读取本文件属违规——包括动笔前的预防性阅读，
+#    会被看护发现并上报用户。看不懂的报错：原样报告错误码与文本，等用户解释。
+# ==========================================================================
 
 from __future__ import annotations
 
@@ -214,7 +222,7 @@ def audit(path: Path, source: Path | None = None) -> tuple[list[AuditError], lis
                     AuditError(
                         path,
                         opening_line,
-                        "multi-part question needs separate  and 问题： lines before its one-line subquestions",
+                        "multi-part question needs separate 题干： and 问题： lines before its one-line subquestions; write the shared stem as a 题干： line and the prompt as a 问题： line",
                     )
                 )
 
@@ -230,7 +238,7 @@ def audit(path: Path, source: Path | None = None) -> tuple[list[AuditError], lis
                 AuditError(
                     path,
                     closing_index + 1,
-                    "question block is not immediately followed by an answer list or **回答与解析：**",
+                    "question block is not immediately followed by an answer list or **回答与解析：**; add the answer list (or the **回答与解析：** lead) directly after the last subquestion line",
                 )
             )
             question_context = False
@@ -254,7 +262,7 @@ def audit(path: Path, source: Path | None = None) -> tuple[list[AuditError], lis
                 answer_numbers.append(int(match.group(1)))
             if NUMERIC_HEADING.match(line):
                 errors.append(
-                    AuditError(path, index + 1, "numeric answer content is still formatted as a heading")
+                    AuditError(path, index + 1, "numeric answer content is still formatted as a heading; demote it to the matching quoted ordered-list item or body text so answers are not read as structure")
                 )
             index += 1
 
@@ -266,7 +274,7 @@ def audit(path: Path, source: Path | None = None) -> tuple[list[AuditError], lis
                 AuditError(
                     path,
                     answer_line,
-                    f"answer numbering {answer_numbers[:len(expected)]!r} does not match question numbering {expected!r}",
+                    f"answer numbering {answer_numbers[:len(expected)]!r} does not match question numbering {expected!r}; renumber the answer lines to follow the question numbers exactly",
                 )
             )
 
@@ -284,7 +292,8 @@ def audit(path: Path, source: Path | None = None) -> tuple[list[AuditError], lis
                     path,
                     1,
                     "fenced question identifiers changed: "
-                    f"source={source_identifiers!r}, output={output_identifiers!r}",
+                    f"source={source_identifiers!r}, output={output_identifiers!r}; "
+                    "restore the fenced question and subquestion identifiers byte-identical to the source",
                 )
             )
 

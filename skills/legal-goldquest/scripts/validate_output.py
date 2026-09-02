@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 """Validate generated legal-study Markdown against shared and profile rules."""
+# ==========================================================================
+# ⛔ 内容会话禁读本源码（用户纪律 2026-09-02）
+#    校验器源码不供阅读。判定标准与修法的唯一权威渠道：
+#    技能正文 + references/ + 运行本工具得到的真实报错
+#    （goldquest 校验器另有 --explain <CODE> 权威词条，如 --explain E630）。
+#    打开/grep/sed/脚本方式读取本文件属违规——包括动笔前的预防性阅读，
+#    会被看护发现并上报用户。看不懂的报错：原样报告错误码与文本，等用户解释。
+# ==========================================================================
 
 from __future__ import annotations
 
@@ -308,9 +316,9 @@ def validate_highlights(text: str) -> list[Finding]:
     findings: list[Finding] = []
     for match in HIGHLIGHT_PATTERN.finditer(text):
         if visible_length(match.group(1)) > 6:
-            findings.append(Finding("E", "101", line_for_offset(text, match.start()), "Highlight exceeds 6 visible characters."))
+            findings.append(Finding("E", "101", line_for_offset(text, match.start()), "Highlight exceeds 6 visible characters; shorten the ==highlight== to the key term (2-6 characters) and let color or bold carry the rest."))
     for match in re.finditer(r"==[^=\n]+====[^=\n]+==", text):
-        findings.append(Finding("E", "102", line_for_offset(text, match.start()), "Adjacent highlights need connecting text or punctuation."))
+        findings.append(Finding("E", "102", line_for_offset(text, match.start()), "Adjacent highlights need connecting text or punctuation between them; merge them into one highlight or restore the intervening words."))
     for number, line in enumerate(text.splitlines(), start=1):
         if "\\=" in line:
             findings.append(Finding("E", "103", number, "Do not escape equals signs in highlight syntax."))
@@ -376,7 +384,7 @@ def validate_colors(text: str) -> list[Finding]:
         first_line_by_term.setdefault(term, line_for_offset(text, match.start()))
     for term, colors in colors_by_term.items():
         if len(colors) > 1:
-            findings.append(Finding("E", "203", first_line_by_term[term], f"Repeated term '{term}' uses inconsistent text colors: {sorted(colors)}."))
+            findings.append(Finding("E", "203", first_line_by_term[term], f"Repeated term '{term}' uses inconsistent text colors: {sorted(colors)}; unify the term to its first established color everywhere it reappears."))
 
     for left, right in CONTRAST_PAIRS:
         if left in text and right in text:
@@ -847,7 +855,7 @@ def validate_general_density(text: str) -> list[Finding]:
         if visible_length(stripped) > 240:
             findings.append(Finding("W", "501", number, "Long prose line should be physically split into semantic list items."))
     if visible_length(text) >= 500 and not COLOR_ATTRIBUTE_PATTERN.search(text):
-        findings.append(Finding("W", "502", 1, "Substantial output has no SiYuan semantic color anchors."))
+        findings.append(Finding("W", "502", 1, "Substantial output has no SiYuan semantic color anchors; wrap key terms as **term**{: style=\"color: var(--b3-font-colorN);\"} so subjects and concepts stay indexable."))
     return findings
 
 
