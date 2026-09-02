@@ -17,6 +17,8 @@ LIST_ITEM_PATTERN = re.compile(r"^(?P<indent>\s*)(?:[-+*]|\d+[.)])\s+(?P<body>\S
 OPTION_REPLAY_PATTERN = re.compile(r"^[✅❌]\s*(?:[A-Z]|[甲乙丙丁戊])(?:[.、:：\s]|项)")
 MECHANICAL_LABEL_PATTERN = re.compile(
     r"^(?:推理主线|推理环节|分析环节|判断环节|逻辑环节|推理步骤|步骤|阶段)\s*\d*[：:]?$"
+    r"|^(?:要点|片段)\s*\d*[：:]?$"
+    r"|^(?:方法|方案|情形|部分|步骤)[一二三四五六七八九十][：:]?$"
 )
 GENERIC_MERMAID_LABEL_PATTERN = re.compile(
     r"^(?:题干|问题|逐项判断|选项判断|判断|结论|正确|错误|排除|当选|不当选|选|不选|"
