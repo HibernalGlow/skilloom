@@ -1090,9 +1090,85 @@ def print_finding_report(
     print(f"SUMMARY {label}: {len(findings)} finding(s); by code: {code_summary(findings)}")
 
 
+# 门禁语义权威速查（与 SKILL.md 完成门禁段同步维护；改门禁必须同步改这里）。
+# 这是内容会话了解门禁的唯一内置通道：--explain E630 / --explain all。
+GATE_EXPLAIN: dict[str, str] = {
+    "E203": "同一词在同一题内不得换色；对比双方用稳定的成对颜色。修法：给重复出现的词统一回它首次的颜色。",
+    "E204": "连续三行以上被同一颜色支配（该色占每行锚点≥60%）即拒绝——颜色失去索引意义。修法：换语义角色调色或加背景色形成对比，不要整段刷一色。",
+    "E310": "Callout 指令行（> [!NOTE] …）前必须有空行（或块起始/标题/围栏边界），否则被解析为上一块的续行。修法：在指令行前补空行。",
+    "E311": "列表项内容不得以有序列表标记开头（- 1. …、- （1）…、- ① …）。修法：去掉标记只留内容，或写成缩进的真实 1. … 子行。",
+    "E509": "中等及以上复杂度解析至少要有一条围栏外、非判项行的 emoji 语义提示；✅/❌ 不计入。",
+    "E510": "同一 emoji 在文档中出现超过 8 次——一个 emoji 只对应一个概念，分散使用。",
+    "E512": "同一「emoji+词」组合出现≥6 处即判机械批量插入。修法：按每处概念的实际语义逐个选 emoji，禁脚本统一加。",
+    "E513": "句尾 emoji 堆积（≥70% 落在句末标点或行尾）。修法：把 emoji 贴到它修饰的概念词上。",
+    "E514": "行首 emoji 贴标签（≥70% 落在条目开头）。修法：emoji 移到词前/词后紧贴概念。",
+    "E515": "悬空 emoji（≥50% 两侧都不是概念词，悬在句尾或标点间）。修法：紧贴所锚定的概念词。",
+    "W511": "emoji 贴在「注意/重点/要点/考点/提示/陷阱」等通用占位词上。修法：改贴具体法律概念词。",
+    "E617": "锚点膨胀：颜色锚点只标关键短词（2-6 可见字符，完整制度名最多 8），标点放样式之外；顿号/连接词不得进锚点。",
+    "E618": "合并锚点：一行内同一锚点不得把「谁+做什么+结果」整体染色。修法：拆成主体、条件、结果各自着色。",
+    "E620": "辅助样式不足：中等及以上解析需至少 4 类辅助样式（highlight==…==、<em>、~~…~~、`code`、<u>）。",
+    "E621": "超长行/机械换行：普通解析行 ≤42 可见字符，超长按语义边界拆成嵌套列表；不可分规则写成完整段落。",
+    "E622": "实质推理行缺颜色锚点：任何 ≥14 可见字符的解析行必须至少一个颜色锚点（**词**{: style=…}）。",
+    "E623": "主体词未着色或着色不完整：解析区的主体/关键概念词必须染色，且同一主体反复出现时保持同色；主体词内部的子串（如「中级法院」的「法院」）要单独处理。",
+    "E624": "中等及以上复杂度必须有至少一个有意的可视化（Mermaid/div HTML/SVG/PNG，且是真分析）。",
+    "E626": "结构载体不足：至少 4 类结构载体（嵌套列表、Callout、小标题、小表、可视化、分隔线）。",
+    "E627": "背景色锚不足：至少 3 个短背景色签（{: style=\"…background-color…\"} 紧跟加粗文本）。",
+    "E628": "编号小问（(1)/(2)…）必须独占一行、与共享题干分行。",
+    "E630": "逐项回放缺失或不完整：逐项辨析区每个被分析的选项必须完整复写原选项原文（样式标记剥离后与题块选项逐字一致），前缀 ✅/❌ + 选项字母。",
+    "E631": "逐项回放正文与选项原文不一致（改写/截断/多字都算）。修法：从题块选项行逐字复制。",
+    "E632": "每个选项紧邻一条有实质法律信息的理由；答案复述、结论标签、「由综合推理可知」占位都失败。修法：写明决定正误的规则、要件与涵摄。",
+    "E639": "Mermaid 接地：图中至少三个法律节点必须能从同题正文逐字回查；节点/边标签是解析文字的子串，不得自造词。",
+    "E640": "实质 Callout 缺失：中等及以上解析需至少一个承载法条/条件/例外/程序/法律效果的 Callout；泛化「本题考查…」不计。",
+    "E641": "Callout 或解析中出现按标点切出的残句。修法：恢复完整句子或按语义重写。",
+    "E642": "机械标签（要点1/方法一/环节2 等纯标签行）拒绝。修法：用内容本身作标题。",
+    "E643": "泛化考点复述/通用做题提醒不算实质 Callout 内容。修法：写本题具体的法条、边界或陷阱。",
+    "E644": "禁止在逐项辨析后另设「综合推理」小节补写真正理由。20-整理保留版路由的原文解析节属来源保全载体，命中时按技能正文记录文件与题号，不得删原文。",
+    "E645": "复杂推理必须使用合格 Mermaid（真判断链），不能只靠列表。",
+    "E647": "行首禁加「问题：/题干：/答案：/解析：/问：」标签前缀——直接书写内容。",
+    "E650": "模板占位假解析：「与规则不符，排除」类无具体法律内容的空壳行拒绝。每条选项理由必须点名本题的规则、要件与涵摄。",
+    "E651": "解析区末行停在半句（截断痕迹）。修法：补全该选项的推理，或裁到完整判断为止。",
+    "E652": "标点残渣（。，/，。/；。/。。）说明句子拼接损坏。修法：修复连接处，不是堆句号。",
+    "E653": "整理解析体量过小：--source 下原书解析≥900 字而整理不足 25%（且绝对丢失≥600 字）直接失败。压缩必须保住推理链。",
+    "W851": "整理不足原书体量 45% 的警告（严格模式下同样阻断）。同 E653 修法。",
+    "E814": "源连续性：输出在已覆盖考点范围内整题缺失。对比必须限定同一知识点范围；源文件优先取 10-mineru，不在手边从 git 历史找回。",
+    "W815": "被覆盖题目中有实质法条/推理行在新版无迹可寻。修法：回源核对补齐或说明差异。",
+    "E816": "禁止独立的「规则地图/知识地图/争点/规则与法源」预陈述小节——完整知识点直接写进逐项辨析；删除前先「先融合后删」，融不进的独特规则用 Callout/Mermaid 保留。",
+    "E817": "Callout 只能补充新价值（法条原文、陷阱、边界、记忆链接），不得复述解析内容。",
+    "E901": "孤立关键词二元组罗列（多行 A[...] --> B[...] 节点互不共用）拒绝。一张图必须是一条完整连通推理链：共享节点、边标签写明被测关系或用决策菱形。",
+    "E902": "无边标签、无决策菱形、无分支且标签为短关键词的裸链拒绝。画不出判断链就用列表。",
+    "E903": "同一围栏内连通分量必须=1：多条独立链条或孤立节点拼进一张图仍是几张图。修法：经共享/汇聚节点接成一条链，确属无关内容拆列表或各自成图。",
+    "E904": "知识点清单图：一个根节点扇形罗列制度分支、全图无任何本题落点词（本题/本案/题干/选项/正确/错误/甲乙丙丁等）即拒绝。解析区的图必须至少一条链用本案事实推到「哪个选项对错」。方向/布局/形状/配色自由，门禁只管逻辑链。",
+    "W505": "机械换行审计：普通正文行是软换行时按结构问题处理；修 W505/W507 只动段落/列表/缩进，锚点与 IAL 原样随所属文字移动。",
+    "W507": "编号子列表：父项行内的中段编号（1.、（1）、①）必须改成 4 空格缩进、独占一行的真实子行。",
+}
+
+
+def explain_gate(code: str) -> int:
+    query = code.strip()
+    if query.lower() == "all":
+        for key in sorted(GATE_EXPLAIN):
+            print(f"{key}: {GATE_EXPLAIN[key]}")
+        return 0
+    match = re.fullmatch(r"([EW])?\s*0*(\d{3})", query.upper())
+    if match:
+        prefix, digits = match.group(1), match.group(2)
+        forms = [f"{prefix}{digits}"] if prefix else []
+        candidates = forms + [f"E{digits}", f"W{digits}"]
+    else:
+        candidates = [query.upper()]
+    for cand in candidates:
+        if cand in GATE_EXPLAIN:
+            print(f"{cand}: {GATE_EXPLAIN[cand]}")
+            return 0
+    print(f"未收录 {query} 的解释词条。该码的报错信息本身就是权威判定（含修法）；"
+          f"可用 --explain all 查看全部已收录码。不得为理解该码去读校验器源码，看不懂就报告用户。")
+    return 0
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("output", type=Path, help="Generated Markdown file to validate.")
+    parser.add_argument("output", type=Path, nargs="?", default=None, help="Generated Markdown file to validate.")
+    parser.add_argument("--explain", metavar="CODE", help="Print the authoritative rule summary for a gate code (E630 / 630 / W505 / all) and exit. This is the sanctioned way to learn gate semantics — content sessions must not read validator source.")
     parser.add_argument("--profile", choices=("legal-marknote", "legal-goldquest"), default=infer_profile(Path(__file__).resolve()))
     parser.add_argument("--source", type=Path, help="Original source file for preservation checks.")
     parser.add_argument("--require-source", action="store_true", help="Fail when --source is omitted.")
@@ -1115,6 +1191,11 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if args.explain:
+        return explain_gate(args.explain)
+    if args.output is None:
+        print("output file is required unless --explain is used.", file=sys.stderr)
+        return 2
     if args.profile is None:
         print("--profile is required when running the canonical validator.", file=sys.stderr)
         return 2
