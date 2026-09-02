@@ -55,6 +55,8 @@ python -X utf8 scripts/nudge_session.py --session sess_xxx --message "继续：�
 
 注入文本三要素：**接着做什么**（引用台账/配方）、**本轮范围**（防跑飞）、**完成后做什么**（提交/回写台账）。`-p` 默认 yolo 权限，范围必须写清。
 
+**注入默认携带校验器源码拒绝列表**（用户 2026-09-02 纪律：战役会话禁读校验器源码，防「警告后读源码」与「动笔前预防性考古」两种翻阅）：nudge_session.py 自动给注入命令加 `--disallowed-tools "Read(C:/Users/30902/.agents/skills/*/scripts/*) Read(C:/Users/30902/.zcode/skills/*/scripts/*) Read(D:/1VSCODE/Projects/Xiranite/skilloom/**) Read(D:/1STUDY/3-Resource/法考/_工具/goldquest-mineru-work/*)"`；`--no-protect` 才关闭。手动 `zcode -p` 注入或手工启动战役会话时也必须带同款旗子。被拒会话获得门禁语义的唯一途径＝技能正文 + 运行校验器看真实报错；Bash 定向探查源码属故意绕过禁令，发现即上报用户。
+
 ## 5. 完成判据与善后
 
 - `--json` 输出含 sessionId/traceId/response 即注入成功；error_type=ProviderBusinessError（余额不足/无效密钥）→ 换候选重试（先探针）。

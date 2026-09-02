@@ -92,11 +92,23 @@ def run_zcode(args, timeout):
                           encoding="utf-8", errors="replace", timeout=timeout)
 
 
+# 校验器源码拒绝列表：战役会话禁读校验器源码（用户 2026-09-02 纪律，防预防性考古）。
+# 只挡 Read 工具的顺手翻阅；Bash 定向探查属故意绕过，按违规上报，不在此挡。
+VALIDATOR_SOURCE_DENY = (
+    "Read(C:/Users/30902/.agents/skills/*/scripts/*) "
+    "Read(C:/Users/30902/.zcode/skills/*/scripts/*) "
+    "Read(D:/1VSCODE/Projects/Xiranite/skilloom/**) "
+    "Read(D:/1STUDY/3-Resource/法考/_工具/goldquest-mineru-work/*)"
+)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--session", required=True)
     ap.add_argument("--message", required=True)
     ap.add_argument("--force", action="store_true", help="跳过死会话判据")
+    ap.add_argument("--no-protect", action="store_true",
+                    help="注入时不携带校验器源码拒绝列表（默认必带）")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--timeout", type=int, default=900)
     a = ap.parse_args()
@@ -136,14 +148,17 @@ def main():
         if not chosen:
             die(f"所有凭据候选探针失败：{probe_report}")
         swap_config(chosen, original)
-        r = run_zcode(["-p", a.message, "--resume", a.session, "--json"], a.timeout)
+        inject = ["-p", a.message, "--resume", a.session, "--json"]
+        if not a.no_protect:
+            inject += ["--disallowed-tools", VALIDATOR_SOURCE_DENY]
+        r = run_zcode(inject, a.timeout)
         out = r.stdout.strip()
         try:
             result = json.loads(out)
         except Exception:
             result = {"raw": out[-2000:], "stderr": r.stderr[-1000:]}
         result["nudge"] = {"model": f"{chosen[0]}/{chosen[4]}", "probe": probe_report,
-                           "session_title": info["title"]}
+                           "protect": not a.no_protect, "session_title": info["title"]}
         print(json.dumps(result, ensure_ascii=False, indent=1))
     finally:
         CLI_CONFIG.write_bytes(original)
