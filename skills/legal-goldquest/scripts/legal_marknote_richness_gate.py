@@ -1,0 +1,220 @@
+#!/usr/bin/env python3
+"""MarkNote-only richness gates split out of validate_output.py.
+
+Structural-family, concept-list palette, and paragraph-fragmentation checks
+live here; validate_output re-exports them through lazy wrappers.
+"""
+
+from __future__ import annotations
+
+import re
+
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from validate_output import (  # noqa: E402
+    COLOR_ATTRIBUTE_PATTERN,
+    COMMON_SUBJECT_TERMS,
+    CONCEPT_LIST_LEAD_PATTERN,
+    Finding,
+    IAL_PATTERN,
+    LIST_ITEM_VISIBLE_LIMIT,
+    STYLED_TERM_PATTERN,
+    TABLE_ROW_PATTERN,
+    _list_item_visible_length,
+    has_semantic_emoji_cue,
+    prose_visible_length,
+    prose_without_fenced_blocks,
+    style_families,
+)
+from legal_goldquest_semantic_structure_gate import visual_families  # noqa: E402
+
+
+def validate_marknote_richness(text: str) -> list[Finding]:
+    findings: list[Finding] = []
+    lines = text.splitlines()
+    body_lines: list[str] = []
+    in_fence = False
+    visuals = visual_families(text)
+    has_callout = False
+    has_table = False
+    has_subheading = False
+    has_divider = False
+    nested_items = 0
+    top_level_items = 0
+
+    for number, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if stripped.startswith(("```", "> ```")):
+            in_fence = not in_fence
+            continue
+        if in_fence or not stripped:
+            continue
+        if TABLE_ROW_PATTERN.match(line):
+            has_table = True
+            continue
+        if IAL_PATTERN.match(stripped):
+            continue
+        if re.match(r"^-{3,}$", stripped):
+            has_divider = True
+            continue
+        if re.match(r"^#{1,6}\s+", stripped):
+            if re.match(r"^#{3,6}\s+", stripped):
+                has_subheading = True
+            continue
+        if re.match(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING|QUESTION)\]", line):
+            has_callout = True
+            continue
+        if re.match(r"^\s*-\s+", line):
+            if len(line) - len(line.lstrip()) >= 4:
+                nested_items += 1
+            else:
+                top_level_items += 1
+        prose_length = prose_visible_length(stripped)
+        if prose_length > 42:
+            findings.append(Finding("E", "621", number, "MarkNote prose lines must stay within 42 visible characters; split the logic into semantic sublists."))
+        if _list_item_visible_length(line) > LIST_ITEM_VISIBLE_LIMIT:
+            findings.append(Finding("E", "648", number, "List items must stay within 20 visible characters; split the content semantically into a governing parent and child items (main and nested items both)."))
+        if prose_length >= 14 and not COLOR_ATTRIBUTE_PATTERN.search(stripped):
+            findings.append(Finding("E", "622", number, "Each substantive MarkNote line needs at least one short semantic color anchor."))
+        body_lines.append(line)
+
+    body = "\n".join(body_lines)
+    body_prose = prose_without_fenced_blocks(body)
+    subject_pattern = re.compile("|".join(re.escape(term) for term in sorted(COMMON_SUBJECT_TERMS, key=len, reverse=True)))
+    subject_scan_text = re.sub(r"(?:选项|第)[甲乙丙丁戊]|[甲乙丙丁戊]项", "", body_prose)
+    subject_tokens = subject_pattern.findall(subject_scan_text)
+    for term in set(subject_tokens):
+        styled_occurrences = [match for match in STYLED_TERM_PATTERN.finditer(body_prose) if match.group("term") == term]
+        occurrences = subject_tokens.count(term)
+        if not styled_occurrences:
+            findings.append(Finding("E", "625", 1, f"MarkNote subject '{term}' needs an actively assigned semantic color."))
+        elif len(styled_occurrences) < occurrences:
+            findings.append(Finding("E", "623", 1, f"MarkNote subject '{term}' has uncolored occurrences; reuse its established color everywhere."))
+
+    auxiliary_styles = style_families(body) & {"highlight", "italic", "strike", "code", "underline"}
+    body_length = prose_visible_length(body_prose)
+    sentence_count = len(re.findall(r"[。！？；]", body_prose))
+    branch_count = top_level_items + nested_items
+    medium_complexity = body_length >= 160 or sentence_count >= 4 or branch_count >= 3
+    if medium_complexity and len(auxiliary_styles) < 4:
+        findings.append(Finding("E", "620", 1, "Medium-or-higher complexity MarkNote needs at least four auxiliary style families among highlight, italic, strikethrough, inline code, and underline."))
+    if medium_complexity and not visuals:
+        findings.append(Finding("E", "624", 1, "Medium-or-higher complexity MarkNote needs one intentional SiYuan visual: editable Mermaid, a div-wrapped HTML block, or an SVG/PNG image whose alt text identifies it as a visualization."))
+    structural_styles = {
+        name
+        for name, present in (
+            ("nested-list", nested_items > 0),
+            ("callout", has_callout),
+            ("subheading", has_subheading),
+            ("table", has_table),
+            ("visual", bool(visuals)),
+            ("divider", has_divider),
+        )
+        if present
+    }
+    if medium_complexity and len(structural_styles) < 4:
+        findings.append(Finding("E", "626", 1, "Medium-or-higher complexity MarkNote needs at least four structural families: nested list, Callout, subheading, table, visual, or divider."))
+    background_anchor_count = len(re.findall(r"b3-font-background(?:[2-9]|1[0-3])", body))
+    if medium_complexity and background_anchor_count < 3:
+        findings.append(Finding("E", "627", 1, "Medium-or-higher complexity MarkNote needs at least three short background-color anchors for visual hierarchy."))
+    if medium_complexity and not has_semantic_emoji_cue(body):
+        findings.append(Finding("E", "509", 1, "Medium-or-higher complexity MarkNote needs at least one semantic emoji cue in its prose; its position follows the labeled legal relationship."))
+    findings.extend(validate_concept_list_palette(text))
+    return findings
+
+
+def validate_concept_list_palette(text: str) -> list[Finding]:
+    """Flag visually monotonous runs while leaving semantic equivalence to review."""
+    findings: list[Finding] = []
+    run: list[tuple[int, str, str]] = []
+    run_key: tuple[str, str] | None = None
+
+    def flush() -> None:
+        nonlocal run, run_key
+        if len(run) >= 3 and len({term for _, term, _ in run}) >= 3:
+            findings.append(
+                Finding(
+                    "W",
+                    "503",
+                    run[0][0],
+                    "Three or more peer concept items reuse one identical lead-anchor style; split concepts into legal-function color slots, or keep the shared color and add a second visual dimension when they truly share one role.",
+                )
+            )
+        run = []
+        run_key = None
+
+    in_fence = False
+    for number, line in enumerate(text.splitlines(), start=1):
+        stripped = line.strip()
+        if stripped.startswith(("```", "> ```")):
+            in_fence = not in_fence
+            flush()
+            continue
+        if in_fence or not stripped:
+            flush()
+            continue
+        match = CONCEPT_LIST_LEAD_PATTERN.match(line)
+        if not match:
+            flush()
+            continue
+        style = ";".join(sorted(part.strip() for part in match.group("style").split(";") if part.strip()))
+        key = (match.group("quote") + match.group("indent"), style)
+        if run_key != key:
+            flush()
+            run_key = key
+        run.append((number, match.group("term").strip(), style))
+    flush()
+    return findings
+
+def validate_paragraph_parent_fragmentation(text: str) -> list[Finding]:
+    """Flag repeated paragraph-plus-short-list groups that should form one hierarchy."""
+    lines = text.splitlines()
+    groups: list[tuple[int, int]] = []
+    in_fence = False
+    index = 0
+    while index < len(lines):
+        stripped = lines[index].strip()
+        if stripped.startswith(("```", "> ```")):
+            in_fence = not in_fence
+            index += 1
+            continue
+        if (
+            in_fence
+            or not stripped
+            or stripped.startswith(("#", ">", "|", "- ", "* ", "+ ", "```"))
+            or IAL_PATTERN.match(stripped)
+            or re.match(r"^\d+[.)]\s+", stripped)
+        ):
+            index += 1
+            continue
+        parent_line = index + 1
+        cursor = index + 1
+        while cursor < len(lines) and not lines[cursor].strip():
+            cursor += 1
+        child_count = 0
+        while cursor < len(lines) and re.match(r"^\s*(?:[-+*]|\d+[.)])\s+", lines[cursor]):
+            child_count += 1
+            cursor += 1
+        if 2 <= child_count <= 3:
+            groups.append((parent_line, cursor))
+            index = cursor
+        else:
+            index += 1
+
+    findings: list[Finding] = []
+    for first, second in zip(groups, groups[1:]):
+        between = lines[first[1] : second[0] - 1]
+        if all(not line.strip() for line in between):
+            findings.append(
+                Finding(
+                    "W",
+                    "504",
+                    first[0],
+                    "Repeated paragraph-plus-2-or-3-item groups should usually become peer parent list items with their original items nested beneath them; keep paragraphs only for independent conclusions or transitions.",
+                )
+            )
+            break
+    return findings
+

@@ -1414,6 +1414,43 @@ def validate_ordinary(text: str) -> list[Finding]:
     return findings
 
 
+DEFAULT_REPORT_LIMIT = 40
+
+
+def code_summary(findings: list[Finding]) -> str:
+    counts = Counter(finding.code for finding in findings)
+    ranked = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+    head = " ".join(f"{code}×{count}" for code, count in ranked[:8])
+    extra = len(ranked) - 8
+    return f"{head} (+{extra} more codes)" if extra > 0 else head
+
+
+def print_finding_report(
+    findings: list[Finding],
+    *,
+    render,
+    label: str,
+    show_all: bool = False,
+    only_codes: list[str] | None = None,
+    limit: int = DEFAULT_REPORT_LIMIT,
+) -> None:
+    """Bounded text report: the full per-finding detail stays behind --all,
+    --code, and --format json so a large audit cannot flood the agent's
+    context window; the exit code is always computed by the caller over the
+    complete findings list."""
+    wanted = {code.strip().upper().lstrip("EW") for code in only_codes or [] if code.strip()}
+    selected = [finding for finding in findings if finding.code.upper().lstrip("EW") in wanted] if wanted else findings
+    if wanted and not selected:
+        print(f"No findings match --code {' '.join(only_codes or [])}; full report has {len(findings)} finding(s): {code_summary(findings)}")
+    shown = selected if show_all else selected[: max(0, limit)]
+    for finding in shown:
+        print(render(finding))
+    hidden = len(selected) - len(shown)
+    if hidden > 0:
+        print(f"... {hidden} more finding(s) not shown of {len(findings)} total. Focus with --code <CODE> (repeatable, e.g. --code E041), lift the cap with --all, or dump everything with --format json.")
+    print(f"SUMMARY {label}: {len(findings)} finding(s); by code: {code_summary(findings)}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", help="Draft Markdown path, or - to read the draft from standard input.")
@@ -1424,6 +1461,9 @@ def main() -> int:
     parser.add_argument("--max-cards-per-topic", type=int, default=4)
     parser.add_argument("--max-answer-items", type=int, default=4)
     parser.add_argument("--max-answer-chars", type=int, default=84)
+    parser.add_argument("--all", action="store_true", help="Print every finding instead of the bounded default report.")
+    parser.add_argument("--code", action="append", metavar="CODE", help="Show only findings with this code in the text report (repeatable). Validation and the exit code always cover every finding.")
+    parser.add_argument("--max-report", type=int, default=DEFAULT_REPORT_LIMIT, help=f"Text-report cap (default {DEFAULT_REPORT_LIMIT}); --all lifts the cap.")
     args = parser.parse_args()
     if args.mode == "dedicated":
         relaxed = [flag for flag, enabled in (("--no-require-report", args.require_report), ("--no-rich-style", args.rich_style)) if not enabled]
@@ -1450,8 +1490,16 @@ def main() -> int:
         rich_style=args.rich_style,
     )
     if findings:
-        for item in findings:
-            print(f"{output_label}:{item.line}: {item.code}: {item.message}")
+        error_count = sum(not item.code.startswith("W") for item in findings)
+        warning_count = len(findings) - error_count
+        print_finding_report(
+            findings,
+            render=lambda item: f"{output_label}:{item.line}: {item.code}: {item.message}",
+            label=f"{output_label} [E:{error_count} W:{warning_count}]",
+            show_all=args.all,
+            only_codes=args.code,
+            limit=args.max_report,
+        )
         if has_blocking_findings(findings):
             return 1
         print(f"PASS legal-flashcard {args.mode} validation with {len(findings)} warning(s): {output_label}")
