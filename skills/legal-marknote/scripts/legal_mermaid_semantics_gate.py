@@ -40,6 +40,10 @@ MIN_EDGES_TO_JUDGE = 2
 PAIR_EDGE_FRACTION = 0.75
 EMPTY_CHAIN_MIN_EDGES = 2
 KEYWORD_CHAIN_MAX_AVG_LABEL = 6.0
+FAN_ROOT_MIN_OUT = 3
+CASE_GROUND_RE = re.compile(
+    r"(本题|本案|该案|题干|选项|正确|错误|当选|不当选|排除|答案|[ABCD]\s*项|[甲乙丙丁])"
+)
 
 
 @dataclass
@@ -80,6 +84,18 @@ class MermaidDiagram:
     def max_degree(self) -> int:
         degree = self.degrees()
         return max(degree.values(), default=0)
+
+    def fan_out(self) -> int:
+        out: dict[str, int] = {}
+        for tail, _, _ in self.edges:
+            out[tail] = out.get(tail, 0) + 1
+        return max(out.values(), default=0)
+
+    def max_in_degree(self) -> int:
+        incoming: dict[str, int] = {}
+        for _, head, _ in self.edges:
+            incoming[head] = incoming.get(head, 0) + 1
+        return max(incoming.values(), default=0)
 
     def pair_edge_count(self) -> int:
         """Edges whose endpoints never appear in any other edge."""
@@ -210,7 +226,9 @@ def _avg_label_length(diagram: MermaidDiagram) -> float:
     return sum(lengths) / len(lengths) if lengths else 0.0
 
 
-def validate_mermaid_semantics(text: str) -> tuple[MermaidGateFinding, ...]:
+def validate_mermaid_semantics(
+    text: str, require_case_grounding: bool = False
+) -> tuple[MermaidGateFinding, ...]:
     """Reject perfunctory Mermaid diagrams.
 
     - `E901`: a multi-edge block whose edges are almost all isolated keyword
@@ -222,6 +240,9 @@ def validate_mermaid_semantics(text: str) -> tuple[MermaidGateFinding, ...]:
     - `E903`: several independent chains (or orphan nodes) stitched into one
       fence — the block parses as more than one connected component, so it is
       still N separate diagrams, never one integrated reasoning chain.
+    - `E904` (only with `require_case_grounding`): a knowledge-point inventory
+      fan — one root fanning out doctrine branches that never land on the
+      question's facts or decide which option is right/wrong.
     """
     findings: list[MermaidGateFinding] = []
     for diagram in extract_diagrams(text):
@@ -277,6 +298,27 @@ def validate_mermaid_semantics(text: str) -> tuple[MermaidGateFinding, ...]:
                     "fence are still separate diagrams, not one reasoning chain. Rewire them into a single connected logic chain through "
                     "shared or converging nodes so every node is reachable, or keep genuinely unrelated analyses as lists — never pad a "
                     "diagram out of disjoint `-->` rows.",
+                )
+            )
+            continue
+        if (
+            require_case_grounding
+            and diagram.fan_out() >= FAN_ROOT_MIN_OUT
+            and diagram.max_in_degree() <= 1
+            and not CASE_GROUND_RE.search(
+                " ".join(label for label, _ in diagram.nodes.values())
+                + " "
+                + " ".join(label for _, _, label in diagram.edges)
+            )
+        ):
+            findings.append(
+                MermaidGateFinding(
+                    "904",
+                    diagram.start_line,
+                    "The diagram inventories knowledge points instead of reasoning this question: one root fans out doctrine branches "
+                    "(each with its own condition) and no node or edge ever lands on the case — nothing states the question's facts, "
+                    "the tested option, or which option is right/wrong. Carry at least one path through the case's concrete facts to a "
+                    "verdict (e.g. `本案对象是外国公司` → 该途径不可用 → `B 项错误`), or replace the fence with a list.",
                 )
             )
     return tuple(findings)

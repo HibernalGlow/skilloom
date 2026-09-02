@@ -707,5 +707,49 @@ flowchart TD
         self.assertIn("901", self.mermaid_codes(text))
 
 
+class MermaidCaseGroundingGateTests(unittest.TestCase):
+    """`E904`: a goldquest analysis diagram must reason the case, not inventory doctrine."""
+
+    USER_FAN = """```mermaid
+flowchart LR
+    A[域外送达途径] -->|公告| B[仅兜底使用]
+    A -->|邮寄| C{所在国法律允许}
+    C -->|允许| D[可以邮寄送达]
+    A -->|使领馆| E{对象为本国公民}
+    E -->|本国公民| F[可送达]
+    E -->|外国某公司| G[不可经此途径]
+    A -->|电子邮件| H{所在国法律不禁止}
+    H -->|不禁止| I[可电子送达]
+```"""
+
+    GROUNDED_FAN = USER_FAN.replace(
+        "G[不可经此途径]", "G[本案被告是外国某公司，不可经此途径，B 项错误]"
+    )
+
+    def test_rejects_ungrounded_knowledge_fan_for_goldquest(self) -> None:
+        codes = {
+            finding.code
+            for finding in MODULE.validate_mermaid_semantics(self.USER_FAN, require_case_grounding=True)
+        }
+        self.assertIn("904", codes)
+
+    def test_default_keeps_legacy_behavior(self) -> None:
+        codes = {finding.code for finding in MODULE.validate_mermaid_semantics(self.USER_FAN)}
+        self.assertNotIn("904", codes)
+
+    def test_accepts_fan_that_reaches_a_case_verdict(self) -> None:
+        codes = {
+            finding.code
+            for finding in MODULE.validate_mermaid_semantics(self.GROUNDED_FAN, require_case_grounding=True)
+        }
+        self.assertNotIn("904", codes)
+
+    def test_scope_goldquest_only(self) -> None:
+        goldquest = {finding.code for finding in MODULE.validate_text(self.USER_FAN, "legal-goldquest")}
+        marknote = {finding.code for finding in MODULE.validate_text(self.USER_FAN, "legal-marknote")}
+        self.assertIn("904", goldquest)
+        self.assertNotIn("904", marknote)
+
+
 if __name__ == "__main__":
     unittest.main()
