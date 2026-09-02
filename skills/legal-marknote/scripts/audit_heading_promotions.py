@@ -197,6 +197,8 @@ def parse_args() -> argparse.Namespace:
         help="Allow removal of recognized numeric/example/empty shell headings while preserving substantive headings.",
     )
     parser.add_argument("--format", choices=("text", "json"), default="text")
+    parser.add_argument("--all", action="store_true", help="Print every finding instead of the bounded default report.")
+    parser.add_argument("--max-report", type=int, default=40, help="Text-report cap (default 40); --all lifts the cap. JSON output is never capped.")
     return parser.parse_args()
 
 
@@ -213,8 +215,15 @@ def main() -> int:
     if args.format == "json":
         print(json.dumps([asdict(finding) for finding in findings], ensure_ascii=False, indent=2))
     elif findings:
-        for finding in findings:
+        error_count = sum(finding.level == "E" for finding in findings)
+        warning_count = sum(finding.level == "W" for finding in findings)
+        shown = findings if args.all else findings[: max(0, args.max_report)]
+        for finding in shown:
             print(f"{args.output}:{finding.line}: {finding.level}{finding.code}: {finding.message}")
+        hidden = len(findings) - len(shown)
+        if hidden > 0:
+            print(f"... {hidden} more finding(s) not shown of {len(findings)} total [E:{error_count} W:{warning_count}]. Lift the cap with --all or raise --max-report; --format json dumps everything.")
+        print(f"SUMMARY {args.output} [E:{error_count} W:{warning_count}]: {len(findings)} finding(s)")
     else:
         print(f"PASS heading promotion audit: {args.output}")
     has_errors = any(finding.level == "E" for finding in findings)

@@ -291,6 +291,9 @@ def audit(path: Path, source: Path | None = None) -> tuple[list[AuditError], lis
     return errors, advisories
 
 
+DEFAULT_REPORT_LIMIT = 40
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="+", type=Path)
@@ -299,6 +302,8 @@ def main() -> int:
         type=Path,
         help="Original Markdown used to verify exact question and subquestion identifiers inside quoted md fences.",
     )
+    parser.add_argument("--all", action="store_true", help="Print every report line instead of the bounded default report.")
+    parser.add_argument("--max-report", type=int, default=DEFAULT_REPORT_LIMIT, help=f"Report cap (default {DEFAULT_REPORT_LIMIT}); --all lifts the cap.")
     args = parser.parse_args()
 
     if args.source is not None and len(args.paths) != 1:
@@ -311,10 +316,14 @@ def main() -> int:
         errors.extend(file_errors)
         advisories.extend(file_advisories)
 
-    for advisory in advisories:
-        print(f"ADVISORY {advisory}")
-    for error in errors:
-        print(f"ERROR {error}")
+    report_lines = [f"ADVISORY {advisory}" for advisory in advisories]
+    report_lines += [f"ERROR {error}" for error in errors]
+    shown = report_lines if args.all else report_lines[: max(0, args.max_report)]
+    for line in shown:
+        print(line)
+    hidden = len(report_lines) - len(shown)
+    if hidden > 0:
+        print(f"... {hidden} more report line(s) not shown of {len(report_lines)} total ({len(errors)} error(s), {len(advisories)} advisory/advisories). Lift the cap with --all or raise --max-report.")
 
     if errors:
         return 1
