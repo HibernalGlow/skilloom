@@ -106,6 +106,11 @@ def prose_visible_length(value: str) -> int:
 
 LIST_ITEM_START_PATTERN = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
 LIST_ITEM_VISIBLE_LIMIT = 20
+MAJOR_HEADING_PATTERN = re.compile(r"^(?:\s*>\s*)?#{2,4}\s+\S")
+ORDERED_LIST_ITEM_PATTERN = re.compile(r"^\s*\d+[.)]\s+")
+CALLOUT_DIRECTIVE_PATTERN = re.compile(r">\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING|QUESTION)\]", re.IGNORECASE)
+SEQUENCE_CUE_PATTERN = re.compile(r"首先|其次|再者|再次|然后|接着|最后|第[一二三四五六七八九十\d]+步|[①-⑳]")
+ADVICE_CUE_PATTERN = re.compile(r"易错|注意|提示|陷阱|总结|归纳|对比")
 
 
 def _list_item_visible_length(line: str) -> int:
@@ -832,6 +837,74 @@ def validate_sublist_runs(text: str) -> list[Finding]:
     return findings
 
 
+def validate_structural_diversity(text: str) -> list[Finding]:
+    """Region-based richness floors so long files cannot decay into plain
+    bullets: `E313` ordered lists, `E314` callouts, `E516` emoji coverage.
+
+    Regions split at H2-H4 headings (H5/H6 content stays inside its region).
+    Only substantial regions are obliged — at least 6 list items or 200 raw
+    characters — so short summaries and navigation prose stay exempt. E313
+    and E314 fire only where the prose itself announces the occasion
+    (sequence cues, advice cues); `E516` is a document-level decay check
+    with a 40% tolerance, reported once per file.
+    """
+    findings: list[Finding] = []
+    regions: list[tuple[int, list[str]]] = []
+    start = 1
+    current: list[str] = []
+    for number, line in enumerate(text.splitlines(), start=1):
+        if MAJOR_HEADING_PATTERN.match(line) and current:
+            regions.append((start, current))
+            start = number
+            current = []
+        current.append(line)
+    if current:
+        regions.append((start, current))
+
+    substantial = 0
+    dry: list[int] = []
+    for start, block in regions:
+        items = ordered_items = callouts = sequence_items = advice_lines = 0
+        emoji_present = False
+        in_fence = False
+        for line in block:
+            stripped = line.strip()
+            if in_fence:
+                if stripped.startswith("```"):
+                    in_fence = False
+                continue
+            if stripped.startswith("```"):
+                in_fence = True
+                continue
+            if not stripped or IAL_PATTERN.fullmatch(stripped):
+                continue
+            if LIST_ITEM_START_PATTERN.match(line):
+                items += 1
+                if SEQUENCE_CUE_PATTERN.search(line):
+                    sequence_items += 1
+                if ORDERED_LIST_ITEM_PATTERN.match(line):
+                    ordered_items += 1
+            if CALLOUT_DIRECTIVE_PATTERN.search(line):
+                callouts += 1
+            if ADVICE_CUE_PATTERN.search(line):
+                advice_lines += 1
+            if not emoji_present and has_semantic_emoji_cue(line, exclude_decision_options=True):
+                emoji_present = True
+        if items < 6 and len("\n".join(block)) < 200:
+            continue
+        substantial += 1
+        if sequence_items >= 2 and ordered_items == 0:
+            findings.append(Finding("E", "313", start, f"Region narrates a sequence ({sequence_items} items carry order cues like 首先/其次/最后 or ①②) yet contains no ordered list; render the enumerated run as an ordered list (1. 2. 3.) so the sequence is structural, not verbal."))
+        if advice_lines >= 1 and callouts == 0:
+            findings.append(Finding("E", "314", start, "Region announces advice content (易错/注意/提示/陷阱/总结/归纳/对比) in plain text without any Callout; render that moment as a real Callout directive ([!TIP]/[!IMPORTANT]/[!CAUTION]) so the guidance is visually set apart."))
+        if not emoji_present:
+            dry.append(start)
+    if substantial >= 3 and len(dry) / substantial > 0.4:
+        sample = ", ".join(str(line) for line in dry[:8])
+        findings.append(Finding("E", "516", 1, f"{len(dry)} of {substantial} substantial regions carry no semantic emoji outside decision options (dry regions start at lines {sample}); weave one semantic emoji beside its concept word per region and vary the icons — ✅/❌ on option lines do not count."))
+    return findings
+
+
 def ial_attributes(line: str) -> dict[str, str]:
     match = IAL_PATTERN.fullmatch(line.strip())
     if not match:
@@ -1092,6 +1165,7 @@ def validate_text(
     )
     findings.extend(validate_list_density(text))
     findings.extend(validate_sublist_runs(text))
+    findings.extend(validate_structural_diversity(text))
     findings.extend(validate_general_density(text))
     if profile in {"legal-marknote", "legal-goldquest"}:
         findings.extend(Finding(item.level, item.code, item.line, item.message) for item in validate_marknote_prose_structure(text))
