@@ -220,6 +220,12 @@ def validate_emoji_semantics(text: str) -> list[Finding]:
     - `E515`: a large share of semantic emoji float with no neighboring concept
       word (dangling at clause boundaries or between punctuation); anchor each
       icon to its term (right before or after it) so it is visually bound.
+
+    Sanctioned slot: the tail of the `- 正确答案：…` line is the one clean
+    position for a verdict emoji — top of the analysis area, revealed with the
+    answer (no spoilers), and free of the heading-parsing gates (E603/606/613)
+    and the E622 anchor requirement. An emoji there only counts against the
+    E510 per-emoji budget; it never enters the E513/E514/E515 position ratios.
     """
     findings: list[Finding] = []
     counts: dict[str, int] = {}
@@ -235,10 +241,19 @@ def validate_emoji_semantics(text: str) -> list[Finding]:
             # structural navigation required by the gate itself, not a semantic cue
             # anchoring the generic word 考点 — exempt it from the W511 window check.
             continue
+        answer_line = bool(re.match(r"^\s*(?:[-*+]\s*)?正确答案[：:]", line))
         for match in EMOJI_PATTERN.finditer(line):
             if match.group() in {"✅", "❌"}:
                 continue
             counts[match.group()] = counts.get(match.group(), 0) + 1
+            if answer_line:
+                # The tail of the 正确答案 line is the sanctioned structural slot for a
+                # verdict emoji: it sits at the top of the analysis area and is revealed
+                # together with the answer (no spoilers), while heading placement breaks
+                # heading parsing (E603/606/613) and a standalone paragraph hits E622.
+                # Count it only against the E510 per-emoji budget; exempt it from the
+                # E513/E514/E515 sentence-position statistics and the W511/E512 windows.
+                continue
             window = line[max(0, match.start() - 3): match.end() + 4]
             if EMOJI_GENERIC_CUE_RE.search(window):
                 generic_hits += 1
