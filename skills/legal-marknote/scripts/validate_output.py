@@ -774,6 +774,44 @@ def validate_list_density(text: str) -> list[Finding]:
     return findings
 
 
+def validate_sublist_runs(text: str) -> list[Finding]:
+    """`E312`: six or more sibling sub-list items at one indentation level in a
+    row must be broken up. IAL lines and blank lines are transparent; an
+    indentation change, a non-list content line, or a fence resets the run,
+    so inserting one deeper-indented grouping item mid-run is enough."""
+    findings: list[Finding] = []
+    run_indent: int | None = None
+    run_length = 0
+    run_reported = False
+    fence_marker = ""
+    for number, line in enumerate(text.splitlines(), start=1):
+        stripped = line.strip()
+        if fence_marker:
+            if stripped.startswith(fence_marker):
+                fence_marker = ""
+            continue
+        if stripped.startswith("```") or stripped.startswith("~~~"):
+            fence_marker = stripped[:3]
+            run_indent, run_length, run_reported = None, 0, False
+            continue
+        if not stripped or IAL_PATTERN.fullmatch(stripped):
+            continue
+        match = LIST_ITEM_START_PATTERN.match(line)
+        if match is None:
+            run_indent, run_length, run_reported = None, 0, False
+            continue
+        leading = line[: len(line) - len(line.lstrip())]
+        indent = len(leading.replace("\t", "    "))
+        if indent == run_indent:
+            run_length += 1
+        else:
+            run_indent, run_length, run_reported = indent, 1, False
+        if run_indent > 0 and run_length >= 6 and not run_reported:
+            run_reported = True
+            findings.append(Finding("E", "312", number, "Six sibling sub-list items in a row at one indentation level; split the wall by inserting a deeper-indented grouping item mid-run — an indentation change between items breaks the run (limit 5 in a row)."))
+    return findings
+
+
 def ial_attributes(line: str) -> dict[str, str]:
     match = IAL_PATTERN.fullmatch(line.strip())
     if not match:
@@ -1875,6 +1913,7 @@ def validate_text(
         )
     )
     findings.extend(validate_list_density(text))
+    findings.extend(validate_sublist_runs(text))
     findings.extend(validate_general_density(text))
     if profile in {"legal-marknote", "legal-goldquest"}:
         findings.extend(Finding(item.level, item.code, item.line, item.message) for item in validate_marknote_prose_structure(text))

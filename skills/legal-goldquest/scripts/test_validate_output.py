@@ -751,5 +751,43 @@ flowchart LR
         self.assertNotIn("904", marknote)
 
 
+class SublistRunGateTests(unittest.TestCase):
+    """`E312`: six-plus sibling sub-list items at one indentation level must be broken."""
+
+    def codes(self, text: str) -> set[str]:
+        return {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")}
+
+    def wall(self, count: int, prefix: str = "  ") -> str:
+        return "- 母项的判定。\n" + "".join(f"{prefix}- 子项{i}的内容。\n" for i in range(count))
+
+    def test_allows_five_sibling_items(self) -> None:
+        self.assertNotIn("312", self.codes(self.wall(5)))
+
+    def test_flags_six_sibling_items(self) -> None:
+        self.assertIn("312", self.codes(self.wall(6)))
+
+    def test_deeper_item_breaks_the_run(self) -> None:
+        text = self.wall(3) + "    - 孙项的分组内容。\n" + "".join(f"  - 子项{i}的内容。\n" for i in range(3, 7))
+        self.assertNotIn("312", self.codes(text))
+
+    def test_top_level_run_is_exempt(self) -> None:
+        text = "".join(f"- 顶层项{i}的内容。\n" for i in range(8))
+        self.assertNotIn("312", self.codes(text))
+
+    def test_ial_and_blank_lines_do_not_break_the_run(self) -> None:
+        text = "- 母项的判定。\n" + "".join(f"  - 子项{i}的内容。\n" + '  {{: style="color:#e01f1f" }}\n\n' for i in range(6)).replace("{{", "{").replace("}}", "}")
+        self.assertIn("312", self.codes(text))
+
+    def test_non_list_content_and_fences_reset_the_run(self) -> None:
+        text = self.wall(4) + "> [!TIP] 半途的提示。\n> 中断同缩进连续。\n" + "".join(f"  - 子项{i}的内容。\n" for i in range(4, 8))
+        self.assertNotIn("312", self.codes(text))
+        fenced = self.wall(4) + "  ```mermaid\n  A[节点] --> B[节点]\n  ```\n" + "".join(f"  - 子项{i}的内容。\n" for i in range(4, 8))
+        self.assertNotIn("312", self.codes(fenced))
+
+    def test_ordered_markers_count_too(self) -> None:
+        text = "- 母项的判定。\n" + "".join(f"  {i}. 子项{i}的内容。\n" for i in range(1, 7))
+        self.assertIn("312", self.codes(text))
+
+
 if __name__ == "__main__":
     unittest.main()
