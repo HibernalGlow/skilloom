@@ -15,7 +15,7 @@ import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-JUNK = {"__pycache__", ".DS_Store"}
+JUNK = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".DS_Store"}
 SUFFIX_JUNK = {".pyc", ".pyo"}
 
 
