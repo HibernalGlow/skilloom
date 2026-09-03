@@ -1,82 +1,30 @@
 #!/usr/bin/env python3
-"""Synchronize the self-contained legal output validators into both skills."""
+"""RETIRED: do not run.
+
+This script once copied ``scripts/legal_note_output_validator.py`` over both
+skills' ``validate_output.py``. The two validators legitimately diverged
+(2026-09-02: legal-goldquest split into validate_output.py +
+legal_goldquest_question_gate.py + legal_marknote_richness_gate.py with its
+own gates; legal-marknote keeps marknote-only gates), so a one-shot overwrite
+would destroy the current gates. The stale source file stays only for
+reference. Skill-to-install-copy deployment is handled by
+``sync_installed_skills.py`` instead.
+"""
 
 from __future__ import annotations
 
-import argparse
-import shutil
-from pathlib import Path
-
-
-ROOT = Path(__file__).resolve().parents[1]
-SYNC_GROUPS = (
-    (
-        ROOT / "scripts" / "legal_note_output_validator.py",
-        (
-            ROOT / "skills" / "legal-marknote" / "scripts" / "validate_output.py",
-            ROOT / "skills" / "legal-goldquest" / "scripts" / "validate_output.py",
-        ),
-    ),
-    (
-        ROOT / "scripts" / "legal_goldquest_option_gate.py",
-        (
-            ROOT / "skills" / "legal-marknote" / "scripts" / "legal_goldquest_option_gate.py",
-            ROOT / "skills" / "legal-goldquest" / "scripts" / "legal_goldquest_option_gate.py",
-        ),
-    ),
-    (
-        ROOT / "scripts" / "legal_marknote_prose_gate.py",
-        (
-            ROOT / "skills" / "legal-marknote" / "scripts" / "legal_marknote_prose_gate.py",
-            ROOT / "skills" / "legal-goldquest" / "scripts" / "legal_marknote_prose_gate.py",
-        ),
-    ),
-    (
-        ROOT / "scripts" / "legal_goldquest_semantic_structure_gate.py",
-        (
-            ROOT / "skills" / "legal-marknote" / "scripts" / "legal_goldquest_semantic_structure_gate.py",
-            ROOT / "skills" / "legal-goldquest" / "scripts" / "legal_goldquest_semantic_structure_gate.py",
-        ),
-    ),
-    (
-        ROOT / "scripts" / "legal_mermaid_semantics_gate.py",
-        (
-            ROOT / "skills" / "legal-marknote" / "scripts" / "legal_mermaid_semantics_gate.py",
-            ROOT / "skills" / "legal-goldquest" / "scripts" / "legal_mermaid_semantics_gate.py",
-        ),
-    ),
-)
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="Report stale or missing copies without writing them.")
-    return parser.parse_args()
+import sys
 
 
 def main() -> int:
-    args = parse_args()
-    stale = [
-        (source, target)
-        for source, targets in SYNC_GROUPS
-        for target in targets
-        if not target.is_file() or target.read_bytes() != source.read_bytes()
-    ]
-    if args.check:
-        for _, target in stale:
-            print(f"STALE {target.relative_to(ROOT)}")
-        if stale:
-            print("Run: python -X utf8 scripts/sync_legal_output_validators.py")
-            return 1
-        print("PASS legal output validator copies are synchronized.")
-        return 0
-    for source, target in stale:
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(source, target)
-        print(f"SYNC {target.relative_to(ROOT)}")
-    if not stale:
-        print("PASS legal output validator copies already synchronized.")
-    return 0
+    print(
+        "RETIRED sync_legal_output_validators.py: the two skills' validate_output.py "
+        "diverged (goldquest split + E-gates), so overwriting from the stale "
+        "scripts/legal_note_output_validator.py is no longer allowed. "
+        "Deploy skill files to installed copies with scripts/sync_installed_skills.py.",
+        file=sys.stderr,
+    )
+    return 2
 
 
 if __name__ == "__main__":
