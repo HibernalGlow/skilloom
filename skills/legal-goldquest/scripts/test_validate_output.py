@@ -789,5 +789,54 @@ class SublistRunGateTests(unittest.TestCase):
         self.assertIn("312", self.codes(text))
 
 
+class StructuralDiversityGateTests(unittest.TestCase):
+    """`E313`/`E314`/`E516`: richness floors per substantial H2-H4 region."""
+
+    def codes(self, text: str) -> set[str]:
+        return {finding.code for finding in MODULE.validate_text(text, "legal-goldquest")}
+
+    def bullets(self, count: int, texts=None) -> str:
+        texts = list(texts) if texts else [f"事项{i}的说明内容展开。" for i in range(count)]
+        return "".join(f"- {text}\n" for text in texts)
+
+    def test_sequence_prose_requires_an_ordered_list(self) -> None:
+        text = "### 考点\n" + self.bullets(6, ["首先，主体要适格。", "其次，意思表示要真实。", "最后，内容须合法。", "另外还有形式要求。", "补充一点说明。", "再补充一点说明。"])
+        self.assertIn("313", self.codes(text))
+
+    def test_ordered_list_satisfies_the_sequence(self) -> None:
+        text = "### 考点\n" + "".join(f"{number}. 事项{number}的说明内容展开。\n" for number in range(1, 7))
+        self.assertNotIn("313", self.codes(text))
+
+    def test_short_sequence_region_is_exempt(self) -> None:
+        text = "### 考点\n- 首先，主体要适格。\n- 其次，意思表示真实。\n"
+        self.assertNotIn("313", self.codes(text))
+
+    def test_advice_cue_requires_a_callout(self) -> None:
+        text = "### 考点\n" + self.bullets(6, ["注意，此处的期间是除斥期间。", "注意起算点的规定。", "第三条讲效力问题。", "第四条讲后果问题。", "第五条讲救济途径。", "第六条讲举例说明。"])
+        self.assertIn("314", self.codes(text))
+
+    def test_callout_satisfies_the_advice_cue(self) -> None:
+        text = "### 考点\n> [!TIP] 注意，此处的期间是除斥期间，务必记忆。\n" + self.bullets(6)
+        self.assertNotIn("314", self.codes(text))
+
+    def test_emoji_decay_across_regions_fires_once(self) -> None:
+        text = "".join(f"### 考点{index}\n" + self.bullets(6) for index in range(1, 5))
+        result = [finding for finding in MODULE.validate_text(text, "legal-goldquest") if finding.code == "516"]
+        self.assertEqual(len(result), 1)
+        self.assertIn("of 4", result[0].message)
+
+    def test_emoji_present_in_enough_regions_passes(self) -> None:
+        text = "".join(f"### 考点{index}\n" + "- ⚖️ 事项0的说明内容展开。\n" + self.bullets(5) for index in range(1, 5))
+        self.assertNotIn("516", self.codes(text))
+
+    def test_small_documents_are_exempt_from_emoji_ratio(self) -> None:
+        text = "### 考点一\n" + self.bullets(6) + "\n### 考点二\n" + self.bullets(6)
+        self.assertNotIn("516", self.codes(text))
+
+    def test_h5_questions_stay_inside_their_region(self) -> None:
+        text = "### 考点\n##### 1. 题目甲\n" + self.bullets(4) + "###### 答案与解析\n- 正确答案：A。\n" + self.bullets(3)
+        self.assertEqual(len(MODULE.validate_structural_diversity(text)), 0)
+
+
 if __name__ == "__main__":
     unittest.main()
