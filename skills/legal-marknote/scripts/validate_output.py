@@ -225,6 +225,10 @@ def validate_emoji_semantics(text: str) -> list[Finding]:
     - `E515`: a large share of semantic emoji float with no neighboring concept
       word (dangling at clause boundaries or between punctuation); anchor each
       icon to its term (right before or after it) so it is visually bound.
+    - `W517`: emoji density must increase with list nesting depth — a top-level
+      item with child sub-items must have at least one emoji, and its children
+      must collectively exceed that count (ideally each child >= parent count + 1).
+      Deep lists get proportionally higher emoji coverage for visual anchor density.
     """
     findings: list[Finding] = []
     counts: dict[str, int] = {}
@@ -266,6 +270,57 @@ def validate_emoji_semantics(text: str) -> list[Finding]:
     for pair, count in pairs.items():
         if count >= 6 and re.search(r"[\u4e00-\u9fff]", pair):
             findings.append(Finding("E", "512", 1, f"Emoji-word pair {pair} repeats {count} times; hard gate — this is scripted batch emoji insertion. Place emoji semantically per concept, never by mechanical word replacement."))
+
+    # ==========================================================================
+    # W517: Emoji density increases with list nesting depth
+    # Parent items (no children below): >= 1 emoji (or 0 if leaf-only, still recommended)
+    # Child items: >= (parent_depth + 1) emoji, enforcing progressive density increase
+    # Example: parent has 1 emoji -> child must have >= 2; grandchild >= 3
+    # ==========================================================================
+    lines_data = []
+    current_fence_marker = None
+    for _raw_line in text.splitlines():
+        stripped_raw = _raw_line.strip()
+        if current_fence_marker:
+            if stripped_raw.startswith(current_fence_marker):
+                current_fence_marker = None
+            continue
+        if stripped_raw.startswith(("```", "~~~")):
+            current_fence_marker = stripped_raw[:3]
+            continue
+        if not _raw_line.strip() or IAL_PATTERN.fullmatch(stripped_raw):
+            continue
+        match_li = LIST_ITEM_START_PATTERN.match(_raw_line)
+        if match_li:
+            indent_str = _raw_line[:match_li.end()]
+            depth = len(indent_str) // 4 if "	" not in indent_str else indent_str.count("	")
+            content_part = _raw_line[match_li.end():]
+            emoji_count = sum(1 for m in EMOJI_PATTERN.finditer(content_part))
+            lines_data.append({"depth": depth, "line": _raw_line, "count": emoji_count})
+
+    i = 0
+    while i < len(lines_data):
+        item = lines_data[i]
+        child_start = i + 1
+        while child_start < len(lines_data) and lines_data[child_start]["depth"] > item["depth"]:
+            child_start += 1
+        if child_start > i + 1:
+            if item["count"] < 1:
+                findings.append(Finding("W", "517", i + 2,
+                    f"This list item has no emoji but contains {child_start - i - 1} child items — add at least one emoji to its content so readers can visually anchor the concept."))
+            children_total = 0
+            for j in range(i + 1, child_start):
+                children_total += lines_data[j]["count"]
+            required_children_min = max(1, item["count"])
+            if children_total < required_children_min:
+                actual = child_start - i - 1
+                for k in range(i + 1, child_start):
+                    c = lines_data[k]
+                    if c["count"] < 1:
+                        findings.append(Finding("W", "517", k + 2,
+                            f"This sublist item carries 0 emoji — with nested depth, each sub-item should have at least one emoji (preferably matching or exceeding its parent's emoji count). Target: >= {item['count'] + 1} emoji for this sub-item."))
+
+        i = child_start
     return findings
 
 
