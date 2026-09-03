@@ -775,7 +775,7 @@ def validate_list_density(text: str) -> list[Finding]:
 
 
 def validate_sublist_runs(text: str) -> list[Finding]:
-    """`E312`: six or more sibling sub-list items at one indentation level in a
+    """`E312`: four or more sibling sub-list items at one indentation level in a
     row must be broken up. IAL lines and blank lines are transparent; an
     indentation change, a non-list content line, or a fence resets the run,
     so inserting one deeper-indented grouping item mid-run is enough."""
@@ -806,9 +806,9 @@ def validate_sublist_runs(text: str) -> list[Finding]:
             run_length += 1
         else:
             run_indent, run_length, run_reported = indent, 1, False
-        if run_indent > 0 and run_length >= 6 and not run_reported:
+        if run_indent > 0 and run_length >= 4 and not run_reported:
             run_reported = True
-            findings.append(Finding("E", "312", number, "Six sibling sub-list items in a row at one indentation level; split the wall by inserting a deeper-indented grouping item mid-run — an indentation change between items breaks the run (limit 5 in a row)."))
+            findings.append(Finding("E", "312", number, "Four sibling sub-list items in a row at one indentation level; split the wall by inserting a deeper-indented grouping item mid-run — an indentation change between items breaks the run (limit 3 in a row)."))
     return findings
 
 
