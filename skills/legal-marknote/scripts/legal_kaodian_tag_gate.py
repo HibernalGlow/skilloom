@@ -111,25 +111,34 @@ def validate_kaodian_tags(text: str, profile: str, require_tags: bool = True) ->
                 continue
             findings.append(Finding("E", "820", line_no, "A note-topic provider block carries no kaodian tag; append #法考/科目/[专题/]考点# to the heading line, or — only for a **考点：显示名** anchor without a heading — add one standalone tag paragraph directly after the IAL line (vocabulary: references/kaodian-tags.md)."))
     elif profile == "legal-goldquest":
-        for index, line in enumerate(lines):
-            if not QUESTION_HEADING_PATTERN.fullmatch(line):
-                continue
+        heading_indexes = [index for index, line in enumerate(lines) if QUESTION_HEADING_PATTERN.fullmatch(line)]
+        for position, index in enumerate(heading_indexes):
             attrs = _ial_attrs(lines[index + 1]) if index + 1 < len(lines) else {}
             if "custom-qb-id" not in attrs or "custom-qb-question-topic-ids" not in attrs:
                 continue
-            line_no = index + 1
-            if tag_lines.get(line_no):
-                consumed.add(line_no)
+            span_end = heading_indexes[position + 1] if position + 1 < len(heading_indexes) else len(lines)
+            solution_line = None
+            for probe in range(index + 1, span_end):
+                if _ial_attrs(lines[probe]).get("custom-qb-section") == "solution":
+                    solution_line = probe
+                    break
+            if solution_line is None:
                 continue
-            findings.append(Finding("E", "820", line_no, "A GoldQuest question heading carries no kaodian tag; append #法考/科目/[专题/]考点# (vocabulary: references/kaodian-tags.md) at the end of the heading line, before the IAL line."))
+            if tag_lines.get(solution_line):
+                consumed.add(solution_line)
+                continue
+            findings.append(Finding("E", "820", solution_line, "The GoldQuest solution line (正确答案…) carries no kaodian tag; append #法考/科目/[专题/]考点# at the end of that line — the practice view shows only stem/options/solution, and the tag must live where review happens without spoiling the stem (vocabulary: references/kaodian-tags.md)."))
 
     for line_no, tags in sorted(tag_lines.items()):
         if line_no in fenced:
-            findings.append(Finding("E", "822", line_no, "Kaodian tag inside a code fence; tags are SiYuan inline marks and must sit on the GoldQuest question heading line, or the MarkNote provider heading / its standalone tag paragraph, never inside fenced content."))
+            findings.append(Finding("E", "822", line_no, "Kaodian tag inside a code fence; tags are SiYuan inline marks and must sit on the GoldQuest solution line (正确答案…), or the MarkNote provider heading / its standalone tag paragraph, never inside fenced content."))
             continue
         if line_no in consumed:
             continue
-        findings.append(Finding("E", "822", line_no, "Kaodian tag on an unsupported line; only the GoldQuest question heading line, or the MarkNote provider heading / its standalone tag paragraph after the provider IAL, may carry a tag."))
+        if profile == "legal-goldquest":
+            findings.append(Finding("E", "822", line_no, "Kaodian tag on an unsupported line; in GoldQuest the only sanctioned position is the end of the 正确答案 solution line — headings, stems, options, and analysis prose stay tag-free."))
+        else:
+            findings.append(Finding("E", "822", line_no, "Kaodian tag on an unsupported line; only the MarkNote provider heading / its standalone tag paragraph after the provider IAL may carry a tag."))
 
     for line_no, line in enumerate(lines, start=1):
         if line_no in fenced:

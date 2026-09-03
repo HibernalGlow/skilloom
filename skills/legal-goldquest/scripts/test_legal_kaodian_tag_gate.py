@@ -15,6 +15,23 @@ def codes(findings):
     return [(finding.level, finding.code) for finding in findings]
 
 
+def goldquest_doc(solution_suffix: str, heading_suffix: str = "") -> str:
+    return "\n".join([
+        f"##### [合同解释·选择] 1.{heading_suffix}",
+        '{: custom-qb-id="civil-gold-2020-001" custom-qb-question-topic-ids="civil-contract-validity" custom-qb-answer="A"}',
+        "* 甲与乙签订合同。",
+        "* 该合同效力如何？",
+        "    - [ ] A. 选项甲有效",
+        "    - [ ] B. 选项乙无效",
+        "",
+        "###### 答案与解析",
+        f"- 正确答案：A。{solution_suffix}",
+        '{: custom-qb-section="solution"}',
+        "",
+        "- 解析正文，按原解析顺序保留。",
+    ])
+
+
 def test_marknote_heading_tag_passes():
     text = "\n".join([
         "# 民法专题",
@@ -54,30 +71,34 @@ def test_marknote_gate_silent_without_require_tags():
     assert validate_kaodian_tags(text, "legal-marknote", require_tags=False) == []
 
 
-def test_goldquest_heading_tag_passes():
-    text = "\n".join([
-        "##### [合同解释·选择] 1. #法考/民法/合同法/合同解释#",
-        '{: custom-qb-id="civil-gold-2020-001" custom-qb-question-topic-ids="civil-contract-validity" custom-qb-answer="A"}',
-        "* 甲与乙签订合同。",
-    ])
+def test_goldquest_solution_line_tag_passes():
+    text = goldquest_doc(" #法考/民法/合同法/合同解释#")
     assert codes(validate_kaodian_tags(text, "legal-goldquest")) == []
 
 
-def test_goldquest_missing_tag_reports_e820():
-    text = "\n".join([
-        "##### [合同解释·选择] 1.",
-        '{: custom-qb-id="civil-gold-2020-001" custom-qb-question-topic-ids="civil-contract-validity" custom-qb-answer="A"}',
-        "* 甲与乙签订合同。",
+def test_goldquest_missing_solution_tag_reports_e820():
+    findings = codes(validate_kaodian_tags(goldquest_doc(""), "legal-goldquest"))
+    assert ("E", "820") in findings
+
+
+def test_goldquest_heading_tag_reports_e822():
+    findings = codes(validate_kaodian_tags(goldquest_doc("", " #法考/民法/合同法/合同解释#"), "legal-goldquest"))
+    assert ("E", "822") in findings
+    assert ("E", "820") in findings
+
+
+def test_goldquest_second_question_each_needs_tag():
+    text = "\n\n".join([
+        goldquest_doc(" #法考/民法/合同法/合同解释#"),
+        goldquest_doc(""),
     ])
-    assert ("E", "820") in codes(validate_kaodian_tags(text, "legal-goldquest"))
+    findings = codes(validate_kaodian_tags(text, "legal-goldquest"))
+    assert findings.count(("E", "820")) == 1
 
 
 def test_goldquest_tag_inside_stem_reports_e822():
-    text = "\n".join([
-        "##### [合同解释·选择] 1. #法考/民法/合同法/合同解释#",
-        '{: custom-qb-id="civil-gold-2020-001" custom-qb-question-topic-ids="civil-contract-validity" custom-qb-answer="A"}',
-        "* 甲与乙签订合同 #法考/民法/合同法/合同解释#。",
-    ])
+    text = goldquest_doc(" #法考/民法/合同法/合同解释#").replace(
+        "* 甲与乙签订合同。", "* 甲与乙签订合同 #法考/民法/合同法/合同解释#。")
     findings = codes(validate_kaodian_tags(text, "legal-goldquest"))
     assert ("E", "822") in findings
 
