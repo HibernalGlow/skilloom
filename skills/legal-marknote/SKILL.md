@@ -68,7 +68,8 @@ The same provider block also carries one SiYuan native inline tag, chosen from t
   #法考/民法/占有/定义#
   ```
 
-- 词汇表查无此考点时按约定新建：科目必须沿用词汇表既有科目写法（民法、刑法、刑诉、民诉、行政法、理论法、三国法），专题层优先沿用同科目既有专题名，可省略；新建 tag 逐条列入交付报告，待用户确认后回流闪卡词汇表。
+- 词汇表查无此考点时按约定新建：科目必须沿用词汇表既有科目写法（民法、刑法、刑诉、民诉、商经知、行政法、理论法、三国法），专题层优先沿用同科目既有专题名，可省略；新建 tag 逐条列入交付报告，待用户确认后回流闪卡词汇表。
+- **门禁强制**：`--require-topic-ial` 运行时校验器自动检查——`E820` provider 块缺 tag、`E821` tag 未闭合或含空格、`E822` tag 位置非法（进代码围栏、题面或非锚块行）、`W823` tag 不在词汇表快照。W823 命中的新考点：先向用户确认路径，把完整路径加进 `references/kaodian-tags.md` 再重验（strict 下 W 同样阻断）；revision-only 修订（不带 `--require-topic-ial`）不触发本门禁。
 - tag 不写进题面围栏、表格、代码块或 IAL 行；live 写回思源时随锚块文本一起更新（内容编辑，不是属性）。
 
 ## Question-answer heading guardrail

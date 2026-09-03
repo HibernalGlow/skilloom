@@ -879,6 +879,12 @@ def validate_topic_ials(text: str, profile: str, require_note_topic: bool = Fals
     return findings
 
 
+def validate_kaodian_tags(text: str, profile: str, require_tags: bool = True):
+    from legal_kaodian_tag_gate import validate_kaodian_tags as _gate
+
+    return _gate(text, profile, require_tags)
+
+
 def validate_general_density(text: str) -> list[Finding]:
     findings: list[Finding] = []
     for number, line in enumerate(text.splitlines(), start=1):
@@ -1922,6 +1928,7 @@ def validate_text(
         findings.extend(validate_paragraph_parent_fragmentation(text))
     findings.extend(validate_concept_headings(text, profile))
     findings.extend(validate_topic_ials(text, profile, require_note_topic))
+    findings.extend(validate_kaodian_tags(text, profile, require_tags=require_note_topic))
     if profile == "legal-goldquest":
         findings.extend(validate_goldquest(text))
         findings.extend(validate_goldquest_knowledge_placement(text))
