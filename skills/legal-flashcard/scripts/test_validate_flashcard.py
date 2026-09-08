@@ -8,6 +8,7 @@ from pathlib import Path
 
 from validate_flashcard import (
     _back_callout_violations,
+    _carries_mnemonic_carrier,
     _strip_selection_carrier,
     _substantive_answer_lines,
     has_blocking_findings,
@@ -1115,6 +1116,39 @@ class CaseCardSelectionCarrierTests(unittest.TestCase):
     def test_carrier_image_line_is_not_answer_prose(self):
         lines = _substantive_answer_lines(self.BODY, "list")
         self.assertFalse([line for line in lines if line.strip().startswith("![")])
+
+
+class CaseCardMnemonicCarrierTests(unittest.TestCase):
+    """A Case card may carry the source's implicit mnemonic on the back (references/case-card.md)."""
+
+    def _body(self, kind: str, title: str) -> str:
+        return self.BACK.replace("{kind}", kind).replace("{title}", title)
+
+    BACK = """- ⚖️ **代理权限**{: style="color: var(--b3-font-color10);"}到哪一步？ #法考/民诉/委托代理# #闪卡/优先级/P1#
+
+    - 正确答案：A。
+      - **代理权**{: style="color: var(--b3-font-color10);"}止于本程序
+
+        > [!{kind}] {title}
+        >
+        > - ==执行另授权== → 未明确授予即无权
+"""
+
+    def test_mnemonic_directive_carries_the_cue(self):
+        body = self._body("MNEMONIC", "口诀：执行另授权")
+        self.assertTrue(_carries_mnemonic_carrier(body))
+
+    def test_memory_tip_directive_carries_the_cue(self):
+        body = self._body("TIP", "记忆口诀")
+        self.assertTrue(_carries_mnemonic_carrier(body))
+
+    def test_plain_warning_is_not_a_mnemonic_carrier(self):
+        body = self._body("WARNING", "授权按阶段切断")
+        self.assertFalse(_carries_mnemonic_carrier(body))
+
+    def test_carrier_without_a_highlighted_cue_does_not_count(self):
+        body = self._body("MNEMONIC", "口诀：执行另授权").replace("==执行另授权==", "执行另授权")
+        self.assertFalse(_carries_mnemonic_carrier(body))
 
 
 if __name__ == "__main__":

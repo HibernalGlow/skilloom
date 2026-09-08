@@ -97,7 +97,7 @@ SELECTION_CARRIER_TYPE = "SELECTION"
 MNEMONIC_GENERIC_LABELS = {"口诀", "记忆口诀", "记忆线索", "线索", "提示", "记忆点", "口诀卡"}
 # The cc-1 back memory carrier, sibling of the `SELECTION` option carrier.
 MNEMONIC_CARRIER_RE = re.compile(
-    r"^\s*>\s*\[!?(?:MNEMONIC|(?:TIP|NOTE|IMPORTANT)[^\]\n]*(?:记忆|口诀|助记|谐音|取字|首字))\]",
+    r"^\s*>\s*\[!?(?:MNEMONIC|(?:TIP|NOTE|IMPORTANT|CAUTION)\][^\n]*(?:记忆|口诀|助记|谐音|取字|首字))",
     re.IGNORECASE,
 )
 
