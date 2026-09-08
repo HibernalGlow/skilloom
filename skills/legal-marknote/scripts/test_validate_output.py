@@ -306,5 +306,76 @@ class RichPresentationValidationTests(unittest.TestCase):
 
 
 
+class QuoteFragmentationValidationTests(unittest.TestCase):
+    """`E315`: 同一段连续内容被空行拆成多个引述块必须拒绝。"""
+
+    def test_fragmented_quote_chain_rejected(self) -> None:
+        text = "\n".join(
+            [
+                "# 测试",
+                "",
+                "> 讲诚实、重诺言、守信用.",
+                "",
+                "> 其核心乃诚实不欺、善意、信守承诺.",
+                "",
+                "> 诚信原则作为基本原则, 被称为帝王条款,",
+                "",
+                "> 是各国民法公认的基本原则.",
+            ]
+        )
+        findings = MODULE.validate_text(text, "legal-marknote")
+        self.assertIn("315", {finding.code for finding in findings})
+
+    def test_independent_complete_quotes_pass(self) -> None:
+        text = "\n".join(
+            [
+                "# 测试",
+                "",
+                "> 第一条独立法条，内容完整。",
+                "",
+                "> 第二条独立引述，内容完整。",
+            ]
+        )
+        findings = MODULE.validate_text(text, "legal-marknote")
+        self.assertNotIn("315", {finding.code for finding in findings})
+
+    def test_internal_quote_paragraph_break_passes(self) -> None:
+        text = "\n".join(
+            [
+                "# 测试",
+                "",
+                "> 段落一，陈述规则。",
+                ">",
+                "> 段落二，继续陈述。",
+            ]
+        )
+        findings = MODULE.validate_text(text, "legal-marknote")
+        self.assertNotIn("315", {finding.code for finding in findings})
+
+
+class StandardListIndentValidationTests(unittest.TestCase):
+    """`E316`: 子列表缩进超出 CommonMark 标准窗口必须拒绝。"""
+
+    @staticmethod
+    def _codes(text: str) -> set[str]:
+        return {finding.code for finding in MODULE.validate_text(text, "legal-marknote")}
+
+    def test_two_tab_sublist_rejected(self) -> None:
+        text = "- 父项\n\t\t- 子项"
+        self.assertIn("316", self._codes(text))
+
+    def test_eight_space_sublist_rejected(self) -> None:
+        text = "- 父项\n        - 子项"
+        self.assertIn("316", self._codes(text))
+
+    def test_four_space_chain_passes(self) -> None:
+        text = "- 一级\n    - 二级\n        - 三级"
+        self.assertNotIn("316", self._codes(text))
+
+    def test_top_level_indented_list_rejected(self) -> None:
+        text = "前置段落\n\n    - 列表项"
+        self.assertIn("316", self._codes(text))
+
+
 if __name__ == "__main__":
     unittest.main()

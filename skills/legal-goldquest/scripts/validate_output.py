@@ -23,8 +23,10 @@ from legal_goldquest_option_gate import validate_option_analysis  # noqa: E402
 from legal_goldquest_semantic_structure_gate import validate_semantic_structure, visual_families  # noqa: E402
 from legal_marknote_prose_gate import validate_marknote_prose_structure  # noqa: E402
 from legal_mermaid_semantics_gate import validate_mermaid_semantics  # noqa: E402
+from legal_quote_fragmentation_gate import find_fragmented_quote_blocks  # noqa: E402
+from legal_list_indent_gate import find_overindented_sublists  # noqa: E402
 
-ALLOWED_CALLOUTS = {"TIP", "NOTE", "IMPORTANT", "CAUTION", "WARNING", "QUESTION"}
+ALLOWED_CALLOUTS = {"TIP", "NOTE", "IMPORTANT", "CAUTION", "WARNING", "QUESTION", "INFO", "QUOTE"}
 GENERIC_QUESTION_TITLE_PATTERN = re.compile(
     r"^✏️\s+(?:习题|试一试|练习题|真题|题目)(?:\s*[一二三四五六七八九十\d]+)?$"
 )
@@ -108,7 +110,7 @@ LIST_ITEM_START_PATTERN = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
 LIST_ITEM_VISIBLE_LIMIT = 20
 MAJOR_HEADING_PATTERN = re.compile(r"^(?:\s*>\s*)?#{2,4}\s+\S")
 ORDERED_LIST_ITEM_PATTERN = re.compile(r"^\s*\d+[.)]\s+")
-CALLOUT_DIRECTIVE_PATTERN = re.compile(r">\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING|QUESTION)\]", re.IGNORECASE)
+CALLOUT_DIRECTIVE_PATTERN = re.compile(r">\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING|QUESTION|INFO|QUOTE)\]", re.IGNORECASE)
 SEQUENCE_CUE_PATTERN = re.compile(r"首先|其次|再者|再次|然后|接着|最后|第[一二三四五六七八九十\d]+步|[①-⑳]")
 TASK_LIST_RE = re.compile(r"^\s*[-*]\s+\[[ xX]]\s")
 ADVICE_CUE_PATTERN = re.compile(r"易错|注意|提示|陷阱|总结|归纳|对比")
@@ -1121,6 +1123,14 @@ def validate_text(
     findings.extend(validate_emphasis_syntax(text))
     findings.extend(validate_colors(text))
     findings.extend(validate_callouts_and_fences(text))
+    findings.extend(
+        Finding("E", "315", line, message)
+        for line, message in find_fragmented_quote_blocks(text)
+    )
+    findings.extend(
+        Finding("E", "316", line, message)
+        for line, message in find_overindented_sublists(text)
+    )
     if profile in {"legal-marknote", "legal-goldquest"}:
         findings.extend(validate_emoji_semantics(text))
         findings.extend(validate_line_color_diversity(text))
@@ -1240,6 +1250,8 @@ GATE_EXPLAIN: dict[str, str] = {
     "E204": "连续三行以上被同一颜色支配（该色占每行锚点≥60%）即拒绝——颜色失去索引意义。修法：换语义角色调色或加背景色形成对比，不要整段刷一色。",
     "E310": "Callout 指令行（> [!NOTE] …）前必须有空行（或块起始/标题/围栏边界），否则被解析为上一块的续行。修法：在指令行前补空行。",
     "E311": "列表项内容不得以有序列表标记开头（- 1. …、- （1）…、- ① …）。修法：去掉标记只留内容，或写成缩进的真实 1. … 子行。",
+    "E315": "引述块碎片化：同一段连续内容被空行拆成多个引述块，或前块以逗号/顿号/分号/冒号延续标记收尾后另起引述块。修法：合并为一个引述块——块内行保持 > 连续、内部分段写空的 > 行——或改写成普通正文/列表；只有真正独立（不同来源、不同 Callout 类型）的引述才允许空行分立。",
+    "E316": "标准列表缩进违规：子列表缩进必须落在父列表项内容列与内容列+3 的窗口内（- 父项内容列为 2，允许 2–5 列，技能惯例每级 4 空格；1. 为 3–6；10. 为 4–7）；顶层列表只能缩进 0–3 列；禁止用 tab 缩进（tab 按 4 列制表位展开，两个 tab = 8 列）。缩进超窗后该行不再解析为子列表，而是并入父项正文或变成缩进代码块，思源无法解析出嵌套。修法：按每级 4 空格重新缩进到父项内容列，或顶格书写。",
     "E509": "中等及以上复杂度解析至少要有一条围栏外、非判项行的 emoji 语义提示；✅/❌ 不计入。",
     "E510": "同一 emoji 在文档中出现超过 8 次——一个 emoji 只对应一个概念，分散使用。",
     "E512": "同一「emoji+词」组合出现≥6 处即判机械批量插入。修法：按每处概念的实际语义逐个选 emoji，禁脚本统一加。",

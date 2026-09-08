@@ -33,7 +33,7 @@ GENERIC_MERMAID_LABEL_PATTERN = re.compile(
     r"[A-D](?:项|选项)?(?:正确|错误|排除|当选|不当选|选|不选)?)$",
     re.IGNORECASE,
 )
-CALLOUT_DIRECTIVE_PATTERN = re.compile(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING)\]", re.IGNORECASE)
+CALLOUT_DIRECTIVE_PATTERN = re.compile(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING|INFO|QUOTE)\]", re.IGNORECASE)
 RELATION_CUE_PATTERN = re.compile(
     r"应当|不得|可以|只有|除非|若|如果|但|例外|前提|条件|程序|后果|承担|适用|导致|属于|"
     r"归于|先于|同时|之后|之前|不受|由[^，。；]{1,18}(?:承担|决定|负责|承受)"

@@ -18,6 +18,9 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
+from legal_quote_fragmentation_gate import find_fragmented_quote_blocks  # noqa: E402
+from legal_list_indent_gate import find_overindented_sublists  # noqa: E402
+
 ATTR_RE = re.compile(r'(?P<key>[A-Za-z][\w-]*)="(?P<value>[^"]*)"')
 IAL_LINE_RE = re.compile(r'^\{: [A-Za-z][\w-]*="[^"]*"(?: [A-Za-z][\w-]*="[^"]*")*\}$')
 CARD_ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -1343,6 +1346,14 @@ def validate(
             findings.append(Finding(locations[0], "E013", f"Topic ID {topic_id!r} is reused by {len(locations)} cards; confirm a narrower atomic topic mapping or raise the reviewed limit."))
     findings.extend(_priority_distribution_findings(accepted_priorities, accepted_card_lines[0] if accepted_card_lines else 1))
     findings.extend(_validate_emoji_semantics(text))
+    findings.extend(
+        Finding(line, "E134", message)
+        for line, message in find_fragmented_quote_blocks(text)
+    )
+    findings.extend(
+        Finding(line, "E135", message)
+        for line, message in find_overindented_sublists(text)
+    )
     if rich_style and accepted_card_lines and _is_rich_complex_deck(text, len(accepted_card_lines)):
         if emoji_card_count / len(accepted_card_lines) <= 0.8:
             findings.append(Finding(1, "E091", f"Rich decks must keep overall emoji coverage above 80% of accepted cards; {emoji_card_count}/{len(accepted_card_lines)} carry a semantic emoji cue. Add concept-anchored emoji to the bare cards (simple cards are the only tolerated minority)."))

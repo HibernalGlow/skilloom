@@ -23,6 +23,8 @@ from legal_goldquest_option_gate import validate_option_analysis  # noqa: E402
 from legal_goldquest_semantic_structure_gate import validate_semantic_structure, visual_families  # noqa: E402
 from legal_marknote_prose_gate import validate_marknote_prose_structure  # noqa: E402
 from legal_mermaid_semantics_gate import validate_mermaid_semantics  # noqa: E402
+from legal_quote_fragmentation_gate import find_fragmented_quote_blocks  # noqa: E402
+from legal_list_indent_gate import find_overindented_sublists  # noqa: E402
 
 ALLOWED_CALLOUTS = {"TIP", "NOTE", "IMPORTANT", "CAUTION", "WARNING", "QUESTION"}
 GENERIC_QUESTION_TITLE_PATTERN = re.compile(
@@ -856,8 +858,8 @@ def validate_sublist_runs(text: str) -> list[Finding]:
             run_indent, run_length, run_reported = None, 0, False
             continue
         if not stripped or IAL_PATTERN.fullmatch(stripped) or TASK_LIST_RE.match(line):
-            run_indent, run_length, run_reported = None, 0, False
             continue
+        match = LIST_ITEM_START_PATTERN.match(line)
         if match is None:
             run_indent, run_length, run_reported = None, 0, False
             continue
@@ -2009,6 +2011,14 @@ def validate_text(
     findings.extend(validate_emphasis_syntax(text))
     findings.extend(validate_colors(text))
     findings.extend(validate_callouts_and_fences(text))
+    findings.extend(
+        Finding("E", "315", line, message)
+        for line, message in find_fragmented_quote_blocks(text)
+    )
+    findings.extend(
+        Finding("E", "316", line, message)
+        for line, message in find_overindented_sublists(text)
+    )
     if profile in {"legal-marknote", "legal-goldquest"}:
         findings.extend(validate_emoji_semantics(text))
         findings.extend(validate_line_color_diversity(text))

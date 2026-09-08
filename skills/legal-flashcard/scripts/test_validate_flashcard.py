@@ -1055,6 +1055,25 @@ class CliStrictModeTests(unittest.TestCase):
         result = self.run_cli(["--require-report", "--rich-style"])
         self.assertEqual(result.returncode, 1)
 
+    def test_fragmented_quote_chain_rejected(self) -> None:
+        text = VALID + "\n> 诚信原则作为基本原则, 被称为帝王条款,\n\n> 是各国民法公认的基本原则.\n\n> 同时通说认为不得滥用权利.\n"
+        self.assertIn("E134", {finding.code for finding in validate(text)})
+
+    def test_independent_complete_quotes_pass(self) -> None:
+        text = VALID + "\n> 第一条独立法条，内容完整。\n\n> 第二条独立引述，内容完整。\n"
+        self.assertNotIn("E134", {finding.code for finding in validate(text)})
+
+    def test_overindented_sublist_rejected(self) -> None:
+        text = VALID + "\n- 父项\n\t\t- 子项\n"
+        self.assertIn("E135", {finding.code for finding in validate(text)})
+
+    def test_standard_four_space_sublist_passes(self) -> None:
+        self.assertNotIn("E135", {finding.code for finding in validate(VALID)})
+
+    def test_top_level_indented_list_rejected(self) -> None:
+        text = VALID + "\n前置段落\n\n    - 列表项\n"
+        self.assertIn("E135", {finding.code for finding in validate(text)})
+
 
 if __name__ == "__main__":
     unittest.main()
