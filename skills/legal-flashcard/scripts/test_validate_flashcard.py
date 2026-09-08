@@ -6,7 +6,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from validate_flashcard import has_blocking_findings, validate, validate_ordinary
+from validate_flashcard import (
+    _back_callout_violations,
+    _strip_selection_carrier,
+    _substantive_answer_lines,
+    has_blocking_findings,
+    validate,
+    validate_ordinary,
+)
 
 
 VALID = """- **成立要件**{: style=\"color: var(--b3-font-color10);\"}是什么？ #法考/民法/债法/成立要件# #闪卡/优先级/P1#
@@ -1073,6 +1080,41 @@ class CliStrictModeTests(unittest.TestCase):
     def test_top_level_indented_list_rejected(self) -> None:
         text = VALID + "\n前置段落\n\n    - 列表项\n"
         self.assertIn("E135", {finding.code for finding in validate(text)})
+
+
+class CaseCardSelectionCarrierTests(unittest.TestCase):
+    """The cc-1 option carrier is front space, not answer text (references/case-card.md)."""
+
+    BODY = """- ⚖️ **授权范围**{: style="color: var(--b3-font-color10);"}到哪一步？ #法考/民诉/委托代理# #闪卡/优先级/P1#
+
+  > [!SELECTION]
+  >
+  > - [ ] A. 签署调解协议
+  > - [ ] B. 签收调解书
+
+    - 正确答案：A。
+      - ![InkLoom 动图：授权阶段](https://example.invalid/stage.avif)
+
+      > [!WARNING] 授权按阶段切断
+      >
+      > - 越界即无权
+"""
+
+    def test_selection_carrier_is_stripped_from_the_answer_view(self):
+        stripped = _strip_selection_carrier(self.BODY)
+        self.assertNotIn("[!SELECTION]", stripped)
+        self.assertNotIn("签署调解协议", stripped)
+        self.assertIn("正确答案：A", stripped)
+
+    def test_selection_carrier_is_not_a_back_callout_violation(self):
+        self.assertEqual(_back_callout_violations(self.BODY, "list"), [])
+
+    def test_other_shallow_callouts_still_violate(self):
+        self.assertTrue(_back_callout_violations(self.BODY.replace("[!SELECTION]", "[!NOTE]"), "list"))
+
+    def test_carrier_image_line_is_not_answer_prose(self):
+        lines = _substantive_answer_lines(self.BODY, "list")
+        self.assertFalse([line for line in lines if line.strip().startswith("![")])
 
 
 if __name__ == "__main__":

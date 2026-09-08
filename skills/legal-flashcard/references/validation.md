@@ -37,7 +37,7 @@ When `--rich-style` is supplied for a medium/complex dedicated deck, these GoldQ
 - `E069`: a medium/complex rich deck has fewer than four semantic foreground colors; build a role dictionary instead of cycling a sparse palette.
 - `E070`: the generation report is missing or is not exactly one parseable YAML fenced block containing report counts, `report.priorities` (P1-P4), and source/protocol fields.
 - `E071`: the YAML report/source block is not the final nonblank block.
-- `E074`: in rich mode, a substantive answer line of at least fourteen visible characters has no short semantic color/background anchor. Cloze/mnemonic highlights only satisfy this line when they are the intentional retrieval target.
+- `E074`: in rich mode, a substantive answer line of at least fourteen visible characters has no short semantic color/background anchor. Cloze/mnemonic highlights only satisfy this line when they are the intentional retrieval target. A standalone carrier image line is not answer prose and never counts — `W126`/`E063` ask for that image on the back.
 - `E075`: in rich mode, a multi-sentence answer line has fewer than one semantic color anchor per one or two sentences.
 - `E076`: in rich mode, a recurring subject or legal concept is colored in one answer occurrence but left plain in another; reuse the role color on every answer occurrence.
 - `E080`: adjacent accepted cards have at least 60% weighted foreground-anchor overlap, or the same color supplies at least half of each card's foreground anchors; diversify source-grounded roles or reorder the cards.
@@ -46,7 +46,7 @@ When `--rich-style` is supplied for a medium/complex dedicated deck, these GoldQ
 - `E083`: a memory-link Callout title is styled, lacks a colon plus specific linked target, or uses a generic target such as `相关考点`; keep the title plain and name what to compare or connect.
 - `E084`: a rich deck of at least four cards has substantive Callouts in fewer than `ceil(accepted cards / 6)` card units; root and nested Callouts both count when they carry a real semantic peak.
 - `E085`: a rich card explicitly contains an exception, trap, confusion, risk, or memory-link cue but has no root or nested Callout.
-- `E086`: a Callout inside a list card sits at the same depth as the direct answer items instead of inside the answer sub-list; indent it deeper than the answers or write the note as a normal sub-list item.
+- `E086`: a Callout inside a list card sits at the same depth as the direct answer items instead of inside the answer sub-list; indent it deeper than the answers or write the note as a normal sub-list item. The `> [!SELECTION]` option carrier of a wrong-answer Case card is the documented exception — it is front space (SiYuan hides only the root item's child lists), so it is excluded from this gate and from the answer-side style and length gates; see [case-card.md](case-card.md).
 - `E087`: a card body contains a leftover card container — a nested `custom-dm-*` attribute line from an already-cardified source range; strip the marker completely instead of keeping the block.
 - `E088`: `report.priorities` is missing or does not match the accepted cards' actual `#闪卡/优先级/P1#`-`P4#` distribution; the four counts must sum to `report.accepted`.
 - `E089`: P2 has become the default tier — in a deck of at least four cards, more than half sit in `P2`; recompare priorities against the source and differentiate a real lower-yield tier instead of defaulting to P2.

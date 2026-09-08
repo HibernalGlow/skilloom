@@ -92,7 +92,14 @@ ALLOWED = {
 }
 KINDS = {"basic", "cloze", "mnemonic"}
 RENDERERS = {"list", "mark", "blockquote", "callout"}
+# The wrong-answer Case card's option carrier; it is front content, not a back Callout.
+SELECTION_CARRIER_TYPE = "SELECTION"
 MNEMONIC_GENERIC_LABELS = {"口诀", "记忆口诀", "记忆线索", "线索", "提示", "记忆点", "口诀卡"}
+# The cc-1 back memory carrier, sibling of the `SELECTION` option carrier.
+MNEMONIC_CARRIER_RE = re.compile(
+    r"^\s*>\s*\[!?(?:MNEMONIC|(?:TIP|NOTE|IMPORTANT)[^\]\n]*(?:记忆|口诀|助记|谐音|取字|首字))\]",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -500,6 +507,12 @@ def _back_callout_violations(card_body: str, renderer: str | None) -> list[int]:
     indented deeper than the direct answer items. A Callout at answer-item depth
     renders as a sibling of the answer list and breaks the card's retrieval unit;
     write it nested into the sub-list or as a plain sub-list item instead.
+
+    The `SELECTION` carrier is the documented exception: a wrong-answer Case card
+    (see references/case-card.md) keeps its `- [ ]` options in a `> [!SELECTION]`
+    block at the root item's own column, because SiYuan only hides the root item's
+    child *lists*, so the options stay on the front while the answer sub-list below
+    them stays on the back.
     """
     if renderer not in {"list", "mark"}:
         return []
@@ -515,10 +528,52 @@ def _back_callout_violations(card_body: str, renderer: str | None) -> list[int]:
             continue
         if in_fence or MEMORY_LINK_CUE_RE.search(line) or "[!" not in line:
             continue
-        match = re.match(r"^(?P<indent> *)(?:>\s+)?\[![A-Za-z][A-Za-z0-9_-]*\]", line)
+        match = re.match(r"^(?P<indent> *)(?:>\s+)?\[!(?P<type>[A-Za-z][A-Za-z0-9_-]*)\]", line)
+        if match and match.group("type").upper() == SELECTION_CARRIER_TYPE:
+            continue
         if match and len(match.group("indent")) <= answer_indent:
             violations.append(index)
     return violations
+
+
+def _carries_mnemonic_carrier(card_body: str) -> bool:
+    """Return whether the card back carries its mnemonic in a dedicated Callout block.
+
+    A wrong-answer Case card keeps the source's implicit mnemonic on the back as a
+    `> [!MNEMONIC]` block holding a highlighted cue plus its decoded segments, which is the
+    sibling of the front `SELECTION` option carrier and answers `W128` without a second card.
+    """
+    lines = card_body.splitlines()
+    for index, line in enumerate(lines):
+        if not MNEMONIC_CARRIER_RE.match(line):
+            continue
+        for body in lines[index + 1:]:
+            if not body.lstrip().startswith(">"):
+                break
+            if re.search(r"==[^=\n]{1,8}==", body) and re.search(r"[—:：→]", body):
+                return True
+    return False
+
+
+def _strip_selection_carrier(card_body: str) -> str:
+    """Drop the `> [!SELECTION]` option carrier from the answer-side view of a Case card.
+
+    The carrier is front space: SiYuan only hides the root item's child lists, so its verbatim
+    `- [ ]` options stay visible while the learner judges. Answer-side gates (provider styles,
+    color density, item length) must not read those quoted option lines as answer text.
+    """
+    kept: list[str] = []
+    in_carrier = False
+    for line in card_body.splitlines():
+        if re.match(r"^\s*>\s*\[!SELECTION\]", line, re.IGNORECASE):
+            in_carrier = True
+            continue
+        if in_carrier:
+            if line.lstrip().startswith(">") or not line.strip():
+                continue
+            in_carrier = False
+        kept.append(line)
+    return "\n".join(kept)
 
 
 def _leftover_card_container_lines(lines: list[str], cards: list[tuple[int, int, dict[str, str], str, list[str]]]) -> list[int]:
@@ -664,6 +719,10 @@ def _substantive_answer_lines(card_body: str, renderer: str | None) -> list[str]
             continue
         stripped = line.strip()
         if re.match(r"^#{1,6}\s+", stripped) or re.match(r"^\|.*\|$", stripped):
+            continue
+        # A carrier image is not answer prose: `W126`/`E063` ask for it on the back, and its
+        # URL would otherwise count as an uncolored "substantive" line.
+        if re.match(r"^!\[[^\]]*\]\([^)]*\)$", stripped):
             continue
         tag_candidate = re.sub(r"^>\s*", "", stripped)
         if re.match(r"^>\s+\[![A-Z]+\]", stripped) or re.fullmatch(r"#[^#]+#(?:\s+#[^#]+#)*", tag_candidate):
@@ -1013,6 +1072,7 @@ def validate(
     deck_card_foregrounds: list[Counter[str]] = []
     deck_callout_card_count = 0
     mnemonic_card_count = 0
+    mnemonic_carrier_card_count = 0
     emoji_card_count = 0
     source_global_styles: set[str] = set()
     source_topic_styles: dict[str, set[str]] = {}
@@ -1072,6 +1132,7 @@ def validate(
         if RUNTIME_RE.search(raw) or RUNTIME_RE.search("\n".join(lines[max(0, start - 8): min(len(lines), end + 8)])):
             findings.append(Finding(start + 1, "E014", "Runtime scheduling or Riff fields leaked into the card block."))
         root_index, card_body = _card_body(lines, start, renderer)
+        card_body = _strip_selection_carrier(card_body)
         root = lines[root_index].strip() if root_index is not None else ""
         front = _front_line(card_body, renderer)
         front_without_tags = re.sub(r"#[^#\s]+#", "", front)
@@ -1135,6 +1196,8 @@ def validate(
             deck_callout_card_count += 1
         if kind == "mnemonic":
             mnemonic_card_count += 1
+        if _carries_mnemonic_carrier(card_body):
+            mnemonic_carrier_card_count += 1
         card_has_emoji = _has_semantic_emoji_cue(card_body)
         if card_has_emoji:
             emoji_card_count += 1
@@ -1357,10 +1420,10 @@ def validate(
     if rich_style and accepted_card_lines and _is_rich_complex_deck(text, len(accepted_card_lines)):
         if emoji_card_count / len(accepted_card_lines) <= 0.8:
             findings.append(Finding(1, "E091", f"Rich decks must keep overall emoji coverage above 80% of accepted cards; {emoji_card_count}/{len(accepted_card_lines)} carry a semantic emoji cue. Add concept-anchored emoji to the bare cards (simple cards are the only tolerated minority)."))
-    if source_text is not None and mnemonic_card_count == 0 and (
+    if source_text is not None and not mnemonic_card_count and not mnemonic_carrier_card_count and (
         MNEMONIC_SOURCE_CUE_RE.search(source_text) or MEMORY_CALLOUT_CUE_RE.search(source_text)
     ):
-        findings.append(Finding(1, "W128", "The source contains mnemonic material (a 口诀 label or an implicit mnemonic via inline-code sequence or memory Callout); turn it into a mnemonic card with a highlighted cue and decoded segments so it stays retrievable."))
+        findings.append(Finding(1, "W128", "The source contains mnemonic material (a 口诀 label or an implicit mnemonic via inline-code sequence or memory Callout); turn it into a mnemonic card, or carry it on the back in a `> [!MNEMONIC]` block with a highlighted cue and its decoded segments (see references/case-card.md)."))
     if rich_style:
         findings.extend(_validate_rich_deck(text, deck_card_styles, deck_card_foregrounds, len(accepted_card_lines), deck_callout_card_count))
     if require_report:
