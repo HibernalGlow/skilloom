@@ -154,6 +154,10 @@ def parse_ial_blocks(
 
 def _visible_text(text: str) -> str:
     text = re.sub(r'\{:\s*[^}]*\}', "", text)
+    # Inline markup tags are invisible to the reader (`<em>`, `<u>`, `<br />` are all
+    # sanctioned by the card contract); strip the tag syntax, not just its angle brackets,
+    # so their names do not inflate a visible-character budget.
+    text = re.sub(r"</?[a-zA-Z][^>]*>", "", text)
     text = re.sub(r"[*_=`~<>]", "", text)
     return re.sub(r"\s+", "", text)
 
@@ -536,6 +540,26 @@ def _back_callout_violations(card_body: str, renderer: str | None) -> list[int]:
     return violations
 
 
+def _mnemonic_carrier_block(card_body: str) -> str:
+    """Return the `> [!MNEMONIC]` carrier block of a Case card, or an empty string.
+
+    The block is the mnemonic region of the back: its highlighted cue may run past the
+    six-character cap that applies to ordinary highlights, and the decoded original is
+    quoted material rather than a restatement of the card's own answer.
+    """
+    lines = card_body.splitlines()
+    for index, line in enumerate(lines):
+        if not MNEMONIC_CARRIER_RE.match(line):
+            continue
+        block = [line]
+        for body in lines[index + 1:]:
+            if not body.lstrip().startswith(">"):
+                break
+            block.append(body)
+        return "\n".join(block)
+    return ""
+
+
 def _carries_mnemonic_carrier(card_body: str) -> bool:
     """Return whether the card back carries its mnemonic in a dedicated Callout block.
 
@@ -543,16 +567,8 @@ def _carries_mnemonic_carrier(card_body: str) -> bool:
     `> [!MNEMONIC]` block holding a highlighted cue plus its decoded segments, which is the
     sibling of the front `SELECTION` option carrier and answers `W128` without a second card.
     """
-    lines = card_body.splitlines()
-    for index, line in enumerate(lines):
-        if not MNEMONIC_CARRIER_RE.match(line):
-            continue
-        for body in lines[index + 1:]:
-            if not body.lstrip().startswith(">"):
-                break
-            if re.search(r"==[^=\n]{1,8}==", body) and re.search(r"[—:：→]", body):
-                return True
-    return False
+    block = _mnemonic_carrier_block(card_body)
+    return bool(block) and bool(re.search(r"==[^=\n]{1,10}==", block)) and "→" in block
 
 
 def _strip_selection_carrier(card_body: str) -> str:
@@ -1305,7 +1321,10 @@ def validate(
         if attrs.get("custom-dm-card-kind") == "cloze" and "==" not in card_body:
             findings.append(Finding(start + 1, "E019", "cloze cards need an explicit short ==term== target."))
         if kind != "mnemonic":
+            mnemonic_block = _mnemonic_carrier_block(card_body)
             for highlight in re.findall(r"==([^=\n]+)==", card_body):
+                if mnemonic_block and f"=={highlight}==" in mnemonic_block:
+                    continue
                 if len(_visible_text(highlight)) > 6:
                     findings.append(Finding(start + 1, "E029", "Non-mnemonic highlights must not exceed six visible characters."))
         if attrs.get("custom-dm-card-kind") == "mnemonic":
