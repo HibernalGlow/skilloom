@@ -71,7 +71,7 @@ def validate_marknote_richness(text: str) -> list[Finding]:
             if re.match(r"^#{3,6}\s+", stripped):
                 has_subheading = True
             continue
-        if re.match(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING|QUESTION)\]", line):
+        if re.match(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING|QUESTION|INFO|QUOTE)\]", line):
             has_callout = True
             continue
         if re.match(r"^\s*-\s+", line):

@@ -303,7 +303,7 @@ def validate_goldquest(text: str) -> list[Finding]:
                 if re.match(r"^######\s+(?!答案与解析).+", stripped):
                     has_analysis_subheading = True
                 continue
-            if re.match(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING)\]", line):
+            if re.match(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING|INFO|QUOTE)\]", line):
                 has_analysis_callout = True
                 continue
             if re.match(r"^\s*-\s+", line):

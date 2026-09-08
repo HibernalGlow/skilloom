@@ -45,6 +45,8 @@ For dedicated rich cards, treat the color table as a soft semantic hint. Build a
 - Vary colors across adjacent back lines: three consecutive lines dominated by the same color fail `E096` — different semantic roles on neighboring answer items should switch colors (or add a background) so the palette stays a readable index instead of a wash.
 - Split long back items semantically, like MarkNote/GoldQuest: when an answer line or a nested sub-list item exceeds about 42 visible characters or joins several clauses, split it by semantics (not by punctuation alone) into a governing parent plus deeper child items; steps/procedures/sequences use ordered `1.` children. A flat long item fails `E097` — flat backs full of long lines are unfinished.
 - Callouts need a blank line before them: every Callout directive must be preceded by a blank line (or the start of a block, another quote line, a heading, or a fence boundary), otherwise it is parsed as continuation text and not recognized (`E098`).
+- 引述块碎片化同样是硬门禁（`E134`）：一段连续内容只允许占一个引述块——块内行保持 `> ` 连续，内部分段写空的 `>` 行。不得用空行把同一段连续内容拆成一串单行引述块，也不得让前一引述块以逗号/顿号/分号/冒号延续标记收尾后空行另起引述块；只有真正独立（不同来源、不同 Callout 类型）的引述才允许空行分立。
+- 标准列表缩进同样是硬门禁（`E135`）：子列表缩进必须落在父列表项内容列与内容列 +3 的窗口内——`- ` 父项内容列为 2（允许 2–5 列，每级 4 空格）；`1. ` 为 3（3–6 列）；`10. ` 为 4（4–7 列）；顶层列表只能缩进 0–3 列；禁止用 tab 缩进（tab 按 4 列制表位展开，两个 tab = 8 列）。超出窗口后 CommonMark 不再把该行当作子列表，而是并入父项正文或解析为缩进代码块，思源无法解析出嵌套层级。修法：按每级 4 空格重新缩进到父项内容列，或顶格书写。
 - A list item's text must not begin with an ordered-list marker: `- 1. …`, `- （1）…`, `- ① …`, `- 1、…` are read as a nested ordered list and misrecognized — remove the leading marker, or write each numbered branch as its own indented real `1. …` child line (`E099`).
 
 ## References
