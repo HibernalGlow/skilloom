@@ -9,6 +9,7 @@ from pathlib import Path
 from validate_flashcard import (
     _back_callout_violations,
     _carries_mnemonic_carrier,
+    _mnemonic_carrier_block,
     _strip_selection_carrier,
     _substantive_answer_lines,
     has_blocking_findings,
@@ -1121,6 +1122,10 @@ class CaseCardSelectionCarrierTests(unittest.TestCase):
 class CaseCardMnemonicCarrierTests(unittest.TestCase):
     """A Case card may carry the source's implicit mnemonic on the back (references/case-card.md)."""
 
+    IAL = ('{: custom-dm-source-key="cp-08" custom-dm-card-id="fc-cp-mnemonic-v1" '
+           'custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" '
+           'custom-qb-note-topic-id="cp-agent"}')
+
     def _body(self, kind: str, title: str) -> str:
         return self.BACK.replace("{kind}", kind).replace("{title}", title)
 
@@ -1149,6 +1154,23 @@ class CaseCardMnemonicCarrierTests(unittest.TestCase):
     def test_carrier_without_a_highlighted_cue_does_not_count(self):
         body = self._body("MNEMONIC", "口诀：执行另授权").replace("==执行另授权==", "执行另授权")
         self.assertFalse(_carries_mnemonic_carrier(body))
+
+    def test_original_sentence_plus_seven_character_cue_counts(self):
+        body = self._body("MNEMONIC", "戴鹏技巧句").replace(
+            "==执行另授权== → 未明确授予即无权",
+            "原句：当事人没有明确授予执行程序中的代理权\n        >\n        > - ==未明代理仅一二== → 未明确授予执行代理权",
+        )
+        self.assertTrue(_carries_mnemonic_carrier(body))
+
+    def test_mnemonic_region_is_exempt_from_other_callout_gates(self):
+        body = self._body("MNEMONIC", "戴鹏技巧句").replace(
+            "==执行另授权== → 未明确授予即无权",
+            "==未明代理仅一二== → 未明确授予执行代理权，仅限一审二审",
+        )
+        self.assertEqual(_back_callout_violations(body, "list"), [])
+        self.assertEqual(_mnemonic_carrier_block(body).count("未明代理仅一二"), 1)
+        codes = {finding.code for finding in validate(body + self.IAL)}
+        self.assertNotIn("E029", codes)
 
 
 if __name__ == "__main__":

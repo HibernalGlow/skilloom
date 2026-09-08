@@ -38,12 +38,16 @@ The card root is the compressed stem item. Its `> [!SELECTION]` option carrier s
         > - <真实误选记录>🧨：<误选项>
         > - <边界一句话>
 
-        > [!MNEMONIC] 口诀：<三字到六字缩写>
+        > [!MNEMONIC] <题源或 06-口诀 的标签>
         >
-        > - ==<缩写原样>== → <以自问句写出的解码，不复述裁决用词>
+        > - 原句：<来自 06-口诀 或题源的口诀/技巧原句，逐字>
+        > - ==<七字以内取字简写>== → <短展开>
 
       - 决断口径：<一句>
         - <一句>
+      - <em>联系记忆</em>：与<兄弟卡或题源规则>同轴
+        - <一句轴>
+        - <与某规则同形：一句>
 
     ```yml
     cc:
@@ -56,6 +60,7 @@ The card root is the compressed stem item. Its `> [!SELECTION]` option carrier s
       mnemonic: "<口诀原句>"
       mnemonic_from: "<06-口诀 或题源路径#行号>"
       animation: "<题源动图文件名>"
+      links: "<兄弟卡 custom-dm-card-id 或 note-topic-id>（同轴｜同形｜反向：<轴>）"
       history: "<真实作答：日期 选项>"
     ```
 {: custom-dm-source-key="…" custom-dm-card-id="…" custom-dm-card-schema="1" custom-dm-card-kind="basic" custom-dm-card-renderer="list" custom-qb-note-topic-id="…"}
@@ -76,17 +81,18 @@ If a build lacks them, the exercise silently indexes zero options; re-check with
 2. **The front carries zero hints.** No `作答：＿＿＿`, no `先想清楚…`, no 考点 name, no answer word. The front is the compressed stem plus the question; `E092` still caps it at 70 visible characters, and `E079`'s "no exercise replay" is satisfied by compression and role-neutral parties (原告/被告/担保人/申请人), not by deleting the trap facts.
 3. **Analyze every option the learner did not already get right.** A stable mis-selection needs 规则 + 错因 + 判断链; an option that was once *missed* needs the reason for the doubt ("把签收当成当事人本人的事"); an option selected correctly every time gets one line and the note 不必重记. Skipping a missed option is the same defect as skipping a wrong one.
 4. **The back carries its own reasoning Mermaid** with the learner's 误判入口 as a `wrong`-classed node feeding the decision node, and it keeps the provider's own visual: when the source range already has an InkLoom animation or diagram for this rule, copy that image under the governing child instead of drawing a rival one (`W126`).
-5. **Carry the mnemonic on the back — only when one already exists.** Mount it as a `> [!MNEMONIC]` block, the back-side sibling of the front `SELECTION` carrier, holding a `==cue==` of at most eight visible characters plus its decoded segment after `→`. Source priority: (1) a 口诀/速记/技巧句 already written in the provider or in `客观/06-口诀` — quote it and highlight **its own** words as the cue; (2) only when no usable cue exists and the rule is a closed list worth compressing, build the cue by 取字/首字 from the source's own words; (3) when neither applies, emit no `MNEMONIC` block — a cue invented to satisfy a gate is rejected. Phrase the decode with source vocabulary so the provider styles still line up (`E041`), and keep it a self-check rather than a restatement of the verdict (`E095`). Record the verbatim original and its path in the `yml` block (`mnemonic`, `mnemonic_from`). The carrier answers `W128`; a separate `mnemonic` card is needed only when the cue itself is the unit being drilled.
-6. **Attributes split three ways.** The root IAL carries only the six schema-1 fields; Case identity, tier, trap, decision, mnemonic source, animation and attempt history live in the last visible ` ```yml ` block; runtime state (`custom-riff-decks`, due, interval, review log) is never written.
-7. **Tags live on the front line.** `E097` counts tag characters, so the 题库 题型/年份 tags sit on the front with the knowledge and priority tags instead of on the 正确答案 line.
-8. **`reinforce` cards get a second question.** When two wrong attempts fell into different traps, emit a variant card whose changed fact pattern flips the answer, and name the flip on the back.
+5. **Carry the mnemonic on the back — only what the source already has.** Mount it as a `> [!MNEMONIC]` block, the back-side sibling of the front `SELECTION` carrier, whose first line quotes the 06-口诀 or provider sentence **verbatim**, and — only when that sentence is too long to recall — adds a second line with a `==取字简写==` of at most seven characters plus its short expansion after `→`. If no sentence was actually found in the provider or in `客观/06-口诀`, emit no `MNEMONIC` block: an extracted-then-compressed cue is allowed, an invented one is not, and `W128` only fires when the source really carries mnemonic material. Record the verbatim original and its path in the `yml` block (`mnemonic`, `mnemonic_from`). The whole block is the card's mnemonic region: the validator exempts it from the six-character highlight cap (`E029`), from the Callout-must-not-restate-the-answer gate (`E095`), and from the back Callout depth rule (`E086`), and it answers `W128` without a second card. Keep the wording on source vocabulary so provider styles still line up (`E041`).
+6. **Link the siblings both ways.** A Case card is filed under one decision axis, so the other cards on that axis are its memory net: name each one under 联系记忆 with the axis label 同轴 / 同形 / 反向, and write the reciprocal line into every linked card (A 里写 B、C；B 里写 A、C；C 里写 A、B). Cross-专题 links inside one subject are in scope; cross-subject links follow `客观/06-口诀/**/三诉对比记忆表` rows only, where a cell reading `同民诉` is a 同轴 statement — see [answer-structure.md](answer-structure.md#reciprocal-and-cross-scope-links). Targets are a `custom-dm-card-id` or a note/question-topic id, never "对比记忆". No verified relation, no link line.
+7. **Attributes split three ways.** The root IAL carries only the six schema-1 fields; Case identity, tier, trap, decision, mnemonic source, animation, links and attempt history live in the last visible ` ```yml ` block; runtime state (`custom-riff-decks`, due, interval, review log) is never written.
+8. **Tags live on the front line.** `E097` counts tag characters, so the 题库 题型/年份 tags sit on the front with the knowledge and priority tags instead of on the 正确答案 line.
+9. **`reinforce` cards get a second question.** When two wrong attempts fell into different traps, emit a variant card whose changed fact pattern flips the answer, and name the flip on the back.
 
 ## Measured gate behaviour for this shape
 
 - **One ` ```yaml ` fence per file** (`E070`): the deck report owns that name, so the Case metadata fence is ` ```yml `; `source.protocol` must be exactly `"DAMO 闪卡 schema 1"`.
 - **`E041` is substring-based and coloring is longest-match.** A provider term that only ever occurs inside a longer colored term (`程序` in `执行程序`, `特别授权` in `特别授权⭐`), inside a fence, or inside the option carrier is reported as a dropped style — give it one independent colored occurrence or reword, and never place an emoji directly after a term whose emoji-suffixed twin exists in the dictionary.
 - **`E086` exempts the `SELECTION` carrier** by contract: it is front space, not a back Callout. Any other Callout still has to sit deeper than the direct answer items.
-- **`W128` is answered by the `MNEMONIC` carrier** on a Case card: the block needs its `==cue==` (six visible characters outside a `mnemonic` card, `E029`) and a `→`-decoded segment, must be separated from a neighbouring Callout by a blank line (`E098`), and stays one continuous quote run (`E134`). Never add the block when the source has no mnemonic material to carry.
+- **`W128` is answered by the `MNEMONIC` carrier** on a Case card: the block needs its `==cue==` and a `→`-decoded segment, must be separated from a neighbouring Callout by a blank line (`E098`), and stays one continuous quote run (`E134`). The block is the card's mnemonic region, so `E029`'s six-character highlight cap, `E095`'s restate-the-answer rule, and `E086`'s depth rule all skip it; a `mnemonic`-kind card is the only other way to satisfy `W128`. Never add the block when the source has no mnemonic material to carry.
 - **`E074` skips a carrier image line**; every other answer line of 14+ visible characters needs its provider anchor.
 - **`E027`**: at most four direct answer items — the 正确答案 line plus three verdicts; merge verdicts that share one verdict (`✅ A、C 可以代为`) and keep the per-option detail beneath them.
 - **Sparse provider palettes** still need three short background anchors (`E062`) and four auxiliary families (`E060`): promote the term's own background variant rather than inventing a color, and keep one style per term (`E076`).
@@ -99,4 +105,4 @@ Recorded, not defects: `E822` (题库 tags move to the front line), `E802` (`cus
 
 ## Completion criterion
 
-One wrong-answer record produces one heading, one card root, one option carrier with verbatim choices, and one back that answers every option the learner did not reliably pick; the front is hint-free; the back carries the reasoning Mermaid with the learner's own 误判入口, the provider's existing animation, and the corpus 口诀 with its path; the IAL holds only the six schema-1 fields; `validate_flashcard.py --require-report --rich-style --all` reports zero `E`; and `/api/block/getBlockKramdown` of the pasted document scans into the expected options, type, machine answer, and a stem that contains no answer text.
+One wrong-answer record produces one heading, one card root, one option carrier with verbatim choices, and one back that answers every option the learner did not reliably pick; the front is hint-free; the back carries the reasoning Mermaid with the learner's own 误判入口, the provider's existing animation, the corpus 口诀 with its path, and reciprocal 联系记忆 lines toward every sibling card on the same axis; the IAL holds only the six schema-1 fields; `validate_flashcard.py --require-report --rich-style --all` reports zero `E`; and `/api/block/getBlockKramdown` of the pasted document scans into the expected options, type, machine answer, and a stem that contains no answer text.

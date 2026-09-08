@@ -109,6 +109,25 @@ Add a memory link only when the supplied source or another accepted card establi
 
 Keep the nested Callout indented into the answer sub-list — strictly deeper than the direct answer items — so it remains on the card back. The title stays plain text and names the exact linked doctrine, card, or rule; `联系记忆` alone, `相关考点`, or `与其他制度比较` is not enough. The body states one relation axis and normally stays within one short item. If the block needs the linked doctrine's full definition, elements, exceptions, or effects, keep that content in its sibling card and shorten this block to the connecting axis. Do not add a memory link merely to vary the layout.
 
+### Reciprocal and cross-scope links
+
+A relation that exists in both directions must be written in both directions. When one family of cards shares a single scoring axis — the same institution across 刑诉/民诉/行诉, or the same reasoning shape across different 专题 — every member names the other members: **A 里写 B、C；B 里写 A、C；C 里写 A、B**. A one-sided link is a defect: the learner only meets the relation from the side that happens to be reviewed first.
+
+Name the relation with one of three axes so the link states what to do with it:
+
+| Axis | Meaning on the card back | Typical use |
+| --- | --- | --- |
+| 同轴 | Same rule, different subject or 专题 | 三诉共有的回避、级别管辖、地域管辖、起诉条件、简易程序、二审、撤诉、证明责任、证据、反诉 |
+| 同形 | Same reasoning shape, different content | "没写明即没有" in 特别授权 and in 全权代理 |
+| 反向 | Opposite conclusion after one fact changes | 出差一年多 vs 下落不明；本人拒签 vs 担保人拒签 |
+
+Scope rules:
+
+- **Cross-subject**: `客观/06-口诀/**/三诉对比记忆表` is the authority. Cite the row it links through, and treat a cell reading `同民诉`/`同刑诉` as a 同轴 statement whose base column is the quoted subject. Only link the subjects the row actually covers.
+- **Cross-专题, same subject**: link when two 专题 rules are the same, similar, or opposite on one axis; name the other 专题's rule, not its chapter number.
+- **Target traceability**: name each target by its `custom-dm-card-id` when the card exists, otherwise by its `custom-qb-note-topic-id` / question-topic id plus a plain-language label, so the question bank's topic relations can resolve the edge. A link that only says "对比记忆" is unresolvable.
+- **No forced links**: extract the relation from the source, the corpus table, or an accepted sibling card. If nothing was actually found, emit no link — an invented relation is worse than none, and the same discipline that forbids inventing a 口诀 forbids inventing an axis.
+
 ## Completion checklist
 
 - The back carrier follows the source relationship, not a format quota.
