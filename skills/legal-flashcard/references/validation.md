@@ -69,6 +69,19 @@ When `--rich-style` is supplied for a medium/complex dedicated deck, these GoldQ
 - `E131`: most semantic emoji pile up at sentence ends (≥70%); hard gate — put each emoji directly on the concept word it marks (one emoji per parallel concept) so the term and the icon are visually bound.
 - `E132`: most semantic emoji bunch up at line heads as label prefixes (≥70%); hard gate — embed emoji inside the answer content next to the concept words they mark so the icons appear in the content.
 - `E133`: at least half the deck's semantic emoji float without a neighboring concept word (dangling at line ends, clause boundaries, or between punctuation); hard gate — anchor each icon directly beside its term (词前或词后紧贴概念词), never as loose decoration.
+
+### Structural gates from the sibling modules
+
+`validate_flashcard.py` also runs three imported gates, so a deck cannot pass while carrying these shapes:
+
+- `E134` (quote-fragmentation gate): one continuous quoted passage split by blank lines into several `>` blocks, or a block ending in a comma/semicolon/colon tail followed by another quote block.
+- `E135` (list-indent gate): a sub-list indented outside the CommonMark nesting window (parent content column to +3), which SiYuan cannot parse as nesting.
+- `E136` (cc-1 gate): an answer-marker line carrying an inline style (`**正确**{: style=…}答案：A。`). The question bank reads the solution boundary from that line's literal text, so styling it silently drops the whole question from the index while the card still looks valid.
+- `E137` (cc-1 gate): a Case card missing its `> [!SELECTION]` option carrier, carrying fewer than two quoted `- [ ]` options, or missing the visible `cc:` identity block.
+- `E138` (cc-1 gate): a fence or image inside a `list` card starting left of the answer items' **content column** — computed as `marker column + marker width + the gap after the marker`, never a hard-coded number of spaces. Such a block becomes a direct child of the root item and SiYuan leaves it visible on the front before the card is flipped.
+- `E140` (cc-1 gate, needs `--focus-index focus-index.json`): the card's prose mentions a same-subject 考前聚焦 考点 — from any of 题干/选项/解析/口诀, not only the main 考点 — while the front line lacks `#考前聚焦/<科目>/<考点名>#`. Tags, inline styles, and fenced blocks never count as 涉及, and cross-subject homonyms are reported by the tool for human confirmation instead of being forced.
+- `E141` (cc-1 gate): four or more consecutive same-level list items with no children inside a Case card — a sibling wall. Regroup under a governing parent or split by semantic axis; reasoning-slot runs (大前提/小前提/结论…) are exempt because they are one axis by contract.
+- `E139` (cc-1 gate): a carrier option that does not equal the provider's option after exactly the swaps declared in `cc: roles:`. Party names may be neutralized only by declaration; modal words, numeric thresholds, deadlines, and every other character stay verbatim, and no option may be added or dropped.
 - `E078`: a front asks for a sequence, procedure, stage, or order but the direct answer children are unordered peer bullets without a necessary table/Mermaid carrier.
 - `E079`: the front reproduces a source exercise or case question; extract a neutral reusable rule or reject the case candidate.
 
