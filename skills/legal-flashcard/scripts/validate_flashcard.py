@@ -207,14 +207,17 @@ def _ngrams(text: str, size: int = 6) -> set[str]:
 
 
 def _validate_callout_value(card_body: str, card_line: int) -> list[Finding]:
-    """A Callout must add value: its body must not mostly repeat the card's non-Callout text (E095)."""
+    """A Callout must add value: its body must not mostly repeat the card's non-Callout text (E095).
+
+    The `MNEMONIC` carrier is exempt: quoting the source's own 口诀 sentence is the whole point.
+    """
     findings: list[Finding] = []
     non_callout = "\n".join(line for line in card_body.splitlines() if not line.lstrip().startswith(">"))
     non_callout_grams = _ngrams(non_callout)
     lines = card_body.splitlines()
     for index, line in enumerate(lines):
         directive = re.match(r"^\s*>\s+\[![A-Za-z][A-Za-z0-9_-]*\]\s*(.*)$", line)
-        if not directive:
+        if not directive or MNEMONIC_CARRIER_RE.match(line):
             continue
         body_lines = []
         for body_line in lines[index + 1:]:
