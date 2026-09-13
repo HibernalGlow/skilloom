@@ -85,7 +85,9 @@ If a build lacks them, the exercise silently indexes zero options; re-check with
 6. **Link the siblings both ways.** A Case card is filed under one decision axis, so the other cards on that axis are its memory net: name each one under 联系记忆 with the axis label 同轴 / 同形 / 反向, and write the reciprocal line into every linked card (A 里写 B、C；B 里写 A、C；C 里写 A、B). Cross-专题 links inside one subject are in scope; cross-subject links follow `客观/06-口诀/**/三诉对比记忆表` rows only, where a cell reading `同民诉` is a 同轴 statement — see [answer-structure.md](answer-structure.md#reciprocal-and-cross-scope-links). Targets are a `custom-dm-card-id` or a note/question-topic id, never "对比记忆". No verified relation, no link line.
 7. **Attributes split three ways.** The root IAL carries only the six schema-1 fields; Case identity, tier, trap, decision, mnemonic source, animation, links and attempt history live in the last visible ` ```yml ` block; runtime state (`custom-riff-decks`, due, interval, review log) is never written.
 8. **Tags live on the front line.** `E097` counts tag characters, so the 题库 题型/年份 tags sit on the front with the knowledge and priority tags instead of on the 正确答案 line.
-9. **`reinforce` cards get a second question.** When two wrong attempts fell into different traps, emit a variant card whose changed fact pattern flips the answer, and name the flip on the back.
+9. **Style and emoji follow the MarkNote contract, per concept.** A Case card is dense study material, not a bullet memo: anchor the emoji to the *concept word it modifies* and label parallel concepts one by one (`签收📮、签署🖊、发言🗣`), never as a row of line-head labels; keep every auxiliary family inside each card (inline code, `==highlight==`, `~~strike~~`, `<u>`, `<em>`); give every substantive answer line at least two short provider anchors; keep one emoji under nine uses per deck (`E094`) and off the front/back overlap (`E100`). Emoji are placed mid-line next to the term — head-piling fails `E132`, tail-piling fails `E131`.
+10. **The 正确答案 line stays literally plain.** The question bank reads the solution boundary from that line's raw text, so styling `正确`, `答案`, or the bare answer letter inside it destroys the boundary and the whole question silently drops out of the index (`missing-solution-boundary`). Put the answer letter's provider color on the verdict item instead (`✅ A 项：…`).
+11. **`reinforce` cards get a second question.** When two wrong attempts fell into different traps, emit a variant card whose changed fact pattern flips the answer, and name the flip on the back.
 
 ## Measured gate behaviour for this shape
 
@@ -97,6 +99,7 @@ If a build lacks them, the exercise silently indexes zero options; re-check with
 - **`E027`**: at most four direct answer items — the 正确答案 line plus three verdicts; merge verdicts that share one verdict (`✅ A、C 可以代为`) and keep the per-option detail beneath them.
 - **Sparse provider palettes** still need three short background anchors (`E062`) and four auxiliary families (`E060`): promote the term's own background variant rather than inventing a color, and keep one style per term (`E076`).
 - **`E132`**: verdict prefixes are not enough — anchor semantic emoji inside the content next to the concept (`处分实体权利须⭐特别授权`, `两次误选都多它🧨`), and keep the front emoji off the back (`E100`).
+- **`E041` also fires on the answer marker line if it is styled**: keep `- 正确答案：ABC。` free of inline spans, and color the answer letter on the verdict item instead.
 - **`E098`/`E134`**: a blank line before every directive, and one continuous `> ` run per quoted passage.
 
 ## GoldQuest exemptions of a Case card

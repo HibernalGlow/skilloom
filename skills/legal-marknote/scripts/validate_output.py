@@ -26,7 +26,7 @@ from legal_mermaid_semantics_gate import validate_mermaid_semantics  # noqa: E40
 from legal_quote_fragmentation_gate import find_fragmented_quote_blocks  # noqa: E402
 from legal_list_indent_gate import find_overindented_sublists  # noqa: E402
 
-ALLOWED_CALLOUTS = {"TIP", "NOTE", "IMPORTANT", "CAUTION", "WARNING", "QUESTION"}
+ALLOWED_CALLOUTS = {"TIP", "NOTE", "IMPORTANT", "CAUTION", "WARNING", "QUESTION", "MNEMONIC"}
 GENERIC_QUESTION_TITLE_PATTERN = re.compile(
     r"^✏️\s+(?:习题|试一试|练习题|真题|题目)(?:\s*[一二三四五六七八九十\d]+)?$"
 )
@@ -682,13 +682,23 @@ def table_block_content_is_preserved_in_tables(
     return True
 
 
-def validate_table_cell(cell: str, number: int, allowed_list_cells: set[str] | None = None) -> list[Finding]:
+def validate_table_cell(
+    cell: str,
+    number: int,
+    allowed_list_cells: set[str] | None = None,
+    source_data_cells: set[str] | None = None,
+) -> list[Finding]:
     findings: list[Finding] = []
     if TABLE_SEPARATOR_PATTERN.fullmatch(cell.replace(" ", "")):
         return findings
     if table_cell_has_large_list(cell):
         fingerprint = normalized_table_content(cell)
         if allowed_list_cells and fingerprint in allowed_list_cells:
+            return findings
+        if fingerprint and source_data_cells and any(
+            len(fragment) >= 4 and (fingerprint in fragment or fragment in fingerprint)
+            for fragment in source_data_cells
+        ):
             return findings
         findings.append(Finding("E", "412", number, "A large list does not belong inside a table cell; expand it as a real nested list outside the table."))
         return findings
@@ -765,18 +775,19 @@ def validate_tables(
     allowed_list_cells: set[str] | None = None,
     allowed_label_rule_tables: set[str] | None = None,
     allowed_legacy_structures: set[str] | None = None,
+    source_data_cells: set[str] | None = None,
 ) -> list[Finding]:
     findings: list[Finding] = []
-    for number, line in enumerate(text.splitlines(), start=1):
-        if not TABLE_ROW_PATTERN.match(line):
-            continue
-        for cell in split_table_cells(line):
-            findings.extend(validate_table_cell(cell, number, allowed_list_cells))
     for block in table_blocks(text):
+        fingerprint = table_block_fingerprint(block)
+        preserved_from_source = bool(allowed_legacy_structures and fingerprint in allowed_legacy_structures)
+        if not preserved_from_source:
+            for _, cells in block:
+                for cell in cells:
+                    findings.extend(validate_table_cell(cell, 0, allowed_list_cells, source_data_cells))
         findings.extend(validate_table_structure(block, allowed_legacy_structures))
         findings.extend(validate_merge_grid(block))
         if table_block_is_simple_label_rule(block):
-            fingerprint = table_block_fingerprint(block)
             if not allowed_label_rule_tables or fingerprint not in allowed_label_rule_tables:
                 findings.append(Finding("E", "413", block[0][0], "A two-column label-and-explanation structure should be a real Markdown list unless it has another comparison axis."))
     return findings
@@ -2029,7 +2040,7 @@ def validate_text(
         for block in table_blocks(source_text or "")
         for _, cells in block
         for cell in cells
-        if table_cell_has_large_list(cell)
+        if not is_table_separator(cells) and normalized_table_content(cell)
     }
     allowed_label_rule_tables = {
         table_block_fingerprint(block)
@@ -2055,6 +2066,7 @@ def validate_text(
             allowed_list_cells,
             allowed_label_rule_tables,
             allowed_legacy_structures,
+            allowed_list_cells,
         )
     )
     findings.extend(validate_list_density(text))
