@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from collections import Counter
@@ -20,6 +21,7 @@ from pathlib import Path
 
 from legal_quote_fragmentation_gate import find_fragmented_quote_blocks  # noqa: E402
 from legal_list_indent_gate import find_overindented_sublists  # noqa: E402
+from case_card_gate import check as check_case_card  # noqa: E402
 
 ATTR_RE = re.compile(r'(?P<key>[A-Za-z][\w-]*)="(?P<value>[^"]*)"')
 IAL_LINE_RE = re.compile(r'^\{: [A-Za-z][\w-]*="[^"]*"(?: [A-Za-z][\w-]*="[^"]*")*\}$')
@@ -1069,6 +1071,7 @@ def validate(
     text: str,
     *,
     source_text: str | None = None,
+    focus_index: dict | None = None,
     require_report: bool = False,
     max_cards_per_topic: int = 4,
     max_answer_items: int = 4,
@@ -1439,6 +1442,10 @@ def validate(
         Finding(line, "E135", message)
         for line, message in find_overindented_sublists(text)
     )
+    findings.extend(
+        Finding(line, code, message)
+        for line, code, message in check_case_card(text, source_text, focus_index)
+    )
     if rich_style and accepted_card_lines and _is_rich_complex_deck(text, len(accepted_card_lines)):
         if emoji_card_count / len(accepted_card_lines) <= 0.8:
             findings.append(Finding(1, "E091", f"Rich decks must keep overall emoji coverage above 80% of accepted cards; {emoji_card_count}/{len(accepted_card_lines)} carry a semantic emoji cue. Add concept-anchored emoji to the bare cards (simple cards are the only tolerated minority)."))
@@ -1559,6 +1566,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", help="Draft Markdown path, or - to read the draft from standard input.")
     parser.add_argument("--source", type=Path, help="Source note used to verify provider-scoped style inheritance.")
+    parser.add_argument("--focus-index", type=Path, help="focus-index.json from focus_index.py --build; enables the E140 考前聚焦 tag gate.")
     parser.add_argument("--mode", choices=("ordinary", "dedicated"), default="dedicated")
     parser.add_argument("--require-report", action=argparse.BooleanOptionalAction, default=True, help="Require the bottom YAML report in dedicated mode (strict default). Relaxed mode is only available by passing the COMPLETE relaxation set --no-require-report --no-rich-style together; if any relaxation parameter is missing, validation refuses to run.")
     parser.add_argument("--rich-style", action=argparse.BooleanOptionalAction, default=True, help="Apply the legal-goldquest rich visual contract to medium/complex dedicated decks (strict default).")
@@ -1584,9 +1592,11 @@ def main() -> int:
     output_label = "<stdin>" if args.output == "-" else args.output
     text = sys.stdin.read() if args.output == "-" else Path(args.output).read_text(encoding="utf-8")
     source_text = args.source.read_text(encoding="utf-8") if args.source else None
+    focus_index = json.loads(args.focus_index.read_text(encoding="utf-8")) if args.focus_index else None
     findings = validate_ordinary(text) if args.mode == "ordinary" else validate(
         text,
         source_text=source_text,
+        focus_index=focus_index,
         require_report=args.require_report,
         max_cards_per_topic=args.max_cards_per_topic,
         max_answer_items=args.max_answer_items,
