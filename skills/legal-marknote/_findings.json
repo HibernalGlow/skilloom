@@ -1,0 +1,200 @@
+[
+  {
+    "level": "E",
+    "code": "623",
+    "line": 1,
+    "message": "MarkNote subject '甲' has uncolored occurrences; reuse its established color everywhere."
+  },
+  {
+    "level": "E",
+    "code": "625",
+    "line": 1,
+    "message": "MarkNote subject '被告' needs an actively assigned semantic color."
+  },
+  {
+    "level": "E",
+    "code": "625",
+    "line": 1,
+    "message": "MarkNote subject '行为人' needs an actively assigned semantic color."
+  },
+  {
+    "level": "E",
+    "code": "625",
+    "line": 1,
+    "message": "MarkNote subject '乙' needs an actively assigned semantic color."
+  },
+  {
+    "level": "E",
+    "code": "625",
+    "line": 1,
+    "message": "MarkNote subject '丙' needs an actively assigned semantic color."
+  },
+  {
+    "level": "E",
+    "code": "704",
+    "line": 1,
+    "message": "Source heading was not preserved: 1. 多数说: 由乙自己负责.理由: 为了普通物品, 不应奋不顾身, 乙的行为比较异常."
+  },
+  {
+    "level": "E",
+    "code": "704",
+    "line": 1,
+    "message": "Source heading was not preserved: 2. 少数说: 由甲负责.理由: 乙的行为并不异常, 乙是被甲放的火烧死的."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 8,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 20,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 25,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 27,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 46,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 61,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 63,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 65,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 67,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 69,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "101",
+    "line": 76,
+    "message": "Highlight exceeds 6 visible characters; shorten the ==highlight== to the key term (2-6 characters) and let color or bold carry the rest."
+  },
+  {
+    "level": "E",
+    "code": "314",
+    "line": 80,
+    "message": "Region announces advice content (易错/注意/提示/陷阱/总结/归纳/对比) in plain text without any Callout; render that moment as a real Callout directive ([!TIP]/[!IMPORTANT]/[!CAUTION]) so the guidance is visually set apart."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 85,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 94,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "648",
+    "line": 94,
+    "message": "List items must stay within 20 visible characters; split the content semantically into a governing parent and child items (main and nested items both)."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 99,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 102,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 104,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 107,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 110,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "648",
+    "line": 110,
+    "message": "List items must stay within 20 visible characters; split the content semantically into a governing parent and child items (main and nested items both)."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 126,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 128,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 130,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 132,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 134,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  }
+]

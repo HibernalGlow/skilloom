@@ -1,0 +1,30 @@
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:1: E625: MarkNote subject '乙' needs an actively assigned semantic color.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:1: E625: MarkNote subject '行为人' needs an actively assigned semantic color.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:1: E625: MarkNote subject '被告' needs an actively assigned semantic color.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:1: E625: MarkNote subject '丙' needs an actively assigned semantic color.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:1: E625: MarkNote subject '甲' needs an actively assigned semantic color.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:1: E704: Source heading was not preserved: 1. 多数说: 由乙自己负责.理由: 为了普通物品, 不应奋不顾身, 乙的行为比较异常.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:1: E704: Source heading was not preserved: 2. 少数说: 由甲负责.理由: 乙的行为并不异常, 乙是被甲放的火烧死的.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:8: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:19: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:20: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:21: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:25: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:27: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:46: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:61: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:65: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:67: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:69: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:85: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:93: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:94: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:96: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:99: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:103: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:108: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:111: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:112: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:129: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md:135: E622: Each substantive MarkNote line needs at least one short semantic color anchor.
+SUMMARY D:\1STUDY\3-Resource\法考\主观\01-冲刺\刑法\20-整理\08 第二章 因果关系.md [E:29 W:0]: 29 finding(s); by code: 622×22 625×5 704×2
