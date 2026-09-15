@@ -1,0 +1,140 @@
+[
+  {
+    "level": "E",
+    "code": "403",
+    "line": 0,
+    "message": "Dense table cell must use <br /> to separate semantic rule branches."
+  },
+  {
+    "level": "E",
+    "code": "403",
+    "line": 0,
+    "message": "Dense table cell must use <br /> to separate semantic rule branches."
+  },
+  {
+    "level": "E",
+    "code": "403",
+    "line": 0,
+    "message": "Dense table cell must use <br /> to separate semantic rule branches."
+  },
+  {
+    "level": "E",
+    "code": "403",
+    "line": 0,
+    "message": "Dense table cell must use <br /> to separate semantic rule branches."
+  },
+  {
+    "level": "E",
+    "code": "412",
+    "line": 0,
+    "message": "A large list does not belong inside a table cell; expand it as a real nested list outside the table."
+  },
+  {
+    "level": "E",
+    "code": "515",
+    "line": 1,
+    "message": "36/63 semantic emoji float without a neighboring concept word (dangling at line ends, clause boundaries, or between punctuation); anchor each icon directly beside its term (词前或词后紧贴概念词), never as loose decoration."
+  },
+  {
+    "level": "E",
+    "code": "620",
+    "line": 1,
+    "message": "Medium-or-higher complexity MarkNote needs at least four auxiliary style families among highlight, italic, strikethrough, inline code, and underline."
+  },
+  {
+    "level": "E",
+    "code": "623",
+    "line": 1,
+    "message": "MarkNote subject '甲' has uncolored occurrences; reuse its established color everywhere."
+  },
+  {
+    "level": "E",
+    "code": "623",
+    "line": 1,
+    "message": "MarkNote subject '乙' has uncolored occurrences; reuse its established color everywhere."
+  },
+  {
+    "level": "E",
+    "code": "625",
+    "line": 1,
+    "message": "MarkNote subject '丙' needs an actively assigned semantic color."
+  },
+  {
+    "level": "E",
+    "code": "625",
+    "line": 1,
+    "message": "MarkNote subject '行为人' needs an actively assigned semantic color."
+  },
+  {
+    "level": "E",
+    "code": "627",
+    "line": 1,
+    "message": "Medium-or-higher complexity MarkNote needs at least three short background-color anchors for visual hierarchy."
+  },
+  {
+    "level": "W",
+    "code": "511",
+    "line": 1,
+    "message": "1 emoji anchor to generic cue words (注意/重点/要点/考点/提示/陷阱…); anchor each emoji to the specific legal concept inside the knowledge point instead of a commonplace cue word."
+  },
+  {
+    "level": "W",
+    "code": "517",
+    "line": 3,
+    "message": "This list item has no emoji but contains 1 child items — add at least one emoji to its content so readers can visually anchor the concept."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 19,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 61,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 72,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 73,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "W",
+    "code": "505",
+    "line": 74,
+    "message": "A list item continues as bare text; make the continuation a nested list item or a blank-separated paragraph, preserving every inline Markdown and SiYuan IAL anchor intact."
+  },
+  {
+    "level": "W",
+    "code": "505",
+    "line": 78,
+    "message": "A list item continues as bare text; make the continuation a nested list item or a blank-separated paragraph, preserving every inline Markdown and SiYuan IAL anchor intact."
+  },
+  {
+    "level": "E",
+    "code": "622",
+    "line": 80,
+    "message": "Each substantive MarkNote line needs at least one short semantic color anchor."
+  },
+  {
+    "level": "W",
+    "code": "505",
+    "line": 80,
+    "message": "A list item continues as bare text; make the continuation a nested list item or a blank-separated paragraph, preserving every inline Markdown and SiYuan IAL anchor intact."
+  },
+  {
+    "level": "E",
+    "code": "314",
+    "line": 83,
+    "message": "Region announces advice content (易错/注意/提示/陷阱/总结/归纳/对比) in plain text without any Callout; render that moment as a real Callout directive ([!TIP]/[!IMPORTANT]/[!CAUTION]) so the guidance is visually set apart."
+  }
+]
