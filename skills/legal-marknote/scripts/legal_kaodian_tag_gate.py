@@ -109,7 +109,7 @@ def validate_kaodian_tags(text: str, profile: str, require_tags: bool = True) ->
             if lookahead <= len(lines) and KAODIAN_TAG_ONLY_PATTERN.fullmatch(lines[lookahead - 1].strip()):
                 consumed.add(lookahead)
                 continue
-            findings.append(Finding("E", "820", line_no, "A note-topic provider block carries no kaodian tag; append #法考/科目/[专题/]考点# to the heading line, or — only for a **考点：显示名** anchor without a heading — add one standalone tag paragraph directly after the IAL line (vocabulary: references/kaodian-tags.md)."))
+            findings.append(Finding("E", "820", line_no, "A note-topic provider block carries no kaodian tag; add one standalone tag paragraph on its own line directly after the provider IAL — #法考/科目/[专题/]考点# — for a heading provider or a **考点：显示名** anchor alike; never append the tag to the heading text (vocabulary: references/kaodian-tags.md)."))
     elif profile == "legal-goldquest":
         heading_indexes = [index for index, line in enumerate(lines) if QUESTION_HEADING_PATTERN.fullmatch(line)]
         for position, index in enumerate(heading_indexes):

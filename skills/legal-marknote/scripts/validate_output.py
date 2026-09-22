@@ -26,7 +26,7 @@ from legal_mermaid_semantics_gate import validate_mermaid_semantics  # noqa: E40
 from legal_quote_fragmentation_gate import find_fragmented_quote_blocks  # noqa: E402
 from legal_list_indent_gate import find_overindented_sublists  # noqa: E402
 
-ALLOWED_CALLOUTS = {"TIP", "NOTE", "IMPORTANT", "CAUTION", "WARNING", "QUESTION", "MNEMONIC"}
+ALLOWED_CALLOUTS = {"TIP", "NOTE", "IMPORTANT", "CAUTION", "WARNING", "QUESTION", "MNEMONIC", "ANSWER", "EXPLAIN"}
 GENERIC_QUESTION_TITLE_PATTERN = re.compile(
     r"^✏️\s+(?:习题|试一试|练习题|真题|题目)(?:\s*[一二三四五六七八九十\d]+)?$"
 )
@@ -110,7 +110,8 @@ LIST_ITEM_START_PATTERN = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
 LIST_ITEM_VISIBLE_LIMIT = 20
 MAJOR_HEADING_PATTERN = re.compile(r"^(?:\s*>\s*)?#{2,4}\s+\S")
 ORDERED_LIST_ITEM_PATTERN = re.compile(r"^\s*\d+[.)]\s+")
-CALLOUT_DIRECTIVE_PATTERN = re.compile(r">\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING|QUESTION)\]", re.IGNORECASE)
+CALLOUT_DIRECTIVE_PATTERN = re.compile(r">\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING|QUESTION|ANSWER|EXPLAIN)\]", re.IGNORECASE)
+TAG_ONLY_LINE_PATTERN = re.compile(r"^\s*(?:#[^\s#]+#\s*)+$")
 SEQUENCE_CUE_PATTERN = re.compile(r"首先|其次|再者|再次|然后|接着|最后|第[一二三四五六七八九十\d]+步|[①-⑳]")
 TASK_LIST_RE = re.compile(r"^\s*[-*]\s+\[[ xX]]\s")
 ADVICE_CUE_PATTERN = re.compile(r"易错|注意|提示|陷阱|总结|归纳|对比")
@@ -242,6 +243,11 @@ def validate_emoji_semantics(text: str) -> list[Finding]:
     dangling = 0
     total_placed = 0
     for line in text.splitlines():
+        # Callout directive lines (`> [!TYPE] …`) carry mandated structural emoji
+        # (e.g. E307's `✏️` on QUESTION titles); they are fixed labels, not
+        # decorative concept anchors, so they must not feed the emoji metrics.
+        if re.match(r"\s*(?:>\s*)?\[![A-Za-z]+\]", line):
+            continue
         for match in EMOJI_PATTERN.finditer(line):
             if match.group() in {"✅", "❌"}:
                 continue
@@ -1064,6 +1070,8 @@ def validate_marknote_richness(text: str) -> list[Finding]:
             continue
         if IAL_PATTERN.match(stripped):
             continue
+        if TAG_ONLY_LINE_PATTERN.match(stripped):
+            continue
         if re.match(r"^-{3,}$", stripped):
             has_divider = True
             continue
@@ -1071,7 +1079,7 @@ def validate_marknote_richness(text: str) -> list[Finding]:
             if re.match(r"^#{3,6}\s+", stripped):
                 has_subheading = True
             continue
-        if re.match(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING|QUESTION)\]", line):
+        if re.match(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING|QUESTION|ANSWER|EXPLAIN)\]", line):
             has_callout = True
             continue
         if re.match(r"^\s*-\s+", line):
@@ -1523,11 +1531,13 @@ def validate_goldquest(text: str) -> list[Finding]:
                 continue
             if IAL_PATTERN.match(stripped):
                 continue
+            if TAG_ONLY_LINE_PATTERN.match(stripped):
+                continue
             if re.match(r"^#{1,6}\s+", stripped):
                 if re.match(r"^######\s+(?!答案与解析).+", stripped):
                     has_analysis_subheading = True
                 continue
-            if re.match(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING)\]", line):
+            if re.match(r"^\s*>\s*\[!(?:TIP|NOTE|IMPORTANT|CAUTION|WARNING|ANSWER|EXPLAIN)\]", line):
                 has_analysis_callout = True
                 continue
             if re.match(r"^\s*-\s+", line):

@@ -1,6 +1,6 @@
 ---
 name: legal-marknote
-description: Convert legal study material into structured SiYuan Markdown while preserving legal substance, images, and explanations; every table is converted into axis-chosen nested lists (no-table steady state). Repair clearly misrecognized headings, broken heading fragments, and semantic heading nesting. Question groups use QUESTION callout + fenced md prompt with unlabeled stem/question lines and list answers. Also use for targeted repairs to text produced by an earlier legal-marknote version.
+description: Convert legal study material into structured SiYuan Markdown while preserving legal substance, images, and explanations; every table is converted into axis-chosen nested lists (no-table steady state). Repair clearly misrecognized headings, broken heading fragments, and semantic heading nesting. Question groups use QUESTION callout + fenced md prompt with unlabeled stem/question lines and list answers. 主观题（案例/论述）的问题同样以 QUESTION callout + `md` 围栏题面承载（与 goldquest 题面契约一致），块内保留简短回答与解析；完整答案用 ANSWER（正式答案版）与 EXPLAIN（全面解析版）两个 callout 分开，ANSWER 内考场不必写出的讲解用删除线标注；答案沿用原答案解析自身的分层，不按语义重拆。考点 tag 独立成段放 IAL 之后，不写在标题行。Also use for targeted repairs to text produced by an earlier legal-marknote version.
 ---
 
 # Legal Marknote
@@ -14,8 +14,8 @@ Use this skill when法考教材、题目、解析或笔记需要整理成可复�
 ## Workflow
 
 1. Preserve legal substance, wording, images, statutory text, explanations, and the intended hierarchy. Preserve title wording and order, but repair a title marker or title level when the source has clearly misrecognized the structure. When the user authorizes removal of non-standard headings, remove only the false heading marker or duplicate heading wrapper; preserve the answer, explanation, and legal content. **No-table steady state（用户 2026-09 指令，取代旧的“保留真实比较表”条款）：交付的输出不保留任何表格。** 源表或生成表——包括有横向对比、映射、数值对齐或合并关系的表——一律在交付前转换为选过主轴的真实 Markdown 父子列表。转换前先映射合并表的逻辑网格（每个 `rowspan`/`colspan` 区域的覆盖归属），转换后逐格回查：表头标签、行标签、每个单元格内容与每条对应关系都必须能在父子项里找到落点；不得丢格、不得凭“扫读方便”留表。A converted list must obey every ordinary MarkNote style gate, including semantic colors, 42-character lines, nesting, rich styles, and the visualization route when triggered. 题面代码围栏内的原文表格属于题目字面内容，不受本条改写约束。
-2. Run a heading-repair pass before formatting body content. Treat every source heading marker and every apparent classification lead as evidence, not a command. Decide from the surrounding outline whether a phrase names a durable, independently scannable scope that owns the blocks below and has sibling categories at the same semantic level. Only then promote it to the next heading level and move any explanation after the colon into its own paragraph. A bold phrase, a colon, a following list, or repeated visual styling is never sufficient by itself. Under an existing H2 `考查角度`, concepts such as `权利能力和行为能力` and `经营范围` may become H3 when they genuinely divide that topic, but may remain lead sentences when the surrounding logic reads better as one continuous rule. Repair harmless title defects such as `3出资责任` to `3 出资责任` and a trailing colon without treating them as substantive rewrites. A numeric-only marker, `例1`/`例2` wrapper, or empty `热点` label may be demoted or removed only after its content has been retained in the real body/list structure. First identify question-and-answer regions: from a source exercise marker or an output `> [!QUESTION]` directive through the fenced question and `**回答与解析：**` answers, a numbered line is answer content, not a heading. In that region, an existing `#### 1. ...`, `#### (1) ...`, `#### ① ...`, or equivalent numeric marker is a batch-recognition error, not evidence of a real heading; demote it to the corresponding quoted ordered-list item or body text. Never carry such a marker into the output heading hierarchy. Outside question-and-answer regions, when a numeric-only heading is immediately followed by a short legal term and its colon-led definition, move the term into the heading, retain the number, and begin the body with the definition after the colon. Follow the decision rules in [the detailed guide](references/note-guide-original.md#标题识别与修复).
-3. Format question-and-answer groups before styling body content. A short question must occupy its own fenced `md` block, even when another short question tests the same topic. Only one continuous large problem may share a block with its `(1)`–`(3)` subquestions; do not group independent short questions merely because there are no more than three. Start every continuous quoted exercise group with exactly one `> [!QUESTION] ✏️ <specific topic or tested rule>` directive before its first question fence. Derive the title from the questions' actual subject matter; a generic `习题`, `试一试`, `练习题`, `真题`, or numbered variant is not a title. Questions testing one shared point may remain in one callout. Start a separate titled callout when the tested point changes, so the title also distinguishes that exercise group. Later fences inside one callout do not repeat the directive. Splitting changes containers only: inside each fenced question block, preserve every original question number, subquestion marker, punctuation form, and sequence exactly. Never restart fenced-question numbering from `1` or renumber it by the new block order. A fence holds only the literal question prompt in standard Markdown; never put a SiYuan IAL (`{: ...}`), semantic color, or answer boundary inside it. Attach every IAL to its rendered heading, answer line, or paragraph outside the fence. Put the matching answer immediately after its block and never place answers for one block after a later question block. Outside the fenced question text, ordinary explanatory enumerations may still be normalized into standard Markdown lists. `**回答与解析：**` is optional and may appear at most once for the whole callout; do not repeat it for every block.
+2. Run a heading-repair pass before formatting body content. Treat every source heading marker and every apparent classification lead as evidence, not a command. Decide from the surrounding outline whether a phrase names a durable, independently scannable scope that owns the blocks below and has sibling categories at the same semantic level. Only then promote it to the next heading level and move any explanation after the colon into its own paragraph. A bold phrase, a colon, a following list, or repeated visual styling is never sufficient by itself. Under an existing H2 `考查角度`, concepts such as `权利能力和行为能力` and `经营范围` may become H3 when they genuinely divide that topic, but may remain lead sentences when the surrounding logic reads better as one continuous rule. Repair harmless title defects such as `3出资责任` to `3 出资责任` and a trailing colon without treating them as substantive rewrites. A numeric-only marker, `例1`/`例2` wrapper, or empty `热点` label may be demoted or removed only after its content has been retained in the real body/list structure. **连续同级标题梯自动降级**：MinerU/批量识别常把每一并列行都升成标题，于是「本该是列表」的内容被排成一串同一级别的标题。判据：连续两个及以上同级别标题，若其标题文字只是一个序号（`1.`/`(1)`/`①`/`一、`）或一个并列标签（多数说/少数说、观点一/观点二、第一种/第二种、第一步/第二步）加冒号引出的一句说明、且各自只统领一行解释，则它们是并列枚举而非可独立复习的耐久范围——删除标题标记，改写成带统领父项的有序/嵌套列表，并把序号或标签保留为列表内容。**注意：这类标题梯有时是排版者自造的**——即使 `10-mineru/content/xx.md` 源文只是普通编号文本（例：主观题刑法 08 第二章源文第 24 行是 `1. 多数说: ...`，并无 `#`），前一版 `20-整理` 输出仍可能把它误升级成 `#### 1. 多数说:`；故本步骤不仅审计源大纲，也要审计输出大纲中所有同级别并列标题，把这类外壳一律降级回列表。只有当某标题真正统领跨多块的子树或确为独立小节时才保留为标题（例如 `分则的说理`、`观点展示` 仍作标题；其内部的 `多数说`/`少数说`、`第一种观点`/`第二种观点` 一律降为列表项）。禁止把同一组并列内容同时以 Callout 列表和标题梯两种形态各写一遍（单一来源）。用标题审计的 `--allow-structural-repair` 降级这类外壳标题，实质标题仍须保留。First identify question-and-answer regions: from a source exercise marker or an output `> [!QUESTION]` directive through the fenced question and `**回答与解析：**` answers, a numbered line is answer content, not a heading. In that region, an existing `#### 1. ...`, `#### (1) ...`, `#### ① ...`, or equivalent numeric marker is a batch-recognition error, not evidence of a real heading; demote it to the corresponding quoted ordered-list item or body text. Never carry such a marker into the output heading hierarchy. Outside question-and-answer regions, when a numeric-only heading is immediately followed by a short legal term and its colon-led definition, move the term into the heading, retain the number, and begin the body with the definition after the colon. Follow the decision rules in [the detailed guide](references/note-guide-original.md#标题识别与修复). When the source file itself is a mechanical-recognition artifact (mineru/OCR content), repair the false heading markers **in the source file first**: demote number/例/模型 shells and whole-sentence question or answer lines that are really prompt/list/answer content to plain lines, keeping every character of the text (only the `#` shell is removed). Then run `--source` heading-preservation audits against the repaired source. This is the sanctioned way to satisfy “never carry such a marker into the output heading hierarchy” when `audit_heading_promotions` would otherwise demand the misrecognized line verbatim as a heading; never delete repaired source content — the repaired file remains the authority for preservation checks.
+3. Format question-and-answer groups before styling body content. A short question must occupy its own fenced `md` block, even when another short question tests the same topic. Only one continuous large problem may share a block with its `(1)`–`(3)` subquestions; do not group independent short questions merely because there are no more than three. Start every continuous quoted exercise group with exactly one `> [!QUESTION] ✏️ <specific topic or tested rule>` directive before its first question fence. Derive the title from the questions' actual subject matter; a generic `习题`, `试一试`, `练习题`, `真题`, or numbered variant is not a title. Questions testing one shared point may remain in one callout. Start a separate titled callout when the tested point changes, so the title also distinguishes that exercise group. Later fences inside one callout do not repeat the directive. Splitting changes containers only: inside each fenced question block, preserve every original question number, subquestion marker, punctuation form, and sequence exactly. Never restart fenced-question numbering from `1` or renumber it by the new block order. A fence holds only the literal question prompt in standard Markdown; never put a SiYuan IAL (`{: ...}`), semantic color, or answer boundary inside it. Attach every IAL to its rendered heading, answer line, or paragraph outside the fence. Put the matching answer immediately after its block and never place answers for one block after a later question block. Outside the fenced question text, ordinary explanatory enumerations may still be normalized into standard Markdown lists. `**回答与解析：**` is optional and may appear at most once for the whole callout; do not repeat it for every block. 主观题（案例/论述题）沿用完全相同的 QUESTION callout + `md` 围栏题面契约承载其**问题**（与 goldquest 题面契约一致），并先按「Question-answer formatting」小节的「主观题问法分型」判定属于一句话问法型还是一问一答型（决定答案区是连续作文还是逐问作答），一句话问法型再按「主观题两版本」条款把它的写答案排成一份分层正文。
 4. Declare note-topic providers independently of heading depth. If the whole file is one atomic reusable topic, attach its known stable `custom-qb-note-topic-id` directly to the root H1; an H2 `考查角度` is not required. For a multi-topic file, attach providers to the real atomic topic headings. When a suitable heading would distort the source hierarchy, add one standalone `**考点：显示名**` paragraph anchor and attach the IAL to it. Resolve IDs from the maintained topic map or a confirmed filename mapping; never invent an ID to satisfy the gate. Do not waive `--require-topic-ial` merely because the source lacks H2. If the topic boundary or mapping is unresolved, stop and report that file for mapping rather than silently passing it. One provider IAL contains exactly one topic ID; the same ID may appear in different lecture, recitation, or review notes. Every provider block also carries its kaodian tag per [考点 tag](#考点-tag闪卡词汇表继承), reusing an existing flashcard vocabulary path verbatim whenever the 考点名 matches.
 5. Separate source content from added summaries or study prompts.
    - **Flashcard hand-off**: Invoke the separately registered `legal-flashcard` skill by name. For ordinary note organization, let its router load only ordinary mode and record candidates without emitting formal card containers. Only an explicit request to make or generate flashcards loads dedicated-card mode; ordinary MarkNote work does not load that strict reference. Do not assume separately deployed skills are sibling directories.
@@ -52,14 +52,14 @@ The value is one lowercase ASCII kebab-case ID. This IAL marks the block as a pr
 The same provider block also carries one SiYuan native inline tag, chosen from the flashcard vocabulary in [kaodian-tags.md](references/kaodian-tags.md). 该 tag 是人检索用的视图，`custom-qb-note-topic-id` 仍是机器绑定键，两者并存、互不替代。
 
 - tag 形如 `#法考/<科目>[/<专题>]/<考点>#`，不含空格。**优先逐字复用词汇表中已有的完整路径**——按考点名与路径末段精确匹配，命中即原样使用；不得为已有考点另造同义路径或改写层级。
-- 有标题的考点：tag 追加在标题行尾，IAL 行仍独占下一行（已实测可通过全部 MarkNote 门禁）：
+- **tag 一律独立成段，绝不放进标题或锚点文字行**：provider 块（`###` 标题或 `**考点：显示名**` 锚点）只挂 `custom-qb-note-topic-id` 的 IAL 行（独占一行），考点 tag 另起一段、放在该 IAL 行的下一个空行之后。校验器已让纯 tag 行豁免 `E621`/`E622`/`E648`，故任何长度的 tag 路径都能这样独占成段。把 tag 追加到标题文字末尾属禁止写法；追加到 `**考点**` 锚点行还会破坏锚点形状（`E802`）。
 
   ```md
-  ### 善意取得 #法考/民法/所有权/善意取得#
+  ### 善意取得
   {: custom-qb-note-topic-id="civil-property-good-faith-acquisition"}
-  ```
 
-- 只有 `**考点：显示名**` 锚点、没有标题的考点：tag 单独成段放在锚点块之后。锚点行尾追加 tag 会破坏锚点形状（`E802`），禁止那样写：
+  #法考/民法/所有权/善意取得#
+  ```
 
   ```md
   **考点：占有改定**
@@ -69,8 +69,8 @@ The same provider block also carries one SiYuan native inline tag, chosen from t
   ```
 
 - 词汇表查无此考点时按约定新建：科目必须沿用词汇表既有科目写法（民法、刑法、刑诉、民诉、商经知、行政法、理论法、三国法），专题层优先沿用同科目既有专题名，可省略；新建 tag 逐条列入交付报告，待用户确认后回流闪卡词汇表。
-- **门禁强制**：`--require-topic-ial` 运行时校验器自动检查——`E820` provider 块缺 tag、`E821` tag 未闭合或含空格、`E822` tag 位置非法（进代码围栏、题面或非锚块行）、`W823` tag 不在词汇表快照。W823 命中的新考点：先向用户确认路径，把完整路径加进 `references/kaodian-tags.md` 再重验（strict 下 W 同样阻断）；revision-only 修订（不带 `--require-topic-ial`）不触发本门禁。
-- tag 不写进题面围栏、表格、代码块或 IAL 行；live 写回思源时随锚块文本一起更新（内容编辑，不是属性）。
+- **门禁强制**：`--require-topic-ial` 运行时校验器自动检查——`E820` provider 块（其 IAL 行之后）缺独立 tag 段、`E821` tag 未闭合或含空格、`E822` tag 位置非法（进代码围栏、题面、正文行或 IAL 行）、`W823` tag 不在词汇表快照。W823 命中的新考点：先向用户确认路径，把完整路径加进 `references/kaodian-tags.md` 再重验（strict 下 W 同样阻断）；revision-only 修订（不带 `--require-topic-ial`）不触发本门禁。
+- tag 不写进题面围栏、表格、代码块或 IAL 行；live 写回思源时随 provider 块与独立 tag 段一起更新（内容编辑，不是属性）。
 
 ## Question-answer heading guardrail
 
@@ -98,11 +98,63 @@ Answer sections require the same semantic care as the question section:
 - Start each answer with a concise conclusion marked with `==高亮==`, then attach the reason to that answer number. Preserve the original answer mapping and legal substance.
 - When an explanation contains independent branches with their own subject, condition, procedure, exception, comparison, or legal effect, turn them into an indented Markdown sublist. Keep an inseparable prerequisite-to-procedure-to-consequence chain in one item instead of splitting it merely at punctuation.
 - Convert source forms such as `(1)` and `(2)` into a standard indented ordered sublist when they are sub-points of one answer; do not leave duplicated numbering in a flat paragraph. Use a sublist for multiple reasons when each reason can be reviewed independently.
+- **主观题答案沿用原解析的分层（覆盖上一条与前一条）**：案例/论述题的参考答案——既包括一句话问法型 `(四)写答案` 的分层正文，也包括一问一答型每题的逐问答案列表——是考生要在考场上**照葫芦画瓢摹写**的对象，其 `(一)(二)(三)` → `1.` `2.` → 理由子项的层级、编号与采分点归属，一律**沿用来源答案解析自身的分层**，不得用「按语义独立拆分支 / 合并同项 / 重排嵌套」去重组原答案骨架。此区域只允许叠加换行、颜色锚点、emoji、`==高亮==` 与 `~~删除线~~` 等样式；不许合并、重排、改嵌套或改编号来源已有的层级。**唯一例外**：当来源解析本身是一整段未分层的流水叙述时，才按语义补出层级，且补出的顺序仍须贴合原文的逻辑推进。
 - Apply semantic color anchors in answer explanations just as in the surrounding note: use consistent colors for recurring parties or objects, procedural actions and the court, and contrasting results such as acceptance/rejection or valid/invalid. Color only short retrieval anchors, and always use the required bold form, for example `**法院**{: style="color: var(--b3-font-color4);"}`. Combine color with `==高亮==` and bold cues without coloring whole sentences.
 - Do not put a whole answer section into a Callout by default. Use a small `NOTE`, `CAUTION`, or `WARNING` only when the content has that substantive property, and keep the answer-to-question correspondence visible.
 - Every Callout directive must be preceded by a blank line (or the start of a block, another quote line, a heading, or a fence boundary); directly after a list item or paragraph it is parsed as continuation text and will not be recognized (`E310`).
 - 引述块碎片化同样是硬门禁（`E315`）：一段连续内容只允许占一个引述块——块内行保持 `> ` 连续，内部分段写空的 `>` 行。不得用空行把同一段连续内容拆成一串单行引述块，也不得让前一引述块以逗号/顿号/分号/冒号延续标记收尾后空行另起引述块；只有真正独立（不同来源、不同 Callout 类型）的引述才允许空行分立。
 - 标准列表缩进同样是硬门禁（`E316`）：子列表缩进必须落在父列表项内容列与内容列 +3 的窗口内——`- ` 父项内容列为 2（允许 2–5 列，每级 4 空格）；`1. ` 为 3（3–6 列）；`10. ` 为 4（4–7 列）；顶层列表只能缩进 0–3 列；禁止用 tab 缩进（tab 按 4 列制表位展开，两个 tab = 8 列）。超出窗口后 CommonMark 不再把该行当作子列表，而是并入父项正文或解析为缩进代码块，思源无法解析出嵌套层级。修法：按每级 4 空格重新缩进到父项内容列，或顶格书写。
+
+### 主观题问法分型（一句话问法 vs 一问一答）
+
+主观题的**问题**分两种问法（见「题型的设计类型」），决定问题区与答案区怎么排；两者**都**用一个 `> [!QUESTION] ✏️ <具体考点>` + `> ```md` 围栏承载问题（goldquest 题面契约），差异在答案区：
+
+- **一句话问法型**（如“请分析各行为人的刑事责任，须简述理由”/“对本案进行全面分析”）：围栏内只一句总问句、无逐问编号；整题按**四环节骨架**排——`(一)案情`（事实分段、加粗人物/事实标签引领）→ `(二)问题`（一个 callout+一个围栏）→ `(三)答题步骤`（三步法：提炼关键行为→组织答案→查漏补缺）→ `(四)写答案`。答案是一篇要**谋篇布局**的连续作文，按案情行为逐段推进；`写答案` 用下一小节的「全面解析 vs 正式答案」分层正文。案情往往是**前后联系型/超长型**，需综合各行为。
+- **一问一答型**（一般 3–6 问，逐问作答）：案情往往是**各段独立型**、按 `(事实一)(事实二)…` 标注（这些事实标签写成加粗锚点段落，不是标题）；**每个小问各自**一个 QUESTION callout + 自己的 `md` 围栏（「针对事实N」引导句与题号逐字保留，不写 `题干：`/`问题：` 前缀）+ **紧跟该问的答案列表**——`==结论==` 起头再接理由，答案不隔块、不合并（相邻两问确属同一考点才可并入同一 callout 的后续围栏，答案仍各自紧跟）。某问含对立观点时套用「立场/理由/结论」子槽，不做整篇作文、一般也不需要分层删除线正文。
+- **列表化承载解析（阅读优先）**：当**问题与解析同在一个 QUESTION callout** 时，解析区用有序/嵌套列表承载、不写成大段散文——每个采分点或理由各占一项，控方/辩方/「我的观点」及各对立观点分别成项并各自带子项（如 `1. 既遂的理由→(1)(2)(3)`、`2. 未遂的理由→…`、`3. 我的观点和理由→(1)…→1. 因此…` 的逐层列表）。**超长题干型**（案情约 1500 字以上、按 `(事实一)…(事实五)` 分段）：案情本身按事实分段逐段拆成列表（每段一个父项、段内要点作子项），答案也**按事实分段对应展开**——一段事实接一组问答，避免整块案情与整块解析糊在一起。列表仍受 `E316` 缩进窗口、`E311` 禁止项首有序标记、`E648` 20 字项长等常规门禁约束。
+
+分型只改容器与答案组织，不改题面：两型都原样保留来源的问句文字、事实标签与编号顺序。
+
+### 主观题两版本（全面解析 vs 正式答案）
+
+主观题（案例/论述题）的**问题**沿用与客观题完全相同的 `> [!QUESTION] ✏️ <具体考点>` + `> ```md` 围栏题面契约（与 goldquest 题面契约一致）：题面首行放 `[考查类型·出处]` 标签，问句逐行书写，不写 `题干：`/`问题：` 前缀。`QUESTION` 块内**必须保留一段简短的 `**回答与解析：**` 结论**（`E308`/`E309` 要求答案紧贴围栏、留在同一 callout 内）。完整分层答案放到 `(四)写答案` 环节，用**两个并列 callout 分别承载两个版本**：
+
+- `> [!ANSWER] 正式答案（照此写到答题纸）`——考生在答题纸上真正要写出的版本：法言法语、采点给分的关键考点与结论词、约一千字、言简意赅。
+- `> [!EXPLAIN] 全面解析（帮助理解、非必写）`——比正式答案多出、只帮助理解而不要求写出的推理、补充理由、背景与展开分析；与 `ANSWER` 分工、不重复复述其结论。
+- **两型标题一律不带 emoji、全文逐字同一**（结构标签非概念锚）：`✍️/🔎` 等 emoji+同词组合 ≥6 处会被 `E512` 硬拒，纯文字标题则任意重复合法（探针实测）；emoji 的语义职责由 callout 内容行的概念锚承担。
+- `~~删除线~~` 仍在 `ANSWER` 内部划「讲解时保留、考场不写」的子细节；`写答案` 块前放一行图例 `~~删除线~~ = 讲解时保留、考场不写`（短标记行，已实测豁免 `E622`；引述块无法跨越中间标题，故逐块各写一行）。callout 内每一非空行都必须以 `> ` 起（`E304`）。
+- 删除线只划「多出来的讲解」，绝不划掉必答的结论句、罪名认定或采点关键词；被划片段仍按解析区着色规范保留短颜色锚点。
+- **答案骨架照搬原书层级**：`(一)(二)(三)` 大点、`1.` `2.` `3.` 小点、缩进的「理由是…」子项以及各点先后与从属关系，全部逐字沿用来源参考答案/解析自身的分层——整理时只做样式叠加（着色、emoji、换行、`==高亮==`、`~~删除线~~`），不重排、不合并、不重拆（详见上一节「主观题答案沿用原解析的分层」条）。
+
+````md
+> [!QUESTION] ✏️ 共谋入室抢劫中止后另起犯意猥亵、趁机取财的全面分析
+>
+> ```md
+> [全面分析·2004年真题]
+> 请根据刑法规定与刑法原理, 对本案进行全面分析.
+> ```
+>
+> **回答与解析：**
+>
+> 1. **甲**{: style="color: var(--b3-font-color10);"}**抢劫中止**{: style="color: var(--b3-font-color8);"}＋**盗窃既遂**{: style="color: var(--b3-font-color6);"}＋**强制猥亵**{: style="color: var(--b3-font-color13);"}。
+> 2. **乙**{: style="color: var(--b3-font-color4);"}**抢劫未遂**{: style="color: var(--b3-font-color5);"}。
+
+#### (四) 写答案
+
+~~删除线~~ = 讲解时保留、考场不写
+
+> [!ANSWER] 正式答案（照此写到答题纸）
+>
+> **(一)** 关于**甲**{: style="color: var(--b3-font-color10);"}和**乙**{: style="color: var(--b3-font-color4);"}的行为🤝
+>
+> 1. **甲**{: style="color: var(--b3-font-color10);"}、**乙**{: style="color: var(--b3-font-color4);"}构成**抢劫罪**{: style="color: var(--b3-font-color12);"}的**共同犯罪**{: style="color: var(--b3-font-color10);"}。
+>     - **甲**{: style="color: var(--b3-font-color10);"}是**实行犯**{: style="color: var(--b3-font-color8);"}，**乙**{: style="color: var(--b3-font-color4);"}是**帮助犯**{: style="color: var(--b3-font-color6);"}。
+>     - ~~理由是，二人共同制造**抢劫罪**{: style="color: var(--b3-font-color12);"}的**违法事实**{: style="color: var(--b3-font-color13);"}。~~
+
+> [!EXPLAIN] 全面解析（帮助理解、非必写）
+>
+> - **甲**{: style="color: var(--b3-font-color10);"}**自动放弃**{: style="color: var(--b3-font-color8);"}属**终局性中止**{: style="color: var(--b3-font-color6);"}，另起犯意构成**强制猥亵**{: style="color: var(--b3-font-color13);"}。
+````
 
 ## Split-table heading guardrail
 
@@ -141,7 +193,7 @@ MarkNote is a reading aid, not a plain transcription. Apply this contract to gen
 
 - **Color mapping**: build a local vocabulary before writing. Repeated parties, institutions, objects, concepts, states, and aliases keep the same color. 概念列表先分槽：颜色映射到该概念在当前分类中的法律功能，不映射到笼统的“概念”词性；连续概念项应体现主体、门槛、程序、例外、结果或风险等真实差异。Use short bold anchors; foreground-only, background-only, and combined styles are all valid. 背景色：可以单独使用。Background-only example: `**诉讼中**{: style="background-color: var(--b3-font-background11);"}`.
 - **Dense reasoning**: 每条普通正文行最多 42 个可见字符。Turn independent conditions, branches, exceptions, and consequences into nested lists so the reader can scan the logic.
-- **Rich mode**: when a block is medium or complex, 至少四类辅助样式 from `==高亮==`, optional low-frequency `<em>斜体</em>`, `~~删除线~~`, inline code, and `<u>下划线</u>`; 至少四类结构载体 from nested lists, Callout, subheadings, tables, one suitable visual, and dividers; 至少三个短背景色锚点。斜体不是必选项。
+- **Rich mode**: when a block is medium or complex, 至少四类辅助样式 from `==高亮==`, optional low-frequency `<em>斜体</em>`, `~~删除线~~`（除标注已排除/错误项外，还承载主观题分层作答语义：只划全面解析版比正式答案版多出的讲解，见「主观题两版本」小节）, inline code, and `<u>下划线</u>`; 至少四类结构载体 from nested lists, Callout, subheadings, tables, one suitable visual, and dividers; 至少三个短背景色锚点。斜体不是必选项。
 - **可视化路由**: medium or complex material needs one intentional visual when it contains procedures, sequences, branches, comparisons, or subject relationships, but the format follows the content. For in-note editability, use SiYuan's Mermaid.js and allow `%%{init}%%`, `classDef`, `style`, and `linkStyle`; do not call Beautiful Mermaid on this branch. For richer spatial/object composition, use HTML with exactly one outer `<div>`. For stable themed output, insert a rendered SVG/PNG with alt text containing 可视化、图解、流程图、关系图、决策图、时间线, or `diagram`. Beautiful Mermaid is only a static renderer for its supported Mermaid subset: it drops `%%{init}%%`, applies edge-label color globally, and cannot color edge labels individually. Check semantic colors, labels, direction, connectors, and mobile width for the chosen format. Mermaid must do the analysis: a connected diagram that reuses nodes and states the tested relation on edge labels or decision diamonds — stacked isolated keyword pairs (`A["申请信息公开"] --> B["行使权利=守法"]`, `E901`), label-less short keyword chains (`法律 --> 公序良俗 --> 权利`, `E902`), and independent chains or orphan nodes stitched into one fence (`E903` — one fence must parse as a single connected component, one reasoning chain every node can reach) are the lazy vendor format and fail the hard gate; use a list or table instead. Direction (TD/LR), layout, node shapes, palette, and styling are entirely free — the gate judges the logic chain only.
 - **Audit**: run the MarkNote validator in strict mode, fix every E620-E627 finding, and fix `W503` concept-list monotony, `W504` paragraph-parent fragmentation, `W505` mechanical line breaks, `W506` dangling color anchors, `E204` adjacent-line color monotony, and `E509` missing semantic emoji route before delivery. Reject perfunctory Mermaid (`E901` isolated keyword pairs, `E902` short keyword chains) — a diagram that does not reuse nodes, branch, or label edges is a bullet list in costume and must be rewritten or dropped.
 
