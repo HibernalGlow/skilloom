@@ -8,6 +8,56 @@
 
 ---
 
+## 14.1.1 ⚠️ 角色识别 ≠ 画师风格（两件事，不要混为一谈）
+
+**老角色不挂角色 LoRA，但仍然应该挂画师 LoRA。** 这两件长期被混淆：
+
+| 维度 | 老角色（第 1/2 批） | 新角色（第 3 批） |
+|------|-------------------|----------------|
+| 角色 LoRA | ❌ 不挂（底模原生认识） | ✅ 必须挂 |
+| 页面角色触发词 | ❌ 不写 | ✅ 裸写 |
+| **画师 LoRA** | ✅ **照样挂**（风格是独立维度） | ✅ 照样挂 |
+| **画师触发词位置** | `batch.toml` 的 `quality_prefix` | 同左 |
+
+**反例警示**：`明日方舟_深靛` 曾因「只查了 `lora_rules.json` 没有画师条目」而错误得出
+「无画师 LoRA」的结论，实际本地就有 `zbjlm@zbjlm_anima1.0_v0.1.safetensors`（175.1 MiB）。
+
+### 画师 LoRA 的三个确认动作（缺一不可）
+
+1. **查完整库存**：`Workflows/wild/lora-cleanup-<日期>.md`（**权威**，逐目录列出全部 LoRA 文件 + 大小 + 落地天数）
+2. **查画师清单**：`Workflows/wild/artist/list.md`（带 `♥` 的是已有 LoRA 的）、`artist/string.txt`（历史混用串）
+3. **对外核实触发词**：Civitai 搜 `https://civitai.com/api/v1/models?query=<名字>&types=LORA`，
+   取 `modelVersions[].baseModel == "Anima"` 的版本及其 `trainedWords`
+
+### 本地 LoRA 文件名的触发词约定
+
+本地文件普遍命名为 **`<名字>@<实际文件>.safetensors`**：
+
+```
+zbjlm@zbjlm_anima1.0_v0.1.safetensors     → 触发词 @zbjlm
+atdan_anima_v1.0_dim64@atdan.safetensors  → 触发词 @atdan
+healthyman_v1_epoch28@hea1thy.safetensors → 触发词 @hea1thy
+style-Bubutuke-Anima-v01.safetensors      → 触发词 bubutuke（无 @）
+```
+
+**触发词以 `@` 分隔**：`@` 后面的就是触发词；写入 `quality_prefix` 时通常配 `@` 前缀
+（`@atdan` / `@hea1thy` / `@freng` / `@zbjlm`），也有不带 @ 的（`bubutuke` / `kincora`）。
+**不确定时以 Civitai 的 `trainedWords` 为准。**
+
+### 画师 LoRA 权重惯例（实测自 5 部作品）
+
+| 画师 | 权重 |
+|------|------|
+| Atdan | 0.8 |
+| Freng | 0.8 |
+| Healthyman | 1.0 |
+| Kedama mi1k | 1.0 |
+| Bubutuke | 0.85 |
+
+→ **起步取 0.8**；风格不足升 1.0，烧图/伪影降到 0.6~0.7。
+
+---
+
 ## 14.1 角色识别分工（老角色 vs 新角色）
 
 Anima 底模的知识截止约为 **2025 年 9 月**（2.9B 增量训练后延到 **2026 年 7 月**）。
@@ -83,11 +133,15 @@ Anima 底模的知识截止约为 **2025 年 9 月**（2.9B 增量训练后延�
 |-------|------|------|
 | 1 | **本作品目录的 `batch.toml`** | 本作品已跑通的画师、preset、`[[page_rule]]`、`[auto_rules]` |
 | 2 | `ComfyUI-Workflow-Studio/data/gen_presets.json` | 4 个采样预设的完整参数 + 各自 `quality_prefix` |
-| 3 | `ComfyUI-Workflow-Studio/data/lora_rules.json` | LoRA 规则库（路径 / 权重 / 触发词），供 `[auto_rules]` 匹配 |
-| 4 | 同批样板作品（`碧蓝航线_拉菲II`、`明日方舟_琴柳`、`蔚蓝档案_妃咲`） | 已实践成功的 toml 写法 |
+| 3 | **`Workflows/wild/lora-cleanup-<日期>.md`** | **LoRA 完整库存**（逐目录 · 文件名 · 大小 · 落地天数）—— 找文件用这个 |
+| 4 | `ComfyUI-Workflow-Studio/data/lora_rules.json` | ⚠️ **只是 `[auto_rules]` 的匹配规则表，不是完整库存**（仅 34 条，画师类大多缺失） |
+| 5 | `Workflows/wild/artist/list.md` · `artist/string.txt` | 已有 LoRA 的画师清单与历史混用串 |
+| 6 | 同批样板作品（`碧蓝航线_拉菲II`、`明日方舟_琴柳`、`蔚蓝档案_妃咲`） | 已实践成功的 toml 写法 |
 
-> ⚠️ `Workflows/wild/lora_rules.json` 是**旧副本**（6911 B），与 Studio 的权威版（9354 B）**不一致**。
-> 以 `ComfyUI-Workflow-Studio/data/lora_rules.json` 为准。
+> ⚠️ **两个易错点**：
+> ① `Workflows/wild/lora_rules.json`（6911 B）是**旧副本**，别用。
+> ② `Studio/data/lora_rules.json`（9354 B）是权威版，但**仅 34 条、覆盖面窄** ——
+> 不要因为它「没查到这个画师」就断定本地没有该 LoRA。**查文件去备份库看 lora-cleanup。**
 
 ### 采样预设（`gen_presets.json` 实读值）
 
