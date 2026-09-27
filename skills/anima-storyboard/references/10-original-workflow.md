@@ -7,8 +7,12 @@
 ## 10.1 总体流程
 
 ```
-角色选型 → Danbooru数据搜集 → 角色形态文件生成 → 服装改造方案设计 → character_map编写 → 情节线设计 → 大纲编写(含构图模式) → 分页story写作 → 标签校验
+角色选型 → Danbooru数据搜集 → 角色形态文件生成 → 服装改造方案设计 → character_map编写 → 大纲编写 / 直接story创作 → 标签校验
 ```
+
+> 💡 **重要说明：无需完整编写中文小说故事**
+> 编写 storyboard 时，**并不需要预先完整编一个中文的小说或故事长文**。
+> 你可以直接列出清晰明了的分页大纲（outline.md），甚至可以**直接进行 story 页面创作**（按每页 `[tags]` 与 `[caption]` 的规范直接生成单页 txt）。大纲是骨架，分页文件才是最终生成交付物。
 
 与有小说源的标准流程（§1-§3）相比，本流程跳过"小说读取→角色画像提取→剧情拆解"环节，改为从角色出发自主构建剧情。新增**情节线设计**步骤，确保页面间有叙事连贯性而非散装场景堆砌。
 
@@ -25,12 +29,16 @@
 | **节奏线** | 缓起→急收 / 平行交替 / 渐强渐弱 / 突变 | 情绪节奏的呼吸感 |
 | **服装线** | 原皮→皮肤 / 正装→凌乱 / 一种款式→另一种 | 服装变化暗示时间/状态推进 |
 
-### 设计原则
+### 设计原则与多玩法探索机制 ⭐
 
-1. **有方向即可**：不需要精确到每页，但每组形态（10-13页）应有起承转合
-2. **允许偏航**：写作中如果某页情绪自然偏移，跟随直觉而非强行回归预设
-3. **留白给分镜**：情节线只管"去哪里"，构图模式决定"怎么展示"，两者独立选择
-4. **双人页有化学反应**：不是两个solo拼在一起，而是两人互动产生新的叙事动力
+1. **默认基模**：工作流默认采用 **Silvermoon 的 Base 基模的 INT8 模型**（如 `silvermoonmixAnima_v23_INT8` / W8A8 系列）。
+2. **积极探索多玩法（深挖人设专属标签）**：
+   - 绝不局限于单一同质化的常规玩法；
+   - 必须主动从 Danbooru 标签数据库（如 `tag.sqlite`、API 等）中检索与角色人设（人偶、舞者、神明、仙灵等）强相关的专属玩法标签；
+   - 举例：机械人偶运用 `puppet strings` / `doll joints` / `ribbon bondage` / `tickling`；舞者运用 `en pointe` / `standing split` / `shoejob` / `leg lock`；神明运用 `throne` / `foot worship` / `temperature play` / `cervical penetration`；仙灵运用 `hairjob` / `sensory deprivation` / `whispering` 等。
+3. **有方向即可**：不需要精确到每页，但每组形态（10-13页）应有起承转合与玩法递进。
+4. **允许偏航**：写作中如果某页情绪或动作自然偏移，跟随直觉而非强行回归预设。
+5. **双人页有化学反应**：两人互动产生新的叙事动力与反差快感。
 
 ## 10.2 角色选型
 
@@ -260,28 +268,28 @@ phoebe \(wuthering waves\), blonde hair, very long hair, sidelocks, parted bangs
 | 黑边框 | `black border` | 24K | 暗色调边框 | 夜景、暗室、压抑氛围 |
 | 特写切入 | `cut-in` | 709 | 突然放大的局部 | 关键瞬间、表情突变、冲击 |
 
-### 构图选择原则
+### 构图选择原则（⚠️ 2026-09 修订：默认单帧，严控分镜）
 
-1. **默认多帧**：除非有明确理由用单帧（高潮爆发、情感聚焦），否则优先选择多帧构图
-2. **自由组合**：页面结构+音效+视觉效果+内部透视可叠加，如 `4koma + sound effects + motion lines`
-3. **音效增强临场**：`sound effects` 让静态画面有"声音"，大幅提升沉浸感
-4. **倾斜=失控**：`dutch angle` 在高潮/开宫页使用，倾斜构图暗示角色心理失衡
-5. **zoom layer > inset**：zoom layer（36K post）比inset（2.7K post）更常见且更灵活，优先使用
+1. **默认单帧**：全篇默认单帧插图构图（Single Frame）。单帧画面主体明确、空间完整、细节质量最高。严禁无故大面积滥用多格分镜。
+2. **克制使用分镜（非必要不用）**：仅在极少数必要场景（开宫横切面透视 `inset, cross-section`、射精前后对比 `before and after`、同屏必须双重视角 `split screen`、或用户明确要求）时才允许使用分镜。
+3. **音效增强临场**：`sound effects` 在单帧中同样可使用，赋予画面“声音”，提升沉浸感。
+4. **倾斜=失控**：`dutch angle` 在高潮/开宫等冲击页单帧中使用，倾斜构图暗示角色心理失衡。
+5. **镜头与景别替代多格**：套弄与深喉等动作，通过景别（`close-up, foot focus`）、视角（`from side`, `from above`）与富有张力的动作描写展现，不再使用多格分镜堆砌。
 
 ### 构图组合推荐
 
-| 页面类型 | 推荐组合 | 标签示例 |
-|---------|---------|---------|
-| 足交过程 | 双格+音效+放大层 | `2koma, sound effects, zoom layer` |
-| 深喉 | 分屏+音效+动作线 | `split screen, sound effects, motion lines` |
-| 骑乘展开 | 四格+音效+速度线 | `4koma, sound effects, speed lines` |
-| 开宫 | 画中画+横切面+倾斜 | `inset, cross-section, dutch angle` |
-| 内射 | 前后对比+X光+汗滴 | `before and after, x-ray, sweatdrop` |
-| 体位过渡 | 双格+剪影+汗滴 | `2koma, silhouette, sweatdrop` |
-| 情绪转折 | 三格+汗滴+动作线 | `3koma, sweatdrop, motion lines` |
-| 双人互动 | 漫画页+音效+多视角 | `comic, sound effects, multiple views` |
-| 高潮爆发 | 单帧+倾斜+速度线 | `dutch angle, speed lines` |
-| 余韵温存 | 单帧+镜像+倒影 | `mirror, reflection` |
+| 页面类型 | 推荐组合 | 标签示例 | 说明 |
+|---------|---------|---------|------|
+| 足交展示/套弄 | 单帧+足部特写+音效 | `close-up, foot focus, sound effects` | 单帧聚焦足心踩脚带与足底动作 |
+| 深喉吞吐 | 单帧+半身/特写+音效 | `cowboy shot, from side, sound effects` | 单帧侧视展示吞吐深度与表情 |
+| 骑乘展开 | 单帧+正面半身+速度线 | `cowboy shot, from front, speed lines` | 单帧展现俯冲与挺拔张力 |
+| 开宫（必要透视） | 画中画+横切面+倾斜 | `inset, cross-section, dutch angle` | ⭐ 允许使用分镜（展示子宫内部剖面） |
+| 射精（前后对比） | 前后两格对比 | `before and after` | ⭐ 允许使用分镜（射精前 vs 射精后） |
+| 体位过渡 | 单帧+全身/中景 | `full body` 或 `cowboy shot` | 建立新空间与体态关系 |
+| 情绪转折 | 单帧+面部特写+音效 | `close-up, face focus, sound effects` | 聚焦面部神态转变 |
+| 双人互动 | 单帧+双重视角/构图 | `from side, cowboy shot` | 单画面自然展现两人互动 |
+| 高潮爆发 | 单帧+倾斜+速度线 | `dutch angle, speed lines` | 单帧冲击力最强 |
+| 余韵温存 | 单帧+镜像+倒影 | `mirror, reflection` | 单帧恬淡放松 |
 
 ### 情绪弧线设计
 
