@@ -19,7 +19,7 @@
 
 ## 二、角色设计一致性四件套 (Four Consistency Sheets)
 
-为长期创作项目（如《姐姐爱上我》、《棉花糖》、ANIMA3）建立角色视觉档案时，需产出以下四张标准 Sheet：
+为长期创作项目（如各类长篇同人/原创、ANIMA3）建立角色视觉档案时，需产出以下四张标准 Sheet：
 
 1. **多向转动视图 (Turnaround Sheet)**：正视 (Front)、侧视 (Side)、3/4 视、背视 (Back)。
 2. **六大核心情欲表情图 (Expression Sheet)**：
