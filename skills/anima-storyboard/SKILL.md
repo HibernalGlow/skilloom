@@ -24,8 +24,62 @@ allowed-tools: [read, write, bash, eval, lsp, search, find, web_search, browser]
   - **舞者 / 刺客 / 高柔韧（如奥黛塔）**：`en pointe`（足尖伫立）、`standing split`（竖叉/高位踢腿）、`sitting split`（一字马）、`flexible`（身体柔韧）、`shoejob`（硬底芭蕾舞鞋踩碾）、`leg lock`（双腿绞杀）、`popliteal`（腘窝夹弄）。
   - **神明 / 女皇 / 极寒（如冰之女皇）**：`throne` / `sitting on throne`（王座侍奉）、`foot worship` / `foot on chest`（王权践踏与足心膜拜）、`temperature play` / `ice cube`（极寒冰晶与温差挑逗）、`cervical penetration`（神圣破宫）、`internal cumshot` / `breeding`（神圣受精与圣婚）。
 
-> **重要政策：LoRA 触发词必须写入 story 页面（2026-09-25 修订）。**
-> 专有触发词（非 Danbooru 原生 tag）加权重 1.3 写入 [tags] 行。Danbooru 原生 tag 照常使用。
+### 规则 0c：角色识别与触发词分工（2026-09-27 确立）⭐
+
+> **核心：老角色底模原生认识，不写触发词；所有触发词/权重/采样配置以本作品 `batch.toml` 与 Studio 配置为准，禁止自行发明。**
+
+**① 角色触发词 —— 按批次分**
+
+| 批次 | 时间 | 底模认识？ | 页面 `[tags]` 写角色触发词？ | 挂角色 LoRA？ |
+|------|------|-----------|------------------------|-------------|
+| 第 1 批 | ≈2025-09 之前 | ✅ | **不写** | **不挂** |
+| 第 2 批 | 2025-09 ~ 2026-06 | ✅ 基本认识 | **不写** | **不挂** |
+| 第 3 批 | 2026-06 之后（如终末地/Endfield 系） | ❌ | **必须写**（裸写，不加权重） | **必须挂** |
+
+- **判定依据**：先查 Danbooru `post_count`（几百帖即底模必认识）；本作品已有 `recog/` 识别测试页的，以其结论为准。
+- **老角色挂角色 LoRA 反而与底模原生知识打架，会拉低识别率。**
+
+**② 触发词三处落点（不要放错）**
+
+| 类型 | 写在哪 | 格式 |
+|------|-------|------|
+| **画师触发词** | `batch.toml` 的 `[prompt] quality_prefix` | `..., highly detailed, @atdan, uncensored`；**绝不进页面 `[tags]`**；画师无触发词就不放 token |
+| **角色触发词**（仅第 3 批） | 页面 `[tags]` 行内 | 裸写 `typhoeusendfield`，**不加权重** |
+| **动作/玩法触发** | 页面 `[tags]` 行内，**只写原生 Danbooru tag** | `(under-stirrup footjob:1.3)`；由 toml `when_triggers` 自动挂钩 LoRA |
+
+**③ 禁止在页面写 LoRA 专有触发词**（统一改写为原生 tag）：
+
+| ❌ 不写 | ✅ 改写 |
+|--------|--------|
+| `ustirrup` / `stirrupjob` / `stirrup3` / `uxsFJ` | `footjob`, `under-stirrup footjob` |
+| `cerpe` / `cervical` | `cervical penetration` |
+| `hairop` | `hairjob`, `hair on penis` |
+| `throughfoot` | `footjob through footwear` / `shoejob` |
+
+> 证据：4 部已完成作品共 240 页全量 grep——`ustirrup`/`stirrupjob`/`cerpe`/`hairop`/`uxsFJ`/`throughfoot` 命中均为 **0**；唯一写进页面的触发词是角色 LoRA 触发词。
+
+**④ 配置权威来源（按优先级，禁止发明）**
+
+1. **本作品 `batch.toml`** —— 已跑通的画师 / preset / `[[page_rule]]` / `[auto_rules]`
+2. `ComfyUI-Workflow-Studio/data/gen_presets.json` —— 4 个采样预设 + 统一 `quality_prefix`
+3. `ComfyUI-Workflow-Studio/data/lora_rules.json` —— LoRA 规则库（**权威版**）
+4. 同批样板作品：`碧蓝航线_拉菲II`（老角色，不挂角色 LoRA）、`明日方舟_琴柳`、`蔚蓝档案_妃咲`
+
+> ⚠️ `Workflows/wild/lora_rules.json` 是**旧副本**（6911 B），与 Studio 权威版（9354 B）不一致，以 Studio 版为准。
+
+**⑤ 采样预设（`gen_presets.json` 实读值）**
+
+| preset | 参数 | 用途 |
+|--------|------|------|
+| `anima-two-stage-standard` | Stage1 5步 CFG4.6 `er_sde` → Stage2 12步 CFG1.6 `dpmpp_2m_sde_gpu`/`beta57` | **默认** |
+| `anima-native-30` | 30步 CFG4.0 `er_sde`/`beta57` | 足交等精细玩法 |
+| `anima-single-turbo` | 12步 CFG1.6 `euler_ancestral`/`beta57` | 极速草稿 |
+| `liino-footjob-suite` | 12步 CFG1.6 `euler_ancestral`/`beta57` + 6 LoRA | 镫袜足交全套 |
+
+> 四个 preset 的 `quality_prefix` 统一为 `masterpiece, best quality, aesthetic, highly detailed`。
+> ⚠️ **不要因为看到「12 步 / CFG 1.6」就判定参数异常** —— 那是双层预设的 **Stage 2 精修档**（Stage 1 用 CFG 4.6 确立骨架），属既定设计。
+
+> 完整细则与证据链见 `references/14-character-recognition.md`。
 
 **每次输出 [tags] 前，必须逐条检查以下三条规则：**
 
@@ -70,17 +124,18 @@ ComfyUI 用 `(tag:权重)` 语法强调特定标签，防止 AI 生成错误/缺
 
 #### 权重表（按类别）
 
-**① LoRA/插件触发词 — 权重 1.3（仅要求时添加）**
+**① LoRA/插件触发词 —— 见规则 0c（2026-09-27 起以此为准）**
 
-LoRA 触发词**不主动添加**到 story 页面中。用户在工作流 LoRA Loader 节点中自行管理。
-如需添加（用户明确要求时），参考以下权重：
+- **角色触发词**：第 1/2 批老角色**不写**；第 3 批新角色在页面 `[tags]` **裸写**（不加权重）。
+- **画师触发词**：只写 `batch.toml` 的 `quality_prefix`，**永不进页面**。
+- **动作/玩法**：页面**只写原生 Danbooru tag**（不加 LoRA 专有词）。
 
 | 标签 | 所属 LoRA | 说明 |
 |------|----------|------|
-| `(under-stirrup footjob:1.3)` | Footjob | 原生 Danbooru tag，正常使用 |
-| `(cervical penetration:1.3)` | Cerpe | 原生 Danbooru tag，正常使用 |
-| `uxsFJ` | Footjob LoRA | ⚠️ LoRA 专有触发词，仅用户要求时添加 |
-| `cerpe` | Cerpe LoRA | ⚠️ LoRA 专有触发词，仅用户要求时添加 |
+| `(under-stirrup footjob:1.3)` | Footjob | ✅ 原生 Danbooru tag，正常使用 |
+| `(cervical penetration:1.3)` | Cerpe | ✅ 原生 Danbooru tag，正常使用 |
+| `uxsFJ` | Footjob LoRA | ❌ LoRA 专有触发词，**不写进页面** |
+| `cerpe` | Cerpe LoRA | ❌ LoRA 专有触发词，**不写进页面** |
 
 **② 核心服装元素 — 权重 1.3**
 
@@ -718,6 +773,7 @@ storyboard/2607/260704/星穹铁道/第2批_2025年9月-2026年6月/<角色名>/
 | 11 | **外部技能协作**（4 个已装技能、调用时机、优先级裁决表、模型事实） | `references/11-external-skills.md` | ✅ |
 | 12 | **失败模式与互斥矩阵**（E001–E011、互斥标签对、细节过度、手脚防护、定稿自检） | `references/12-failure-modes.md` | ✅ |
 | 13 | **因果锁 / 八维 / 画布**（情境因果锁、画面八维补全、画布表、caption 句式） | `references/13-causality-and-canvas.md` | ✅ |
+| 14 | **角色识别与触发词分工**（老/新角色判定、触发词三处落点、配置权威来源、采样预设） | `references/14-character-recognition.md` | ✅ |
 | — | **快速规则参考**（偏好标签、服装改造、项圈库等速查） | `references/rule.md` | 参考 |
 | — | **Danbooru API 查询方法**（User-Agent、认证、回退策略） | `references/danbooru_api.md` | 参考 |
 | — | **负面标签参考**（Futa/性转/伪娘/男性丝袜禁止词表） | `references/futa_and_male_hosiery_negative_tags.md` | 参考 |
@@ -4622,6 +4678,158 @@ garter straps — 不要吊带袜（含 white garter straps / black garter strap
 1. **因果**：这一页"因是什么、果在哪"能一句话说出来吗？
 2. **八维**：至少触发了 3 维不是空缺吗？
 3. **分离**：`[tags]` 与 `[caption]` 有没有语义重复？重复就删一处。
+
+---
+
+# 补充篇 D：角色识别、触发词分工与配置权威来源
+
+> 2026-09-27 引入。解决三个长期含糊的问题：
+> ① 什么时候要在页面 `[tags]` 里写触发词？② 画师触发词写在哪？③ 这些配置以什么为准？
+>
+> **核心结论：老角色底模原生认识，不写触发词；所有配置以本作品 `batch.toml` 与 Studio 的
+> `lora_rules.json` / `gen_presets.json` 为准，禁止自行发明。**
+
+---
+
+## 14.1 角色识别分工（老角色 vs 新角色）
+
+Anima 底模的知识截止约为 **2025 年 9 月**（2.9B 增量训练后延到 **2026 年 7 月**）。
+因此按技能已有的「角色时间批次分类」直接推导出触发词策略：
+
+| 批次 | 时间范围 | 底模是否原生认识 | 页面 `[tags]` 是否写角色触发词 | 是否挂角色 LoRA |
+|------|---------|----------------|---------------------------|---------------|
+| **第 1 批** | ≈2025-09 之前 | ✅ 认识 | **不写** | **不挂** |
+| **第 2 批** | 2025-09 ~ 2026-06 | ✅ 基本认识 | **不写** | **不挂**（识别失败再试） |
+| **第 3 批** | 2026-06 之后 | ❌ 不认识（如终末地/Endfield 系） | **必须写**（裸写，不加权重） | **必须挂** |
+
+### 判定流程
+
+```
+角色拿来
+  ├─ 属第 1/2 批（≈2026-06 之前）？→ 底模原生识别 → 页面只写角色 Danbooru tag，不加任何触发词
+  └─ 属第 3 批（2026-06 之后）？  → 页面 [tags] 写角色 LoRA 触发词（裸写）
+                                   → batch.toml 用 [[page_rule]] when_triggers 匹配该触发词并挂 LoRA
+```
+
+### 判定与验证的实际做法
+
+1. **先查 Danbooru `post_count`**：`indigo (arknights)` 有 **287** 帖 → 底模必然认识，属老角色。
+   只有几十帖甚至 0 帖的新角色才需要 LoRA 兜底。
+2. **先跑识别测试页**：本作品目录下若已有识别测试（如 `recog/`），以它的结论为准。
+3. **不要凭感觉挂 LoRA**：老角色挂角色 LoRA 反而会与底模原生知识打架，拉低识别率。
+
+### 参考样板（已实践成功）
+
+| 作品 | 角色批次 | 做法 |
+|------|---------|------|
+| `碧蓝航线_拉菲II` | 老角色 | 「先测底模认不认识三个形态（**不挂角色 LoRA**）」，页面无触发词 |
+| `明日方舟_深靛` | 老角色（287 帖） | 同拉菲II：只靠底模原生知识 |
+| `明日方舟终末地_洛茜` | **新角色** | 挂 `rossi_v2_anima`，触发词 `rossi` 在页面上 |
+| `星穹铁道_爻光_火花_花火` | 新角色 | `[[page_rule]] 角色·爻光` `when_triggers = ["yaoguang"]` |
+| `原神_至冬` | 混合 | 桑多涅/哥伦比亚/奥黛塔三个角色各设一条 `page_rule` |
+
+> `深靛` 无角色 LoRA、无画师触发词，`quality_prefix` 只保留 preset 基串 —— **这是老角色的标准形态**。
+
+---
+
+## 14.2 触发词的三处落点（不要放错）
+
+| 触发词类型 | 写在哪 | 格式 | 说明 |
+|-----------|-------|------|------|
+| **画师触发词** | `batch.toml` 的 `[prompt] quality_prefix` | `…, highly detailed, @atdan, uncensored` | **绝不写进页面 `[tags]`**；画师无触发词时就不放该 token |
+| **角色触发词**（仅第 3 批） | 页面 `[tags]` 行内 | 裸写 `typhoeusendfield` | 由 `batch.toml` 的 `[[page_rule]] when_triggers` 匹配后挂 LoRA |
+| **动作/玩法触发** | 页面 `[tags]` 行内，**只写原生 Danbooru tag** | `(under-stirrup footjob:1.3)` | 由 `when_triggers` 自动挂钩对应 action LoRA |
+
+### ⚠️ 禁止在页面写 LoRA 专有触发词
+
+页面**只写原生 Danbooru tag**，由 toml 去匹配。以下专有触发词**不写进页面**：
+
+| 不写（LoRA 专有） | 改写（原生 Danbooru tag） |
+|------------------|------------------------|
+| `ustirrup` / `stirrupjob` / `stirrup3` / `uxsFJ` | `footjob`, `under-stirrup footjob` |
+| `cerpe` / `cervical` | `cervical penetration` |
+| `hairop` | `hairjob`, `hair on penis` |
+| `throughfoot` | `footjob through footwear` / `shoejob` |
+
+**证据**：对 4 部已完成作品共 240 页做全量 grep ——
+`ustirrup` / `stirrupjob` / `cerpe` / `hairop` / `uxsFJ` / `throughfoot` 命中数**全部为 0**；
+`cervical`（原生 tag 的一部分）30 页、`footjob` 37 页。
+**唯一被写进页面的触发词是角色 LoRA 触发词**（`typhoeusendfield`，60 页，裸写不加权重）。
+
+---
+
+## 14.3 配置的权威来源（按优先级）
+
+**禁止自行发明触发词、权重、采样参数。** 按以下顺序查：
+
+| 优先级 | 来源 | 内容 |
+|-------|------|------|
+| 1 | **本作品目录的 `batch.toml`** | 本作品已跑通的画师、preset、`[[page_rule]]`、`[auto_rules]` |
+| 2 | `ComfyUI-Workflow-Studio/data/gen_presets.json` | 4 个采样预设的完整参数 + 各自 `quality_prefix` |
+| 3 | `ComfyUI-Workflow-Studio/data/lora_rules.json` | LoRA 规则库（路径 / 权重 / 触发词），供 `[auto_rules]` 匹配 |
+| 4 | 同批样板作品（`碧蓝航线_拉菲II`、`明日方舟_琴柳`、`蔚蓝档案_妃咲`） | 已实践成功的 toml 写法 |
+
+> ⚠️ `Workflows/wild/lora_rules.json` 是**旧副本**（6911 B），与 Studio 的权威版（9354 B）**不一致**。
+> 以 `ComfyUI-Workflow-Studio/data/lora_rules.json` 为准。
+
+### 采样预设（`gen_presets.json` 实读值）
+
+| preset id | 模式 | 参数 | 用途 |
+|-----------|------|------|------|
+| `anima-two-stage-standard` | 双层 | Stage1 5步 CFG4.6 `er_sde`/`simple` → Stage2 12步 CFG1.6 `dpmpp_2m_sde_gpu`/`beta57` | **默认** |
+| `anima-native-30` | 单层 | 30步 CFG4.0 `er_sde`/`beta57` | 足交等精细玩法换用 |
+| `anima-single-turbo` | 单层 | 12步 CFG1.6 `euler_ancestral`/`beta57` | 极速草稿 |
+| `liino-footjob-suite` | 单层 | 12步 CFG1.6 `euler_ancestral`/`beta57` + 6 LoRA | 镫袜足交全套 |
+
+**这四个 preset 里的 `quality_prefix` 统一是**：
+`masterpiece, best quality, aesthetic, highly detailed`
+作品 toml 在其后追加画师触发词与足部强化词，末尾加 `uncensored`。
+
+> ⚠️ **不要因为看到「12 步 / CFG 1.6」就判定参数异常。** 那是双层预设的 **Stage 2 精修档**
+> （Stage 1 用 CFG 4.6 确立骨架），属既定设计，不是配置错误。
+
+---
+
+## 14.4 本规则与旧文的冲突裁决
+
+技能正文曾有两处互相矛盾的表述，现统一如下（以本节为准）：
+
+| 旧表述 | 位置 | 现状 |
+|-------|------|------|
+| 「LoRA 触发词必须写入 story 页面」 | 规则 0 后重要政策 | **仅对第 3 批新角色成立**；老角色不写。且指**角色**触发词，不含动作 LoRA 专有词 |
+| 「LoRA 触发词不主动添加到 story 页面」 | 规则 3 ① | **对动作/画师类成立**：动作走原生 tag、画师走 toml |
+
+**统一裁决**：
+
+```
+角色触发词：第1/2批不写；第3批裸写（不加权重）
+画师触发词：只写 batch.toml 的 quality_prefix，永不进页面
+动作触发词：页面只写原生 Danbooru tag，专有词一律不写
+```
+
+---
+
+## 14.5 新角色接入清单（第 3 批专用）
+
+1. 查 `lora_rules.json` 是否已有该角色 LoRA 与触发词；无则先训练/下载。
+2. 页面 `[tags]` 行内**裸写**触发词（如 `rossi`），不加权重。
+3. `batch.toml` 增加：
+
+```toml
+[[page_rule]]
+name          = "角色·<角色名>"
+when_triggers = ["<触发词>"]
+
+  [[page_rule.loras]]
+  name         = "<LoRA 名>"
+  path         = 'anima\chara\<系列>\<文件>.safetensors'
+  model_weight = 1.0
+  clip_weight  = 1.0
+```
+
+4. 跑 3 页识别测试（最小标签 / 加描述标签两版），确认触发率后再全量出图。
+
+---
 
 ---
 
