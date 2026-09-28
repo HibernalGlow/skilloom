@@ -464,3 +464,30 @@ LoRA 权重 / `exclude_keywords`）：
 | Windows 中文目录 | 不要 `ssh 'dir "…\洛茜"'`（GBK 毁路径）。用 `powershell -EncodedCommand` + **UTF-16LE base64** 打包脚本，列举/删除都走它 |
 | detached `screen` 里的 `python3` | 会落到 `xcrun` shim（`unable to load libxcrun`）。一律写绝对路径 `/opt/homebrew/bin/python3` |
 | 同名文件的浏览器缓存 | 改版后**旧图必须从 ComfyUI output 侧删掉**，否则 UI 里 `Pxxx_00001.png` 显的还是老图；页面改名的项目同时改掉撞名风险 |
+
+### ⑥ 长批次用「排队预投」，不要一页一页投
+
+`run_typhon_batch.py` 是「投一页 → 等一页 → 回传一页」。代价：GPU 在往返里空转；
+**派发机一睡/一重启，ComfyUI 队列里只剩一页，剩下的根本没进去。**
+
+```bash
+# ① 一次性排队所有未落地页（174 页 ~15s）
+tools/run_batch.sh presubmit_batch.py <作品>
+tools/run_batch.sh presubmit_batch.py <作品> --dry     # 先看要投哪些
+# ② 守着收图（detached 屏；派发机重启后重跑即可续收）
+screen -dmS <名>_collect bash -lc 'cd <Studio> && exec /opt/homebrew/bin/python3 \
+    tools/collect_presubmitted.py <作品> > /tmp/<名>_collect.log 2>&1'
+```
+
+| 要点 | 说明 |
+|---|---|
+| 不是绕开引擎 | `presubmit_batch.py` import 同一引擎模块，逐页走 `parse_txt → resolve_preset → apply_preset → check_foot_preset → resolve_page_canvas → build_workflow → queue_prompt`；**只去掉 `wait_done()`** |
+| 队列在算力机 | 队列存在 **Windows 那边的 ComfyUI**，派发机重启不影响渲染继续 |
+| 幂等 | 默认只投 Mac 上没有 png 的页；`--all` 才全重投 |
+| 清单 | `<作品>/presubmit_manifest.json`（pid ↔ 页/seed/预设），收集器按它认领 |
+| 采样闸照过 | 踩脚页撞双彩仍会被拦下（记进 `gate_skipped`） |
+| 收图 | 收集器轮询 `/history/<pid>` → `fetch_images()`；队列空还有缺口 ⇒ 重投；最后兜底跑一次 `mirror_output.py` |
+| ⚠️ 别混跑 | 预投前先停掉在跑的 `run_xxx_batch.py`，否则同一页渲染两次 |
+
+一页一页的旧模式仍可用，价值是"每页立刻回传 + 失败隔离"；预投的价值是
+"整批不依赖派发机 + GPU 不空转"。**长批次优先预投。**
