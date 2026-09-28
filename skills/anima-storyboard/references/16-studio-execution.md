@@ -291,3 +291,99 @@ tools/run_batch.sh run_insert.py <作品 batch.toml> --only SL001 --dry-run
 
 > **改了 BATCH-DISPATCH.md 就同步本文件**（反之亦然）。这两份已经因为不同步漂移过一次
 > —— 正是 §16.0 那张表里「绕过引擎」的同类病根。
+
+---
+
+## 16.10 五条防再犯硬规则（2026-09-28 血泪，全部真实踩过）⛔
+
+### ① 足部页的 `preset` 是承重结构，删了必烂
+
+- 踩脚 / 足交 / **足部当主体**的页 **必须** `preset = "anima-native-30"`
+  （30 步 / CFG 4.0 / `er_sde` / **Turbo Off**）
+- 9 个已跑通作品的足部规则**逐字节相同**：
+  `Ustirrup 2000 w=0.88` + `Stirrup 3-1 w=0.63` + `native-30`
+- **为什么**：镫袜类动作 LoRA 在 Turbo 少步数 / 低 CFG 下「吃不满」→
+  足心横带、足弓、脚趾结构糊成一团
+- **反例（真实发生）**：把足部规则的 `preset` 行删掉，让它继承基线的
+  `anima-single-17`（Turbo On / CFG 1.6 / 17 步）→ **足交页当场烂**
+- ⚠️ 别把 preset 当成「只影响步数」：它**连带 Turbo 开关** ——
+  预设的 LoRA 表里没有 turbo ⇒ `preset_turbo_enabled` 为假 ⇒ 引擎**摘掉基线 Turbo**。
+  这是 native-30 的一半作用，不是副作用。
+
+### ② 触发词表和规则结构，抄**最新**的项目（不是最老的）
+
+- **preset 与 LoRA 权重**：全部项目一致 → 抄哪个都行
+- **`when_triggers`**：会演进 → 抄最新的。
+  `星穹铁道_爻光_火花_花火`（09-27 19:58）有 **16 个词**；
+  琴柳（09-25）只有 4 个 → `foot worship` / `stepping on another` /
+  `dual footjob` / `two-footed footjob` 这类页会漏到基线预设。
+- **规则结构**：抄 `原神_至冬`（09-27 18:22）—— 足部分三条：
+  `踩脚袜足交`（native-30 + 那对 LoRA）／`穿鞋足交`（native-30 + through-footwear）／
+  `足部玩法`（native-30，**不挂**镫袜 LoRA —— 踩踏膜拜不是足交，挂了会往足交往拉）
+- **查法**（一条命令看全部项目，按修改时间倒序，只打印足部规则）：
+
+```bash
+python3 - <<'PY'
+import os, tomllib, time
+from pathlib import Path
+R = Path("/Users/glow/Base/Works/ComfyUI/Workflows/wild/storyboard")
+for p in sorted(R.glob("*/batch.toml"), key=os.path.getmtime, reverse=True):
+    d = tomllib.load(open(p, "rb"))
+    ts = time.strftime("%m-%d %H:%M", time.localtime(os.path.getmtime(p)))
+    print("%s  [%s]  base=%s" % (p.parent.name, ts, (d.get("base") or {}).get("preset")))
+    for r in d.get("page_rule") or []:
+        trig = " ".join(r.get("when_triggers") or []).lower()
+        if any(k in trig for k in ("foot", "stirrup", "toe", "trampl", "sole")):
+            print("   ★ %-18s preset=%-16s %s" % (r.get("name"), r.get("preset"),
+                  [l["model_weight"] for l in (r.get("loras") or [])]))
+PY
+```
+
+### ③ 判「图烂了」之前，先确认你看到的是新图 ⚠️
+
+**ComfyUI 用同名文件服务 `/view`，浏览器/前端会拿缓存显示上一张。**
+清空 output 再跑 ⇒ ComfyUI 的 `get_save_image_path` 又从 `_00001_` 开始
+⇒ 文件名与上次**完全相同** ⇒ **你看到的还是旧图**。
+
+> 真实事故：新图其实是好的，被连续两轮判成「还是烂的」，白折腾。
+> 教训：**「图烂」这个结论本身也要先取证。**
+
+排查顺序（照做）：
+
+1. 看**文件 mtime**，不要只看缩略图 / 预览面板：
+   `ls -l --time-style=full-iso <dir>` 或 Windows `Get-ChildItem | Select Name,LastWriteTime`
+2. 换一个新名字再看：`--tag _v2`（输出 subdir 变化 → `/view` URL 变化 → 不撞缓存）
+3. 硬刷新（⌘/Ctrl+Shift+R），或**直接看 Mac 回传目录**里的实体文件
+4. 仍然怀疑时：把图 `read` 出来目视，不要靠 UI 缩略图下结论
+
+### ④ §9.2 的页面命名不只是规范 —— 它同时是缓存解药
+
+引擎用 **page stem 当 `filename_prefix`**，所以页面名直接决定出图名：
+
+| 页面名 | 出图名 | 后果 |
+|---|---|---|
+| `P001.txt` | `P001_00001_.png` | 每轮同名 → **必撞缓存** |
+| `P001—a01篠泽广-后台沙发.txt` | `P001—a01篠泽广-后台沙发_00001_.png` | 换梗概就换名 → 不会撞 |
+
+**所以页面必须按 §9.2 命名**：`<缩写><NNN>—<am编号><角色中文名>-<梗概>.txt`。
+不带梗概的项目属于**不规范**，补齐它对出图、排错、人工翻图三件事都直接有益。
+
+> 改名前先确认 `page_glob` 仍能命中（新名仍以原缩写开头就没问题），
+> 并确认 `--only` / `resolve_page_canvas` 走的是 `stem.split("—")[0]` —— 页码段不变即可。
+
+### ⑤ 改既有配方前必须先打样
+
+要动**任何**已在成功项目里存在的键（`base.preset` / 足部 `preset` /
+LoRA 权重 / `exclude_keywords`）：
+
+1. 先 `--only <一页足部页>,<一页普通页>` 出 **2 张对照**；
+2. 拿旧配置同名页对比（同 seed 更佳）；
+3. 通过后才全批。
+
+**新默认只适用于新作品。** 已有项目按原配方跑，除非打样证明更好 ——
+「默认预设改成 X 了」不构成动老项目的理由。
+
+> 同理：`[auto_rules].exclude_keywords` 里的 `footrepair` 是承重结构。
+> `Foot Repair` 的触发词是 `['foot','@footrepair','footjob','stirrup']` ——
+> **裸 `foot` / `stirrup` 每页都有**，不排掉就是 **100% 页面**挂「足部修复」，
+> 把非足部页的手脚结构一起重画。足部页要它，就在 `[[page_rule.loras]]` 里显式写。
