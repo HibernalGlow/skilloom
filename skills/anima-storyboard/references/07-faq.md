@@ -104,6 +104,7 @@
 white hair = 白发, blue eyes = 蓝瞳, medium breasts = 中等胸围, school uniform = 学校制服
 # 错误
 white hair, blue eyes, medium breasts, school uniform
+```
 
 ## 12.4 情节合理性与渐变
 - 性爱场景的体位/玩法应从浅到深

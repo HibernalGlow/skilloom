@@ -132,7 +132,7 @@ Anima 底模的知识截止约为 **2025 年 9 月**（2.9B 增量训练后延�
 | 优先级 | 来源 | 内容 |
 |-------|------|------|
 | 1 | **本作品目录的 `batch.toml`** | 本作品已跑通的画师、preset、`[[page_rule]]`、`[auto_rules]` |
-| 2 | `ComfyUI-Workflow-Studio/data/gen_presets.json` | 4 个采样预设的完整参数 + 各自 `quality_prefix` |
+| 2 | `ComfyUI-Workflow-Studio/data/gen_presets.json` | 5 个采样预设的完整参数 + 各自 `quality_prefix` |
 | 3 | **`Workflows/wild/lora-cleanup-<日期>.md`** | **LoRA 完整库存**（逐目录 · 文件名 · 大小 · 落地天数）—— 找文件用这个 |
 | 4 | `ComfyUI-Workflow-Studio/data/lora_rules.json` | ⚠️ **只是 `[auto_rules]` 的匹配规则表，不是完整库存**（仅 34 条，画师类大多缺失） |
 | 5 | `Workflows/wild/artist/list.md` · `artist/string.txt` | 已有 LoRA 的画师清单与历史混用串 |
@@ -147,17 +147,35 @@ Anima 底模的知识截止约为 **2025 年 9 月**（2.9B 增量训练后延�
 
 | preset id | 模式 | 参数 | 用途 |
 |-----------|------|------|------|
-| `anima-two-stage-standard` | 双层 | Stage1 5步 CFG4.6 `er_sde`/`simple` → Stage2 12步 CFG1.6 `dpmpp_2m_sde_gpu`/`beta57` | **默认** |
-| `anima-native-30` | 单层 | 30步 CFG4.0 `er_sde`/`beta57` | 足交等精细玩法换用 |
+| `anima-single-17` | 单层 | 17步 CFG1.6 `dpmpp_2m_sde_gpu`/`beta57` dn1.0 | **默认**（3-seed 对照唯一 0 坏格） |
+| `anima-two-stage-standard` | 双层 | Stage1 5步 CFG4.6 `er_sde`/`simple` → Stage2 17步 CFG1.6 `dpmpp_2m_sde_gpu`/`beta57` **@dn0.7** | 要稳定出 6 格 / 要版式多样性时用 |
+| `anima-native-30` | 单层 | 30步 CFG4.0 `er_sde`/`beta57` | 足交等精细玩法换用 / 踩脚页 |
 | `anima-single-turbo` | 单层 | 12步 CFG1.6 `euler_ancestral`/`beta57` | 极速草稿 |
 | `liino-footjob-suite` | 单层 | 12步 CFG1.6 `euler_ancestral`/`beta57` + 6 LoRA | 镫袜足交全套 |
 
-**这四个 preset 里的 `quality_prefix` 统一是**：
+**这五个 preset 里的 `quality_prefix` 统一是**：
 `masterpiece, best quality, aesthetic, highly detailed`
 作品 toml 在其后追加画师触发词与足部强化词，末尾加 `uncensored`。
 
-> ⚠️ **不要因为看到「12 步 / CFG 1.6」就判定参数异常。** 那是双层预设的 **Stage 2 精修档**
-> （Stage 1 用 CFG 4.6 确立骨架），属既定设计，不是配置错误。
+> ⚠️ **2026-09-28 修订 —— `anima-two-stage-standard` 曾经是假的，别照旧文理解。**
+> 两个 bug 叠加：
+> ① applier 的四个分支**从不写 `denoise`**，Stage 2 用工作流文件里烤死的 `1.0`，直接丢弃 Stage 1
+> 的潜空间（实测「保留 Stage 1」vs「删掉 Stage 1」**RMSE = 0.0000**，逐像素相同 —— 那 5 步白烧）；
+> ② 节点识别用裸子串 `"KSampler"` 匹配，把 `KSampler Config (rgthree)`（节点 929）当成了 Stage 1，
+> **真正的 Stage 1（节点 836）永远保持旁路**。
+> 所以历史上的「双层」出图，真实身份是**单层 12 步**。现已修成 `5 + 17@dn0.7`（有效 16 步）。
+>
+> **因此：**
+> - **默认改用 `anima-single-17`** —— 3-seed × 12 张对照里唯一 0 坏格，且速度不吃亏（17.2s）。
+> - `anima-two-stage-standard` 只在你**需要稳定出 6 格 / 需要同一提示词掷出不同版式**时用，
+>   代价是坏格率更高（3 页里 2–3 页出现「漂浮白底格 / 比例失调」）。
+> - 双层的版式多样性确实更高：同提示词换 seed 的低频版式差异 **1.72×**（n=3 seed）。机理是 Stage 1
+>   高 CFG(4.6) + 少步数把粗版式早早拍板，Stage 2 `dn0.7` 只能重画噪声表后 70%。同一机制
+>   **锁好版式也锁坏版式** —— 这就是坏格来源。实用组合是「**双层滚、单层收**」。
+> - **别再用旧的 `5+12 @dn1.0` 配法。**
+> - **足部/踩脚页必须单采**（`tools/test_foot_preset_gate.py` 闸门 + `tools/audit_foot_presets.py` 审计）。
+>
+> 完整证据链：`stage1_fix_report.md`（工作区根目录）与 `references/15-in-context.md` §15.5。
 
 ---
 

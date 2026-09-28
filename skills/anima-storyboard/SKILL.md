@@ -1,6 +1,6 @@
 ---
 name: anima-storyboard
-description: ANIMA3 故事板生成专家。精通小说/剧本到画面转换、角色皮肤系统分析、ANIMA3 插槽标签生成、Danbooru 标签验证、插件规则注入，以及从故事板到单页 txt 的批量格式转换。
+description: ANIMA3 故事板生成专家。从小说/剧本到分镜页文本、角色皮肤系统分析、ANIMA3 插槽标签生成、Danbooru 标签验证、插件规则注入，以及**出图执行**：批量出图一律走 ComfyUI-Workflow-Studio 的 batch.toml 引擎（出图/跑图/批跑/生图任务也用本技能）。
 allowed-tools: [read, write, bash, eval, lsp, search, find, web_search, browser]
 ---
 
@@ -61,7 +61,7 @@ allowed-tools: [read, write, bash, eval, lsp, search, find, web_search, browser]
 **④ 配置权威来源（按优先级，禁止发明）**
 
 1. **本作品 `batch.toml`** —— 已跑通的画师 / preset / `[[page_rule]]` / `[auto_rules]`
-2. `ComfyUI-Workflow-Studio/data/gen_presets.json` —— 4 个采样预设 + 统一 `quality_prefix`
+2. `ComfyUI-Workflow-Studio/data/gen_presets.json` —— 5 个采样预设 + 统一 `quality_prefix`
 3. **`Workflows/wild/lora-cleanup-<日期>.md`** —— **LoRA 完整库存**（逐目录 · 文件名 · 大小）
 4. `ComfyUI-Workflow-Studio/data/lora_rules.json` —— ⚠️ **仅 `[auto_rules]` 匹配表（34 条），非完整库存**
 5. `Workflows/wild/artist/list.md`（带 `♥` 的已有 LoRA）· `artist/string.txt`
@@ -80,13 +80,18 @@ allowed-tools: [read, write, bash, eval, lsp, search, find, web_search, browser]
 
 | preset | 参数 | 用途 |
 |--------|------|------|
-| `anima-two-stage-standard` | Stage1 5步 CFG4.6 `er_sde` → Stage2 12步 CFG1.6 `dpmpp_2m_sde_gpu`/`beta57` | **默认** |
-| `anima-native-30` | 30步 CFG4.0 `er_sde`/`beta57` | 足交等精细玩法 |
+| `anima-single-17` | 17步 CFG1.6 `dpmpp_2m_sde_gpu`/`beta57` dn1.0 | **默认**（3-seed 对照唯一 0 坏格） |
+| `anima-two-stage-standard` | Stage1 5步 CFG4.6 `er_sde` → Stage2 17步 CFG1.6 `dpmpp_2m_sde_gpu`/`beta57` **@dn0.7** | 要稳定出 6 格 / 要版式多样性时用（坏格率更高） |
+| `anima-native-30` | 30步 CFG4.0 `er_sde`/`beta57` | 足交等精细玩法 / 踩脚页 |
 | `anima-single-turbo` | 12步 CFG1.6 `euler_ancestral`/`beta57` | 极速草稿 |
 | `liino-footjob-suite` | 12步 CFG1.6 `euler_ancestral`/`beta57` + 6 LoRA | 镫袜足交全套 |
 
-> 四个 preset 的 `quality_prefix` 统一为 `masterpiece, best quality, aesthetic, highly detailed`。
-> ⚠️ **不要因为看到「12 步 / CFG 1.6」就判定参数异常** —— 那是双层预设的 **Stage 2 精修档**（Stage 1 用 CFG 4.6 确立骨架），属既定设计。
+> 这五个 preset 的 `quality_prefix` 统一为 `masterpiece, best quality, aesthetic, highly detailed`。
+> ⚠️ **2026-09-28 修订 —— 旧文说「双层是默认、Stage 2 是 12 步」已经不成立。**
+> `anima-two-stage-standard` 曾经是**假的**：applier 从不写 `denoise`，且把 `KSampler Config (rgthree)`
+> 误认成 Stage 1，真正的 Stage 1 一直旁路，实际只跑 Stage 2 的 12 步。现已修成 `5 + 17@dn0.7`。
+> **默认改用 `anima-single-17`**；**足部/踩脚页必须单采**（有采样闸门）。
+> 完整证据与对照见 `references/15-in-context.md` §15.5。
 
 > 完整细则与证据链见 `references/14-character-recognition.md`。
 
@@ -169,6 +174,63 @@ allowed-tools: [read, write, bash, eval, lsp, search, find, web_search, browser]
 
 > 完整细则见 `references/15-in-context.md`（机制、接线、参考图铁律、步数/分辨率梯度、
 > 显存、`end_percent`、旋钮代价排序、底模 A/B、跑批纪律、自检清单）。
+
+### 规则 0f：执行权 —— 出图/批跑一律走 Studio，禁止手搓工作流（硬约束，2026-09-28）⛔
+
+> **本技能产出页面 txt，但页面 txt 不接 Studio 就等于没出图。**
+> **任何「出图 / 跑图 / 批跑 / 生成 N 页」的诉求，唯一执行入口是
+> `ComfyUI-Workflow-Studio` 的批量引擎 —— 不是手写 ComfyUI 图 JSON。**
+
+**为什么是硬约束**：手搓（自己拼 graph → `POST /prompt`）会绕过引擎里已经长出来的全部防线，
+而每一条都是踩出来的：
+
+| 引擎内置 | 手搓会丢什么 |
+|---|---|
+| `resolve_preset()` 强制 fallback | **预设泄漏**：某页切了单采后，后面无规则页全被带偏（真发生过：27 页跑错） |
+| 踩脚页采样闸（干跑 + 投递前拦截 + 全仓审计） | 踩脚页跑双彩 → 镫袜 LoRA 糊成一团 |
+| 逐页规则 + `[auto_rules]` 并集 | 动作 LoRA / `exclude_keywords`（`hairop` / `footrepair`）静默失效 |
+| `mirror_output.py` 回传 | 图只在 Windows 落盘，Mac 收不到 |
+| 失败保护 + 续跑序号 | 一张失败整批卡死或前功尽弃 |
+| `wait_and_run.sh` 探针 | 模型根目录缺失时全批 `HTTP 400` 空烧 |
+
+**标准四步（缺一步都不算跑过）**：
+
+```bash
+cd /Users/glow/Base/Works/ComfyUI/ComfyUI-Workflow-Studio
+
+# ① 作品目录写 batch.toml（照抄同批样板作品，只改 preset / page_glob / output_subdir）
+# ② 建 3 行 runner：cp tools/run_niannian_batch.py tools/run_<作品>_batch.py（只改 TOML 一行）
+# ③ 干跑校验（必做：先看闸门与预设路由，别直接投）
+tools/run_batch.sh dryrun_batch.py Workflows/wild/storyboard/<作品>/batch.toml
+# ④ 等后端就绪再开跑 + 回传
+nohup tools/wait_and_run.sh run_<作品>_batch.py 1 > /tmp/<作品>.log 2>&1 &
+python3 tools/mirror_output.py <output_subdir> /Users/glow/Base/Works/ComfyUI/Outputs --watch-pid <pid>
+```
+
+**⛔ 禁止**：手写/手改图 JSON 并 `POST /prompt` 出正式页；把一次性脚本放 `/tmp` 当交付路径；
+没跑 `dryrun_batch.py` 就投递；因「这个作品要特殊参数」而绕开引擎 —— 特殊参数的正确落点是
+`batch.toml`（`[[page_rule]]` / `[[page_canvas]]` / `[incontext]` / `[validation]` / `[runtime]`），引擎都已支持。
+
+**唯一例外**：用户**显式**要求「先单张打样 / A-B 对照 / 只测一个变量」时可以手搓一次性探测，但必须
+① 说明在打样；② 脚本落在 `tools/probe_*.py` / `tools/run_*_artists.py` 这类可复用位置；
+③ 结论回灌 `batch.toml` 或预设，再走上面四步跑正式批次。
+
+**配置落点速查**（别改代码）
+
+| 要改什么 | 改哪里 |
+|---|---|
+| 采样预设 / 基线 LoRA / 底模 | `[base]` |
+| 某类页面换预设 / 挂 LoRA | `[[page_rule]]` |
+| 自动补挂动作·修复 LoRA | `[auto_rules]` |
+| 逐页画幅 / 逐页 `end_percent` | `[[page_canvas]]` |
+| in-context 参考图（`strength=0` = 无参考图对照） | `[incontext]` |
+| 踩脚页采样闸 / 只告警不拦 | `[validation]` |
+| 每页清显存 | `[runtime] free_vram`（默认开） |
+| 回传目标 / 单页超时 | `[output]` |
+
+> 完整 runbook（拓扑 / 字段全解 / 三层闸门 / 监控 / 插队超时预算 / 排错表 / 反模式）见
+> `references/16-studio-execution.md`；权威源文件是 `ComfyUI-Workflow-Studio/docs/BATCH-DISPATCH.md`
+> （**改了要同步**）。
 
 **每次输出 [tags] 前，必须逐条检查以下三条规则：**
 
@@ -864,6 +926,7 @@ storyboard/2607/260704/星穹铁道/第2批_2025年9月-2026年6月/<角色名>/
 | 13 | **因果锁 / 八维 / 画布**（情境因果锁、画面八维补全、画布表、caption 句式） | `references/13-causality-and-canvas.md` | ✅ |
 | 14 | **角色识别与触发词分工**（老/新角色判定、触发词三处落点、配置权威来源、采样预设） | `references/14-character-recognition.md` | ✅ |
 | 15 | **In-Context 参考图出图**（机制 LoRA 必需、参考帧=3× token、步数/分辨率梯度、显存、end_percent、旋钮代价） | `references/15-in-context.md` | ✅ |
+| 16 | **Studio 执行权与批跑 runbook**（唯一执行入口、四步流程、三层闸门、回传、插队超时预算、排错、反模式） | `references/16-studio-execution.md` | ✅ |
 | — | **快速规则参考**（偏好标签、服装改造、项圈库等速查） | `references/rule.md` | 参考 |
 | — | **Danbooru API 查询方法**（User-Agent、认证、回退策略） | `references/danbooru_api.md` | 参考 |
 | — | **负面标签参考**（Futa/性转/伪娘/男性丝袜禁止词表） | `references/futa_and_male_hosiery_negative_tags.md` | 参考 |
@@ -3142,6 +3205,7 @@ Story 文件按当日日期归档：`storyboard/2607/260703/角色名/PR001-entr
 white hair = 白发, blue eyes = 蓝瞳, school uniform = 学校制服
 # 错误
 white hair, blue eyes, medium breasts, school uniform
+```
 
 ## 12.4 情节合理性与渐变
 - 性爱场景的体位/玩法应从浅到深
@@ -4905,7 +4969,7 @@ Anima 底模的知识截止约为 **2025 年 9 月**（2.9B 增量训练后延�
 | 优先级 | 来源 | 内容 |
 |-------|------|------|
 | 1 | **本作品目录的 `batch.toml`** | 本作品已跑通的画师、preset、`[[page_rule]]`、`[auto_rules]` |
-| 2 | `ComfyUI-Workflow-Studio/data/gen_presets.json` | 4 个采样预设的完整参数 + 各自 `quality_prefix` |
+| 2 | `ComfyUI-Workflow-Studio/data/gen_presets.json` | 5 个采样预设的完整参数 + 各自 `quality_prefix` |
 | 3 | **`Workflows/wild/lora-cleanup-<日期>.md`** | **LoRA 完整库存**（逐目录 · 文件名 · 大小 · 落地天数）—— 找文件用这个 |
 | 4 | `ComfyUI-Workflow-Studio/data/lora_rules.json` | ⚠️ **只是 `[auto_rules]` 的匹配规则表，不是完整库存**（仅 34 条，画师类大多缺失） |
 | 5 | `Workflows/wild/artist/list.md` · `artist/string.txt` | 已有 LoRA 的画师清单与历史混用串 |
@@ -4920,17 +4984,35 @@ Anima 底模的知识截止约为 **2025 年 9 月**（2.9B 增量训练后延�
 
 | preset id | 模式 | 参数 | 用途 |
 |-----------|------|------|------|
-| `anima-two-stage-standard` | 双层 | Stage1 5步 CFG4.6 `er_sde`/`simple` → Stage2 12步 CFG1.6 `dpmpp_2m_sde_gpu`/`beta57` | **默认** |
-| `anima-native-30` | 单层 | 30步 CFG4.0 `er_sde`/`beta57` | 足交等精细玩法换用 |
+| `anima-single-17` | 单层 | 17步 CFG1.6 `dpmpp_2m_sde_gpu`/`beta57` dn1.0 | **默认**（3-seed 对照唯一 0 坏格） |
+| `anima-two-stage-standard` | 双层 | Stage1 5步 CFG4.6 `er_sde`/`simple` → Stage2 17步 CFG1.6 `dpmpp_2m_sde_gpu`/`beta57` **@dn0.7** | 要稳定出 6 格 / 要版式多样性时用 |
+| `anima-native-30` | 单层 | 30步 CFG4.0 `er_sde`/`beta57` | 足交等精细玩法换用 / 踩脚页 |
 | `anima-single-turbo` | 单层 | 12步 CFG1.6 `euler_ancestral`/`beta57` | 极速草稿 |
 | `liino-footjob-suite` | 单层 | 12步 CFG1.6 `euler_ancestral`/`beta57` + 6 LoRA | 镫袜足交全套 |
 
-**这四个 preset 里的 `quality_prefix` 统一是**：
+**这五个 preset 里的 `quality_prefix` 统一是**：
 `masterpiece, best quality, aesthetic, highly detailed`
 作品 toml 在其后追加画师触发词与足部强化词，末尾加 `uncensored`。
 
-> ⚠️ **不要因为看到「12 步 / CFG 1.6」就判定参数异常。** 那是双层预设的 **Stage 2 精修档**
-> （Stage 1 用 CFG 4.6 确立骨架），属既定设计，不是配置错误。
+> ⚠️ **2026-09-28 修订 —— `anima-two-stage-standard` 曾经是假的，别照旧文理解。**
+> 两个 bug 叠加：
+> ① applier 的四个分支**从不写 `denoise`**，Stage 2 用工作流文件里烤死的 `1.0`，直接丢弃 Stage 1
+> 的潜空间（实测「保留 Stage 1」vs「删掉 Stage 1」**RMSE = 0.0000**，逐像素相同 —— 那 5 步白烧）；
+> ② 节点识别用裸子串 `"KSampler"` 匹配，把 `KSampler Config (rgthree)`（节点 929）当成了 Stage 1，
+> **真正的 Stage 1（节点 836）永远保持旁路**。
+> 所以历史上的「双层」出图，真实身份是**单层 12 步**。现已修成 `5 + 17@dn0.7`（有效 16 步）。
+>
+> **因此：**
+> - **默认改用 `anima-single-17`** —— 3-seed × 12 张对照里唯一 0 坏格，且速度不吃亏（17.2s）。
+> - `anima-two-stage-standard` 只在你**需要稳定出 6 格 / 需要同一提示词掷出不同版式**时用，
+>   代价是坏格率更高（3 页里 2–3 页出现「漂浮白底格 / 比例失调」）。
+> - 双层的版式多样性确实更高：同提示词换 seed 的低频版式差异 **1.72×**（n=3 seed）。机理是 Stage 1
+>   高 CFG(4.6) + 少步数把粗版式早早拍板，Stage 2 `dn0.7` 只能重画噪声表后 70%。同一机制
+>   **锁好版式也锁坏版式** —— 这就是坏格来源。实用组合是「**双层滚、单层收**」。
+> - **别再用旧的 `5+12 @dn1.0` 配法。**
+> - **足部/踩脚页必须单采**（`tools/test_foot_preset_gate.py` 闸门 + `tools/audit_foot_presets.py` 审计）。
+>
+> 完整证据链：`stage1_fix_report.md`（工作区根目录）与 `references/15-in-context.md` §15.5。
 
 ---
 
@@ -5129,9 +5211,9 @@ when_triggers = ["<A 的触发词>"]
 输出与普通 T2I **bit 级一致**。所以这是一个干净的「无参考图」模式。
 
 ```bash
-# 与正式跑批完全相同的参数，只加 --strength 0
-tools/run_xxx.py --only LF052 --mode single17 --sampler-node fls --artist <画师> \
-                 --strength 0 --model-tag noref
+# 走 Studio，不改图结构：在作品 batch.toml 的 [incontext] 里把 strength 设 0，跑一版对照
+cd /Users/glow/Base/Works/ComfyUI/ComfyUI-Workflow-Studio
+tools/run_batch.sh run_<作品>_batch.py --only LF052 --tag _noref --seed 1111
 ```
 
 **至少跑 3~4 个不同 seed**（单 seed 的“对了”可能只是运气；本轮 4 个 seed 全对才算数）。
@@ -5313,6 +5395,71 @@ steps 17 / cfg 1.6 / dpmpp_2m_sde_gpu / beta57 / denoise 1.0
 LoRA = Turbo-v0.2 @0.8 + Highres Aesthetic Boost @0.48
 采样器节点 = FLS_SamplerV4（fovea_strength 3.0 / sharpness 0.5 / mask_inertia 0.85）
 ```
+
+### 单层 vs 双层：2026-09-28 裁决 ⭐
+
+**先讲清一个历史事实：「双层精细采样」这个预设曾经是假的。**
+
+应用 `anima-two-stage-standard` 之后，真正的 Stage 1（节点 836）一直保持 `mode=4`（旁路），
+而且 `denoise` 从来没被写进图 —— 实际跑的一直是「只有 Stage 2 的 12 步单层」。两个独立 bug 叠加：
+
+| # | 位置 | 问题 |
+|---|---|---|
+| 1 | `apply_preset_to_workflow` 四个分支 | 设置了 steps / cfg / sampler / scheduler，**唯独没写 `denoise`** → 工作流里烤死的 `1.0` 生效 |
+| 2 | UI 格式的节点识别 | 用裸子串 `"KSampler"` 匹配，把 `KSampler Config (rgthree)`（节点 929，纯设置节点）认成了 Stage 1 → 真正的 Stage 1（836）**永远没被 un-bypass** |
+
+实测证据（RB001，`silvermoonmixAnima_v23_INT8` / 832×1216 / 同 seed）：
+
+```
+保留 Stage 1 (5步)  vs  干脆删掉 Stage 1   →  RMSE 0.0000   ← 逐像素相同，5 步白烧
+dn 0.4 → 0.3056     dn 0.6 → 0.2947     dn 1.0 → 0.0000（死代码）
+```
+
+修好后（Stage 2 `dn` 必须 < 1.0）的 3-seed 对照：
+
+| 配置 | 有效步数 | 分格 | 坏格（漂浮白底格 / 比例失调） |
+|---|---|---|---|
+| 旧双层（Stage1 死）= 实际单层 12 步 | 17（实际 12） | 4–6 | 0/15（但**被严格支配**：同样成图、多烧 5 步） |
+| 修复双层 `5+12@dn0.7` | 14 | 6 | **3 页全有** |
+| **单层 17 步（`anima-single-17`）** | **17** | 4–6 | **0/15** |
+| 等算力双层 `5+17@dn0.7` | 16 | 6 | **2 页有** |
+
+**裁决**：
+
+- **要最稳 / 要细节（尤其足部题材）→ 单层 17 步**（`anima-single-17`）。速度不吃亏：17.2s，比旧基线 20.1s 还快。
+- **只有当你需要「稳定出 6 格」或需要掷版式时才用双层**（`anima-two-stage-standard`，已改成 `5 + 17@dn0.7`）。
+- **别再用旧的 `5+12 @dn1.0` 配法** —— 那是假的。
+- **足部/踩脚页必须单采**（`tools/test_foot_preset_gate.py` 闸门 + `tools/audit_foot_presets.py` 审计）。
+
+**“双层提升构图多样性”这个说法成立，而且量化了**（同页、同提示词、只换 seed，缩到 24×35 只比低频版式）：
+
+```
+C0 旧双层(Stage1死)→实际单层12步   0.2232
+C2 单层 17 步                        0.2161
+C1 真双层 6+12@dn0.7                 0.3568
+C3 真双层 5+17@dn0.7                 0.3970
+
+两个「实际单层」平均 0.2196    两个「真双层」平均 0.3769   →  1.72x
+```
+
+分组干净且不重叠，且组内步数差 12 vs 17 几乎不影响 —— 起作用的是**「有没有那道粗采 stage」，不是步数**。
+也不是分格数造成的假象：C3 三个 seed 全部出 6 格（分格数一样）但低频差仍有 0.28–0.45；
+C2 分格数在 4/5–6/6 之间变，低频差反而只有 0.20–0.23。
+
+> **机理**：Stage 1 高 CFG(4.6) + 少步数 = 很早就把粗糙版式“拍板”，而这个版式对 seed 极度敏感
+> （高 CFG 放大了噪声差异）；Stage 2 `dn 0.7` 只能重画噪声表后 70%，低频版式基本被冻住。
+> 单层相反：低频结构在整条 17 步轨迹里被反复重决策，不同 seed 反而**收敛**到更接近的构图。
+> 注：SD1.5/SDXL 圈「两阶段改善构图」说的是 hires-fix（**分辨率不同**）。这里两个 stage 同为 832×1216，
+> 起作用的是 **CFG 与噪声表的切分**，机理不同。
+
+**代价是同一机制的另一面：多样性 = 方差变大，坏版式也会被锁住。** 所以实用组合是
+**「双层滚、单层收」** —— 用双层把构图掷出去，出坏格就单层重滚一次。
+
+> 限制（诚实标注）：n = 3 seed、单页（RB001）。1.72x 的幅度够大、分组够干净，所以效应是真的，
+> 但精确倍率只有 3 个样本。另外这套双层里 Stage 1 是**裸模型**（不带 LoRA），
+> 所以有一部分效应是「底模先定版式、LoRA 再重画」—— 这跟「两阶段」本身分不开，但这就是该预设的真实行为。
+
+完整证据链：`stage1_fix_report.md`（工作区根目录）。
 
 ### 步数梯度（同一足部特写页、同 seed、832×1216）
 
@@ -5528,7 +5675,7 @@ quality_prefix（画师触发词 + masterpiece/best quality/aesthetic/highly det
 | 机制节点源码 | `custom_nodes/comfyui-anima-incontext/incontext.py`、`nodes.py` |
 | 机制 LoRA | `models/loras/anima/anima-incontext-character.safetensors`（1.0，无触发词） |
 | 作品配置（耐久记录） | `Workflows/wild/storyboard/<作品>/incontext/incontext.toml` |
-| 单作品实跑脚本 | `Workflows/wild/storyboard/<作品>/incontext/run_*.py`（图构建 + 提交 + 取回） |
+| 单作品批跑 | `tools/run_<作品>_batch.py`（3 行 runner，配置全在 batch.toml）+ `arch = "anima-incontext"` |
 | 产物目录 | `Outputs/<作品>/incontext_<皮肤>/` |
 | 采样预设 | `ComfyUI-Workflow-Studio/data/gen_presets.json` → `anima-single-17` |
 | 本轮证据（无参考图拆解 + 多 seed） | `Outputs/拉菲II/incontext_kimono_double/_evidence/cmp_noref_*.png` |

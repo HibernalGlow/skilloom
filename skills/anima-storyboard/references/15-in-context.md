@@ -51,9 +51,9 @@
 输出与普通 T2I **bit 级一致**。所以这是一个干净的「无参考图」模式。
 
 ```bash
-# 与正式跑批完全相同的参数，只加 --strength 0
-tools/run_xxx.py --only LF052 --mode single17 --sampler-node fls --artist <画师> \
-                 --strength 0 --model-tag noref
+# 走 Studio，不改图结构：在作品 batch.toml 的 [incontext] 里把 strength 设 0，跑一版对照
+cd /Users/glow/Base/Works/ComfyUI/ComfyUI-Workflow-Studio
+tools/run_batch.sh run_<作品>_batch.py --only LF052 --tag _noref --seed 1111
 ```
 
 **至少跑 3~4 个不同 seed**（单 seed 的“对了”可能只是运气；本轮 4 个 seed 全对才算数）。
@@ -235,6 +235,71 @@ steps 17 / cfg 1.6 / dpmpp_2m_sde_gpu / beta57 / denoise 1.0
 LoRA = Turbo-v0.2 @0.8 + Highres Aesthetic Boost @0.48
 采样器节点 = FLS_SamplerV4（fovea_strength 3.0 / sharpness 0.5 / mask_inertia 0.85）
 ```
+
+### 单层 vs 双层：2026-09-28 裁决 ⭐
+
+**先讲清一个历史事实：「双层精细采样」这个预设曾经是假的。**
+
+应用 `anima-two-stage-standard` 之后，真正的 Stage 1（节点 836）一直保持 `mode=4`（旁路），
+而且 `denoise` 从来没被写进图 —— 实际跑的一直是「只有 Stage 2 的 12 步单层」。两个独立 bug 叠加：
+
+| # | 位置 | 问题 |
+|---|---|---|
+| 1 | `apply_preset_to_workflow` 四个分支 | 设置了 steps / cfg / sampler / scheduler，**唯独没写 `denoise`** → 工作流里烤死的 `1.0` 生效 |
+| 2 | UI 格式的节点识别 | 用裸子串 `"KSampler"` 匹配，把 `KSampler Config (rgthree)`（节点 929，纯设置节点）认成了 Stage 1 → 真正的 Stage 1（836）**永远没被 un-bypass** |
+
+实测证据（RB001，`silvermoonmixAnima_v23_INT8` / 832×1216 / 同 seed）：
+
+```
+保留 Stage 1 (5步)  vs  干脆删掉 Stage 1   →  RMSE 0.0000   ← 逐像素相同，5 步白烧
+dn 0.4 → 0.3056     dn 0.6 → 0.2947     dn 1.0 → 0.0000（死代码）
+```
+
+修好后（Stage 2 `dn` 必须 < 1.0）的 3-seed 对照：
+
+| 配置 | 有效步数 | 分格 | 坏格（漂浮白底格 / 比例失调） |
+|---|---|---|---|
+| 旧双层（Stage1 死）= 实际单层 12 步 | 17（实际 12） | 4–6 | 0/15（但**被严格支配**：同样成图、多烧 5 步） |
+| 修复双层 `5+12@dn0.7` | 14 | 6 | **3 页全有** |
+| **单层 17 步（`anima-single-17`）** | **17** | 4–6 | **0/15** |
+| 等算力双层 `5+17@dn0.7` | 16 | 6 | **2 页有** |
+
+**裁决**：
+
+- **要最稳 / 要细节（尤其足部题材）→ 单层 17 步**（`anima-single-17`）。速度不吃亏：17.2s，比旧基线 20.1s 还快。
+- **只有当你需要「稳定出 6 格」或需要掷版式时才用双层**（`anima-two-stage-standard`，已改成 `5 + 17@dn0.7`）。
+- **别再用旧的 `5+12 @dn1.0` 配法** —— 那是假的。
+- **足部/踩脚页必须单采**（`tools/test_foot_preset_gate.py` 闸门 + `tools/audit_foot_presets.py` 审计）。
+
+**“双层提升构图多样性”这个说法成立，而且量化了**（同页、同提示词、只换 seed，缩到 24×35 只比低频版式）：
+
+```
+C0 旧双层(Stage1死)→实际单层12步   0.2232
+C2 单层 17 步                        0.2161
+C1 真双层 6+12@dn0.7                 0.3568
+C3 真双层 5+17@dn0.7                 0.3970
+
+两个「实际单层」平均 0.2196    两个「真双层」平均 0.3769   →  1.72x
+```
+
+分组干净且不重叠，且组内步数差 12 vs 17 几乎不影响 —— 起作用的是**「有没有那道粗采 stage」，不是步数**。
+也不是分格数造成的假象：C3 三个 seed 全部出 6 格（分格数一样）但低频差仍有 0.28–0.45；
+C2 分格数在 4/5–6/6 之间变，低频差反而只有 0.20–0.23。
+
+> **机理**：Stage 1 高 CFG(4.6) + 少步数 = 很早就把粗糙版式“拍板”，而这个版式对 seed 极度敏感
+> （高 CFG 放大了噪声差异）；Stage 2 `dn 0.7` 只能重画噪声表后 70%，低频版式基本被冻住。
+> 单层相反：低频结构在整条 17 步轨迹里被反复重决策，不同 seed 反而**收敛**到更接近的构图。
+> 注：SD1.5/SDXL 圈「两阶段改善构图」说的是 hires-fix（**分辨率不同**）。这里两个 stage 同为 832×1216，
+> 起作用的是 **CFG 与噪声表的切分**，机理不同。
+
+**代价是同一机制的另一面：多样性 = 方差变大，坏版式也会被锁住。** 所以实用组合是
+**「双层滚、单层收」** —— 用双层把构图掷出去，出坏格就单层重滚一次。
+
+> 限制（诚实标注）：n = 3 seed、单页（RB001）。1.72x 的幅度够大、分组够干净，所以效应是真的，
+> 但精确倍率只有 3 个样本。另外这套双层里 Stage 1 是**裸模型**（不带 LoRA），
+> 所以有一部分效应是「底模先定版式、LoRA 再重画」—— 这跟「两阶段」本身分不开，但这就是该预设的真实行为。
+
+完整证据链：`stage1_fix_report.md`（工作区根目录）。
 
 ### 步数梯度（同一足部特写页、同 seed、832×1216）
 
@@ -450,7 +515,7 @@ quality_prefix（画师触发词 + masterpiece/best quality/aesthetic/highly det
 | 机制节点源码 | `custom_nodes/comfyui-anima-incontext/incontext.py`、`nodes.py` |
 | 机制 LoRA | `models/loras/anima/anima-incontext-character.safetensors`（1.0，无触发词） |
 | 作品配置（耐久记录） | `Workflows/wild/storyboard/<作品>/incontext/incontext.toml` |
-| 单作品实跑脚本 | `Workflows/wild/storyboard/<作品>/incontext/run_*.py`（图构建 + 提交 + 取回） |
+| 单作品批跑 | `tools/run_<作品>_batch.py`（3 行 runner，配置全在 batch.toml）+ `arch = "anima-incontext"` |
 | 产物目录 | `Outputs/<作品>/incontext_<皮肤>/` |
 | 采样预设 | `ComfyUI-Workflow-Studio/data/gen_presets.json` → `anima-single-17` |
 | 本轮证据（无参考图拆解 + 多 seed） | `Outputs/拉菲II/incontext_kimono_double/_evidence/cmp_noref_*.png` |
