@@ -387,3 +387,80 @@ LoRA 权重 / `exclude_keywords`）：
 > `Foot Repair` 的触发词是 `['foot','@footrepair','footjob','stirrup']` ——
 > **裸 `foot` / `stirrup` 每页都有**，不排掉就是 **100% 页面**挂「足部修复」，
 > 把非足部页的手脚结构一起重画。足部页要它，就在 `[[page_rule.loras]]` 里显式写。
+
+---
+
+## 16.11 单页式重写 + `bundle_only` 陷阱（2026-09-28，洛茜 190→270 页）
+
+### ① Anima 不会画分镜 —— 一页必须只有一帧
+
+洛茜第一版 190 页里 `4koma` 52 / `2koma` 52 / `sound effects` 84 /
+`motion lines` 53 / `inset`+`cross-section` 48 页，caption 还是 `Panel A: … Panel B: …`。
+产出就是多格拼贴、小人脸、比例崩 —— **这是画质崩的头号原因，不是采样/LoRA 问题。**
+
+改版口径：
+
+- **删**：`4koma` `2koma` `Panel A-D` `motion lines` `sound effects` `speed lines`
+  `split screen` `before and after` `inset` `cross-section` `zoom layer`
+- **开宫的单帧表达**：`(cervical penetration:1.3)` + `(deep penetration:1.2)` +
+  `(uterus:1.2)` + `(stomach bulge:1.2)` + `hand on stomach` + `ahegao` + `rolling eyes`
+  —— 不要再用切面/剖面
+- **negative 兜底**（很关键）：`frame, panel, speech bubble, comic, 4koma,
+  multiple views, split screen, character sheet, reference sheet`
+- 构图词只留单帧安全的：`full body` / `close-up` / `from behind` / `from below` /
+  `foot focus` / `dutch angle`
+
+> ⚠️ 单帧语言**画不出** `(stomach bulge)` 是已知波动（同页有时出有时不出）。
+> 想要腹凸稳定出现，靠 `hand on stomach` + 明确的单帧体位（`mating press` / `on back`），
+> **不要**退回 x-ray/inset —— 那会把整张图拉回分镜形态。
+
+### ② 大页面集用 `spec/*.tsv` + 生成器
+
+```
+<作品>/spec/*.tsv     一页一行（code/title/wardrobe/body/foot/pose/interact/ejac/scene/caption）
+<作品>/build_pages.py 读 spec → pages/*.txt + 反向生成 outline.md（含禁用词校验）
+```
+
+- 恒定块（角色本体 / 手套 / 男方）写在生成器；逐页只写增量
+- 校验：页码格式、标题唯一、列数、**禁用词**（`child` / `flat chest` / `narrow waist` /
+  `toned stomach` / `4koma` / `inset` …）、caption 必须出现角色名
+- `outline.md` 反向生成 ⇒ **大纲与页面永不失同步**（手写大纲是漂移源）
+
+### ③ ⛔ `bundle_only = true` 会静默干掉降龄锁（真踩）
+
+`bundle_only` 让 `auto_action_loras()` **整块跳过规则库**。洛茜首批干跑因此：
+
+```
+94 个足部/玩法页丢掉 Age Slider Old (w=-1.35) 与 Cervical Penetration
+→ 基线降龄锁只有 176/270 页命中，94 页年龄失控
+```
+
+**要挡同族脚部 LoRA，用 `exclude_family` 就够了** —— 它在 `_load_action_rules()` 里是
+**全局池过滤**；页规则显式注入的路径还会被 `_rule_lora_basenames()` 一并摘出池子。
+`bundle_only` 只在"这一页绝对不许出现任何规则库 LoRA"时才是对的。
+
+**干跑自检口径**：基线降龄 / 深入类 LoRA 的命中页数**必须等于总页数**，对不上就是池子被挡了。
+
+### ④ 双重画师混合（JIMA12 + Jima 260613）
+
+《偶像大师》用的 `260924/JIMA12`（触发词 `jimafg`）之外，库里还有独立的
+`260613/Jima`（触发词 `jima`）。同 seed 四变体横比（`tools/probe_rossi_jima.py`）：
+
+| 变体 | 结果 |
+|---|---|
+| JIMA12 @1.2 | 结构最稳，单支基线 |
+| JIMA12 0.9 + Jima 0.6 | 动作糊、姿势发僵 |
+| JIMA12 0.6 + Jima 0.9 | 明显糊 |
+| **JIMA12 0.9 + Jima 0.5** | ✅ 稳 + 软糯，洛茜采用 |
+
+- **两支触发词都要写进 `quality_prefix`**（`jimafg, jima`）；少一个就少一支
+- 画师栈放在**角色 LoRA 之前**（先画风后人）
+- 换画风会改服装读取：Jima 占比越高，紧身衣/礼裙越容易被简化成"小布片"
+
+### ⑤ 落盘 / 清理 / 后台的三个坑
+
+| 坑 | 正确做法 |
+|---|---|
+| Windows 中文目录 | 不要 `ssh 'dir "…\洛茜"'`（GBK 毁路径）。用 `powershell -EncodedCommand` + **UTF-16LE base64** 打包脚本，列举/删除都走它 |
+| detached `screen` 里的 `python3` | 会落到 `xcrun` shim（`unable to load libxcrun`）。一律写绝对路径 `/opt/homebrew/bin/python3` |
+| 同名文件的浏览器缓存 | 改版后**旧图必须从 ComfyUI output 侧删掉**，否则 UI 里 `Pxxx_00001.png` 显的还是老图；页面改名的项目同时改掉撞名风险 |
