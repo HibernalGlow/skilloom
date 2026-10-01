@@ -28,9 +28,15 @@ IAL_PATTERN = re.compile(r'^\{:\s*(?P<attrs>.+?)\s*\}$')
 IAL_ATTRIBUTE_PATTERN = re.compile(r'(?P<key>[\w-]+)="(?P<value>[^"]*)"')
 QUESTION_HEADING_PATTERN = re.compile(r"^#####\s+(?!#).+\S\s*$")
 
-KAODIAN_TAG_PATTERN = re.compile(r"#(法考/[^#\s]+)#")
-KAODIAN_TAG_ONLY_PATTERN = re.compile(r"^#法考/[^#\s]+#$")
-KAODIAN_TAG_HINT_PATTERN = re.compile(r"#法考/")
+# 考点 tag 的根前缀。法考是原始口径；公考是 2026-10-01 用户批准新建的分支
+# （词汇表见 references/kaodian-tags.md 的「公考」小节）。加宽根前缀不影响法考侧
+# 任何一条判据，只是让 #公考/…# 不再被当成「没有 tag」。
+KAODIAN_TAG_ROOTS = ("法考", "公考")
+_ROOTS = f"(?:{'|'.join(KAODIAN_TAG_ROOTS)})"
+
+KAODIAN_TAG_PATTERN = re.compile(rf"#({_ROOTS}/[^#\s]+)#")
+KAODIAN_TAG_ONLY_PATTERN = re.compile(rf"^#{_ROOTS}/[^#\s]+#$")
+KAODIAN_TAG_HINT_PATTERN = re.compile(rf"#(?:{'|'.join(KAODIAN_TAG_ROOTS)})/")
 
 
 @dataclass
@@ -52,7 +58,7 @@ def _vocabulary() -> set[str] | None:
         text = path.read_text(encoding="utf-8")
     except OSError:
         return None
-    return set(re.findall(r"`(法考/[^`]+)`", text))
+    return set(re.findall(rf"`({_ROOTS}/[^`]+)`", text))
 
 
 def _fenced_lines(lines: list[str]) -> set[int]:
