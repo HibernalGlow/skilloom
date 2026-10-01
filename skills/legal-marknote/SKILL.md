@@ -72,6 +72,14 @@ The same provider block also carries one SiYuan native inline tag, chosen from t
 - **门禁强制**：`--require-topic-ial` 运行时校验器自动检查——`E820` provider 块（其 IAL 行之后）缺独立 tag 段、`E821` tag 未闭合或含空格、`E822` tag 位置非法（进代码围栏、题面、正文行或 IAL 行）、`W823` tag 不在词汇表快照。W823 命中的新考点：先向用户确认路径，把完整路径加进 `references/kaodian-tags.md` 再重验（strict 下 W 同样阻断）；revision-only 修订（不带 `--require-topic-ial`）不触发本门禁。
 - tag 不写进题面围栏、表格、代码块或 IAL 行；live 写回思源时随 provider 块与独立 tag 段一起更新（内容编辑，不是属性）。
 
+### 题组审计（audit_question_groups.py）的实测硬要求
+
+`validate_output.py` 全绿不代表题组审计也绿，它有两条不写在报错文案里的判据（2026-10-01 公考资料分析第二节实测）：
+
+- **每个题块之后必须紧跟一份 `**回答与解析：**`**。一个 callout 里放多个 `md` 围栏时，除第一块外，后面的块都会被报「question block is not immediately followed by an answer list」——审计器认不到紧跟的答案列表。**同一考点的几道小题应并进同一个围栏**（题面内用单独一行 `例2` 分隔，逐字保留原编号），整组只写一份回答标签，既满足「标签至多一次」，也满足块—答案配对。
+- **题面行不得以裸数字开头**。`34177/22386 ≈`、`8545.6亿/241123.4万` 这类行会被读成「带编号的小问」，进而报 numbering 不匹配或答案缺失；写成 `算式：34177/22386 ≈`。多个并列分数用 `四个分数：A、B、C、D` 引领，两分数比较仍用 `算式：`。
+- 选项竖排（`A.x` 独占一行）本身合法，不必强行合并成一行。
+
 ## Question-answer heading guardrail
 
 Inside a question-and-answer region, treat `回答与解析` as a hard boundary: the answer sequence belongs to the question and must remain list/body content. During batch processing, do not treat an existing `####` or `#####` before an answer number as a structural fact. Demote that batch-recognition error, preserve the substantive text, and merge a duplicate marked line into the matching answer item when the same answer is already listed below. Replace a legacy `###### 习题` or `###### 试一试` wrapper with the required topic-titled `QUESTION` callout, and do not retain numeric answer headings such as `#### 1. (1)正确...`.
