@@ -189,6 +189,12 @@ When the user explicitly asks to repair or extend a document that is already wri
 
 - **Emoji 路由（`E509`）**：中等及以上复杂度的生成说明至少使用一个与法律关系相称的 emoji；emoji 应**直接贴在所修饰的概念词上**（词前或词后紧贴，并列概念逐个标注，如 `简易交付🚚、指示交付📦、占有改定⛓`）。**位置与批量插入是硬门禁**：不许把全部 emoji 堆在条目开头当标签（行首占比 ≥70% 被 `E514` 拒绝）、不许默认堆到句尾点缀（句尾占比 ≥70% 被 `E513` 拒绝）、不许把 emoji 悬在句尾或标点之间（两侧都不是概念词且占比 ≥50% 被 `E515` 拒绝）；应用脚本或批量替换在某个词前统一加 emoji（同一"emoji+词"组合 ≥6 处）会被 `E512` 拒绝。emoji 锚定**具体法律概念词**而非"注意/重点/要点/考点/提示"这类通用占位词（`W511`）；同一 emoji 同文档超过 8 次拒绝（`E510`）。emoji 选择开放，按[详细指南](references/note-guide-original.md#emoji-语义路由)从实际关系出发；可组合直接相关角色，不为保留标题、原题、代码围栏或题面强加 emoji。
 
+- **⚠️ `E510` 会否决"emoji 当角色标签"的写法（2026-10-01 探针实测，本文原先没写这条）**：新手很自然地想给「何时用/怎么用/结论/陷阱」各配一个固定 emoji 当视觉标签，但**同一 emoji 全文超 8 次即 `E510`**，而一节讲义里这类标签动辄出现 30–40 次（实测 🔢×40、🎯×31、🧮×13 全部被拒）。**emoji 必须锚到彼此不同的具体概念词上**，角色重复由**颜色**承担（`E204` 只要求相邻行颜色有变化，不禁止同色复用）。落地办法：先列出本节真正互异的概念（每个技巧名、每种材料形态、每个易错点），一词一 emoji、逐个用完就换近的同类符号；不要维护一张"角色→emoji"映射表。
+    - **keycap 数字 `1️⃣2️⃣3️⃣4️⃣` 也算 emoji**，同样受 8 次上限，**不能拿来当步骤编号**；步骤编号用有序列表的 `1.` 本身，emoji 另配。
+    - 同一条内容要既过 `E622`（每实质行要色锚）又过 `E510`：**色锚复用、emoji 不复用**——这是唯一同时满足两者的分配方式。
+- **`E622` 与 `W505` 是联动的**：把软换行合并成单行会让每个新独立行都变成 `E622` 的目标（实测一次合并让 `E622` 从 95 涨到 119）。所以**先决定每条多长（≤`E648` 的 20 可见字符），再一次性配好色锚**，不要先写完再补。
+- **`E624` 要求一个真视觉**：纯列表＋callout＋子标题不算。要么给 Mermaid 推理链（须复用节点、带边标签，`E901`/`E902` 会拒"关键词链条装成图"），要么给一张 alt 里写明「图解/流程图/关系图/决策图/时间线」的图。**用课件原截图充数不算**——alt 必须说明它在可视化什么关系。
+
 MarkNote is a reading aid, not a plain transcription. Apply this contract to generated explanations and summaries according to their real semantic complexity. 源/题目内容可以保持无色，但新增解析必须主动着色：
 
 - **Color mapping**: build a local vocabulary before writing. Repeated parties, institutions, objects, concepts, states, and aliases keep the same color. 概念列表先分槽：颜色映射到该概念在当前分类中的法律功能，不映射到笼统的“概念”词性；连续概念项应体现主体、门槛、程序、例外、结果或风险等真实差异。Use short bold anchors; foreground-only, background-only, and combined styles are all valid. 背景色：可以单独使用。Background-only example: `**诉讼中**{: style="background-color: var(--b3-font-background11);"}`.
