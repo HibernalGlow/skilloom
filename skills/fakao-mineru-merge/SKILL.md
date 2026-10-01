@@ -388,6 +388,17 @@ cd "$MARKU" && uv run --with pluggy python -m marku pipeline \
 
 **注意**：
 - **`missing-image` 现在 `enabled = true`，`--only "missing-image"` 直接就能跑，不需要 `--include-disabled`**（2026-10-01 实测 rc=0）。旧文档说要加该 flag，已过时
+- **⚠️ 但它默认只查 `file:///`，相对路径的语料会被静默放过**：`check_relative = false` 时，指向已删文件的 `![](images/xxx.png)` 一条都不会动，而输出是 `files=16 changed=0`——**这个 0 会被误读成「本来就干净」**（2026-10-01 实测：公考 16 份分册里 614 条空链，默认配置跑完 `changed=0`）。
+  正确做法：复制一份 toml、**只翻转 `check_relative`**，再跑；然后**自己按文件存在性复核一遍**，别拿 `changed=0` 当结论。
+
+  ```bash
+  sed 's/check_relative = false/check_relative = true/' \
+    src/marku/marku_pipeline.toml > /tmp/mk_rel.toml
+  cd "$MARKU" && uv run --with pluggy python -m marku pipeline \
+    -c /tmp/mk_rel.toml -i "<含相对链的目录>" --no-preview --only "missing-image"
+  ```
+
+  实测（公考 16 份分册）：`824 → 210` 条链、删 614、复核空链 **0**。先在副本上跑一遍、确认「该删多少」与预期一致，再动真实目录。
 - 该步骤**会修改 full.md**，将不存在的图片链接替换为空字符串（保留 alt 文本被一并移除）
 - 跑完后控制台会打印 `[missing_image_remover] CHANGED (Removed N images) - ...`，N 即清理数量
 - 可重复运行：第二次若 N=0，说明已清理干净
