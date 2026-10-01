@@ -1,11 +1,35 @@
 ---
 name: "fakao-mineru-merge"
-description: "Merges multi-segment MinerU PDF parse output into a single normalized markdown + images folder for 法考 books. Invoke when processing 法考 PDF books parsed by MinerU into page-range subfolders that need merging, 目录 extraction, and marku pipeline normalization."
+description: "Merges multi-segment or multi-volume MinerU PDF parse output into a single normalized full.md + images/ + 目录.md for lecture-style books (法考 精讲卷、公考 分册课件). Invoke when processing MinerU output that needs page-segment merging, 目录 extraction, heading rebuild, placeholder-image detection, or marku pipeline normalization. Resolves marku and corpus paths per machine instead of hardcoding them."
 ---
 
 # 法考 MinerU 多段合并与规范化
 
-本 skill 用于将 MinerU 按页码段切分解析后的多文件夹输出，合并为单一 `full.md` + `images/` + `目录.md` 结构，并通过 marku 管线规范化标题、图片路径、表格等，最终效果参考 `D:\1STUDY\3-Resource\法考\客观\刑法\2026ZH法考专题讲座精讲卷刑法-柏浪涛mineru\full.md`。
+本 skill 用于将 MinerU 按页码段切分解析后的多文件夹输出，合并为单一 `full.md` + `images/` + `目录.md` 结构，并规范化标题、图片路径、表格。适用于任何"讲义/PPT 式 PDF"（法考精讲卷、公考分册课件都适用）。
+
+## 路径按机器解析（先读这一节，别照抄绝对路径）
+
+两台机器同一逻辑结构、不同物理位置。**所有命令一律用下面两个变量**，不要在任何示例里再写死 `D:\...` 或 `/Users/...`：
+
+| 变量 | 含义 | Windows | macOS |
+|---|---|---|---|
+| `$MARKU` | marku 包根（含 `src/marku/`） | `D:\1VSCODE\Projects\MarkdownAll\MarkdownWrapper` | `~/Base/Code/Prometheus/MarkdownWrapper` |
+| `$FAKAO` | 法考教材根 | `D:\1STUDY\3-Resource\法考` | `~/Base/Areas/Law/法考` |
+
+**开跑前先验证 marku 在不在**，不要假设：`ls "$MARKU/src/marku/marku_pipeline.toml"`。
+
+**macOS 调用形式**（Windows 仍是 `python -m marku ...`，那边已 editable install）：
+
+```bash
+cd "$MARKU" && uv run --with pluggy python -m marku pipeline \
+  -c src/marku/marku_pipeline.toml -i "<目标文件夹>" --no-preview
+```
+
+- **`--with pluggy` 是必需的**：`pluggy` 被 `core/plugins.py` 直接 import，但**没有写进 `pyproject.toml` 的依赖**，漏了就 `ModuleNotFoundError: No module named 'pluggy'`。这是那个仓的真 bug，改到声明里之前先这样绕。
+- 首次 `uv run` 会建 `.venv` 并拉 pandas/pyarrow 等 57 个包（约 100MB），**属正常**，不是卡住。
+- `-c` 用相对路径 `src/marku/marku_pipeline.toml` 时必须先 `cd "$MARKU"`，否则 toml 里的 `root = "./"` 会解析到别的目录。
+
+**参考成品**：`$FAKAO/客观/刑法/2026ZH法考专题讲座精讲卷刑法-柏浪涛mineru/full.md`（Windows 侧）。
 
 ## ⚠️ 安全流程（必须严格按顺序，不可跳步）
 
@@ -142,8 +166,8 @@ def inject_missing_zhuanti(text: str) -> str:
 
 目标文件夹命名规则：在原书名后加 `mineru` 后缀，放在与源文件夹同级目录。
 ```
-源: D:\1STUDY\3-Resource\法考\客观\民诉\2026年ZH法考精讲卷民诉法-戴鹏(1)
-目: D:\1STUDY\3-Resource\法考\客观\民诉\2026年ZH法考精讲卷民诉法-戴鹏mineru
+源: $FAKAO/客观/民诉/2026年ZH法考精讲卷民诉法-戴鹏(1)
+目: $FAKAO/客观/民诉/2026年ZH法考精讲卷民诉法-戴鹏mineru
 ```
 
 ### 2. 合并 images 文件夹
@@ -292,10 +316,11 @@ print(f"H1={h1} 专题={zt}")
 
 ### 4. 运行 marku 管线
 
-marku 通过 editable install 已加入 sys.path，源码位于 `D:\1VSCODE\Projects\MarkdownAll\MarkdownWrapper\src\marku`。
+marku 源码在 `$MARKU/src/marku`（见文首「路径按机器解析」）。Windows 侧已 editable install 可直接 `python -m marku`；**macOS 侧未安装，必须用 `uv run --with pluggy`**。
 
 ```powershell
-python -m marku pipeline -c "D:\1VSCODE\Projects\MarkdownAll\MarkdownWrapper\src\marku\marku_pipeline.toml" -i "<目标文件夹>" --no-preview
+cd "$MARKU" && uv run --with pluggy python -m marku pipeline \
+  -c src/marku/marku_pipeline.toml -i "<目标文件夹>" --no-preview
 ```
 
 **重要**：管线会同时处理目标文件夹下所有 `.md` 文件，包括 `目录.md`。**推荐做法**：跑管线前先删掉 `目录.md`，跑完管线后用步骤 3 的目录抽取逻辑重新生成 `目录.md`（避免被 `title_convert` 污染）。
@@ -319,7 +344,7 @@ toc_md = re.sub(r'\n{3,}', '\n\n', toc_md).rstrip() + '\n'
 
 ### 6. 验证结果
 
-对照参考文件 `D:\1STUDY\3-Resource\法考\客观\刑法\2026ZH法考专题讲座精讲卷刑法-柏浪涛mineru\full.md` 检查：
+对照参考文件 `$FAKAO/客观/刑法/2026ZH法考专题讲座精讲卷刑法-柏浪涛mineru/full.md` 检查：
 
 | 检查项 | 预期 |
 |--------|------|
@@ -353,7 +378,8 @@ print(f'H1={h1} H2={h2} 专题={zt} file:/// images={file_uri} leftover images/ 
 用户会**手动删除不需要的图片文件**（如截图、占位图、重复图等），导致 full.md 中残留指向不存在文件的 `file:///` 链接。运行 marku 的 `missing-image` 模块自动清空这些链接：
 
 ```powershell
-python -m marku pipeline -c "D:\1VSCODE\Projects\MarkdownAll\MarkdownWrapper\src\marku\marku_pipeline.toml" -i "<目标文件夹>" --no-preview --only "missing-image" --include-disabled
+cd "$MARKU" && uv run --with pluggy python -m marku pipeline \
+  -c src/marku/marku_pipeline.toml -i "<目标文件夹>" --no-preview --only "missing-image"
 ```
 
 模块配置（`marku_pipeline.toml` 已包含）：
@@ -361,7 +387,7 @@ python -m marku pipeline -c "D:\1VSCODE\Projects\MarkdownAll\MarkdownWrapper\src
 - `check_relative = false`：不检查相对路径（法考 full.md 全部用绝对 `file:///`）
 
 **注意**：
-- 该模块默认 `enabled = false`，必须用 `--include-disabled` 才能运行
+- **`missing-image` 现在 `enabled = true`，`--only "missing-image"` 直接就能跑，不需要 `--include-disabled`**（2026-10-01 实测 rc=0）。旧文档说要加该 flag，已过时
 - 该步骤**会修改 full.md**，将不存在的图片链接替换为空字符串（保留 alt 文本被一并移除）
 - 跑完后控制台会打印 `[missing_image_remover] CHANGED (Removed N images) - ...`，N 即清理数量
 - 可重复运行：第二次若 N=0，说明已清理干净
@@ -373,7 +399,8 @@ marku 的 `outline` 模块只读扫描所有标题、构建大纲树、检测三
 **步骤 8.1：导出大纲**
 
 ```powershell
-python -m marku pipeline -c "D:\1VSCODE\Projects\MarkdownAll\MarkdownWrapper\src\marku\marku_pipeline.toml" -i "<目标文件夹>" --no-preview --only "outline" --include-disabled
+cd "$MARKU" && uv run --with pluggy python -m marku pipeline \
+  -c src/marku/marku_pipeline.toml -i "<目标文件夹>" --no-preview --only "outline" --include-disabled
 ```
 
 输出 `<目标文件夹>/outline.json`，包含 `tree`、`flat`、`issues` 三个数组。同时控制台会打印每个文件的标题树和问题列表。
@@ -478,13 +505,58 @@ Remove-Item "<目标文件夹>\outline.json" -Force
 | 步骤 | 模块 | 作用 |
 |------|------|------|
 | content-replace | content_replace | 标点全角→半角、去多余空行、`[xxx]`→`` `[xxx]` ``、删除"目录"行等 |
-| title-convert | title_convert | `第X章`→`#`、`第X节`→`##`、`一、`→`###`、`(一)`→`####`、`1.`→`#####`（**不处理 `专题X`，需在合并脚本预处理**） |
+| title-convert | title_convert | `第X章`→**`#`（H1！）**、`第X节`→`##`、`一、`→`###`、`(一)`→`####`（**只认半角括号**，全角 `（一）` 不匹配，除非先跑 content-replace）。**`1.`→H5 和 `1.1.`→H6 是死代码**：`_convert_number` 的 mapping 字典里没有 `number_title`/`number_subtitle` 两个键，落到 `mapping.get(kind, m.group(0))` 原样返回。**不处理 `专题X`，需在合并脚本预处理** |
 | consecutive_header | consecutive_header | 合并连续同级标题（mode=2 保留最后一个） |
 | tables | html2sy_table | HTML `<table>` → Markdown 表格 |
 | single-olist | single_orderlist_remover | 移除单条有序列表 |
 | image-path | image_path_replacer | `images/xxx.jpg` → `file:///` 绝对路径（中文 URL 编码） |
 
-dedup / t2list / markt 默认关闭；`missing-image` 和 `outline` 默认关闭但**必须按步骤 7、步骤 8 显式启用运行**（`--only <name> --include-disabled`）。
+dedup / t2list / markt 默认关闭；`missing-image` 已默认开启，`--only` 即可。
+
+**⚠️ `outline` 模块在当前 marku 里不存在**（2026-10-01 实测：`marku_pipeline.toml` 里 0 次命中，`src/marku/core/*.py` 里 0 个文件命中，注册模块只有 `consecutive_header` `content_dedup` `content_replace` `html2sy_table` `image_path_replacer` `markt` `missing_image_remover` `single_orderlist_remover` `t2list` `title_convert` 这 10 个）。**步骤 8 整节目前跑不了**，大纲检查要自己写脚本（本次公考合并用的判据见「大纲自检的替代做法」）。
+
+## 占位图判定：用灰度标准差，别靠肉眼和文件数
+
+MinerU 拿不到原图时会塞一张**它自己的吉祥物占位图**，尺寸随原块变化，所以**字节数、文件数、是否 0 字节全都查不出来**（实测 824 张里 560 张是占位图，而它们中位数 77KB、0 个空文件）。唯一可靠的廉价判据是**灰度标准差**：占位图近乎纯色，讲义截图有密集文字和图表。
+
+```bash
+magick <img> -colorspace Gray -format '%[fx:standard_deviation]' info:
+```
+
+- 实测占位图 **0.018**，真截图 **≥0.06**，取 **0.05 为阈值**（824 张里判出 560 占位 / 264 真，再肉眼复核两端各一张确认）。
+- 变量名是 `%[fx:standard_deviation]`，**写成 `standarddeviation` 会报 `NewUserSymbol ... needs assignment operator`**。
+- 批量用 `xargs -P 8 -I{} magick {} ... info:`；**注意 `identify -format '%k'`（唯一颜色数）不能当判据**——占位图有抗锯齿，实测 887 色，和真图重叠。
+- **判定和"要不要留"分开**：本 skill 的做法是**占位图既不复制、也不写链接**（链接和文件一起消失），而不是复制后再清。先复制再清容易留断链。
+
+## 何时**不要**跑 marku 管线
+
+marku 不是白跑的检查步骤，**它对讲义类语料会做你没要求的改写**。跑之前先按下面判断：
+
+| 模块 | 在讲义语料上的实测行为 | 结论 |
+|---|---|---|
+| `content_replace` | 把全文**中文冒号、句号换成半角**（公考 16 份合并稿上改了 **5320 行**） | **别跑**，除非你确实要半角 |
+| `single_orderlist_remover` | 把 `2. 加法` 改成 `2.加法`（**吃掉空格**，48 行） | **改坏，别跑** |
+| `consecutive_header` | 0 改动 | 无害也无用 |
+| `missing_image_remover` | 0 改动（合并脚本已保证无断链） | 由脚本自己保证即可 |
+| `title_convert` | `第X章`→**H1**，会和注入的分册 H1 撞车 | 标题全部自己重建，不交给它 |
+
+**判据一句话**：合并脚本已经把标题、图片、断链都管好了，marku 剩下的只有破坏性改动时，就**整条管线跳过**，并在交付说明里写清"没跑、为什么"，不要为了"走过流程"而跑。
+
+## 大纲自检的替代做法（`outline` 模块不存在时用这个）
+
+不依赖 marku，直接对 `full.md` 算四项：
+
+1. **H1 数与编号连续**：`# ` 开头行数应等于分册数，且节号 `01..NN` 连续不重复。
+2. **各层标题数**：H2/H3/H4/H5 计数，和"结构行候选"的正则计数对一遍，量级差太多说明漏剥或漏建。
+3. **同父重复**：按 H1 分组，统计组内重复出现的 H2 次数，>2 次的列出来人工判（多为页眉伪标题）。
+4. **图片链接闭合**：`![](images/...)` 的条数必须**等于** `images/` 下文件数，且 0 断链、0 残留 `doc:` 占位符。
+
+## 输入侧：MinerU CLI 的四个约束（决定后面能不能合并）
+
+- **`--pages all` 必须显式写**，默认只解析**前 10 页**，且不报错——会静默产出 1/4 的内容。
+- **单文件上限 200 页**（registered 级）。超了先切 PDF 或干脆跳过（若它只是多份分册的合并版）。
+- **图默认不落地**，md 里只有 `doc:<id>/tier:<t>/page:<n>/block:<m>` 占位符；要真图得二次 `mineru read "<locator>" --format image -o x.png`。
+- **`--wait` 默认 60 秒**不够几十页的文件，批量给 `--wait 1200`；偶发 `FAIL` 时**重跑同一条命令即成功**（瞬时超时，不是文件问题）。
 
 ## 常见问题
 
@@ -503,7 +575,8 @@ dedup / t2list / markt 默认关闭；`missing-image` 和 `outline` 默认关闭
 
 ## 参考路径
 
-- marku 源码：`D:\1VSCODE\Projects\MarkdownAll\MarkdownWrapper\src\marku\`（已通过 editable install 加入 sys.path）
-- marku 配置：`D:\1VSCODE\Projects\MarkdownAll\MarkdownWrapper\src\marku\marku_pipeline.toml`
-- 参考成品：`D:\1STUDY\3-Resource\法考\客观\刑法\2026ZH法考专题讲座精讲卷刑法-柏浪涛mineru\full.md`
-- 法考根目录：`D:\1STUDY\3-Resource\法考\`
+- marku 源码：`$MARKU/src/marku/`（两机路径见表首）
+- marku 配置：`$MARKU/src/marku/marku_pipeline.toml`
+- 参考成品：`$FAKAO/客观/刑法/2026ZH法考专题讲座精讲卷刑法-柏浪涛mineru/full.md`
+- 法考根目录：`$FAKAO/`
+- 公考课件合并脚本（可直接改 RULES 复用）：`~/Base/Areas/Civil/公考/工具/merge_mineru.py`
