@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="100%" role="img" aria-labelledby="heroTitle heroDesc">
+  <title id="heroTitle">skilloom —— Agent 技能包与输出质量门禁</title>
+  <desc id="heroDesc">技能规范经模型生成后进入门禁，按结构、语义、规范判定：合格放行落盘，不合格拒收。</desc>
+
+  <defs>
+    <style>
+      .t    { font-family: ui-sans-serif, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+      .m    { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; }
+      .eyebrow { font-size: 18px; font-weight: 600; letter-spacing: 2.4px; fill: #6F8290; }
+      .title   { font-size: 76px; font-weight: 700; letter-spacing: -1.5px; fill: #F0EAE0; }
+      .lead    { font-size: 26px; fill: #A9B7C2; }
+      .meta    { font-size: 21px; fill: #7C8A96; }
+      .meta b  { font-weight: 700; fill: #DCE5EA; }
+      .node    { font-size: 22px; font-weight: 600; fill: #DCE5EA; }
+      .sub     { font-size: 18px; fill: #7C8A96; }
+      .pass    { font-size: 22px; font-weight: 700; fill: #7FBF9E; }
+      .reject  { font-size: 22px; font-weight: 700; fill: #D99089; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="420" rx="20" fill="#0E1318"/>
+
+  <!-- 织机底纹：极淡经线 -->
+  <g stroke="#3E7C71" stroke-width="1">
+    <line x1="96"  y1="28" x2="96"  y2="272" opacity="0.10"/>
+    <line x1="150" y1="28" x2="150" y2="272" opacity="0.06"/>
+    <line x1="204" y1="28" x2="204" y2="272" opacity="0.10"/>
+    <line x1="258" y1="28" x2="258" y2="272" opacity="0.04"/>
+    <line x1="312" y1="28" x2="312" y2="272" opacity="0.08"/>
+    <line x1="366" y1="28" x2="366" y2="272" opacity="0.04"/>
+    <line x1="420" y1="28" x2="420" y2="272" opacity="0.06"/>
+  </g>
+
+  <!-- 标题区 -->
+  <text class="t eyebrow" x="76" y="82">AGENT SKILLS · OUTPUT GATES</text>
+  <text class="t title"   x="72" y="158">skilloom</text>
+  <text class="t lead"    x="76" y="206">把重复的领域任务写成 Agent 技能，</text>
+  <text class="t lead"    x="76" y="240">用门禁在落盘前拒掉不合格输出。</text>
+  <text class="t meta"    x="76" y="276">共 <tspan font-weight="700" fill="#DCE5EA">22</tspan> 个技能包 · <tspan font-weight="700" fill="#DCE5EA">12</tspan> 个 Python 脚本 · 校验器自测 <tspan font-weight="700" fill="#DCE5EA">119</tspan> 项通过</text>
+
+  <!-- 机制带 -->
+  <rect x="72" y="300" width="1056" height="104" rx="16" fill="#121A21" stroke="#22303C"/>
+
+  <!-- 技能 -->
+  <text class="t node" x="112" y="340">技能规范</text>
+  <text class="t sub"  x="112" y="366">SKILL.md</text>
+
+  <g stroke="#3E7C71" stroke-width="2" fill="none">
+    <line x1="238" y1="346" x2="296" y2="346"/>
+    <path d="M296 346 l-11 -6 v12 z" fill="#3E7C71" stroke="none"/>
+  </g>
+
+  <!-- 模型生成 -->
+  <text class="t node" x="326" y="340">模型生成</text>
+  <text class="t sub"  x="326" y="366">按技能执行</text>
+
+  <g stroke="#3E7C71" stroke-width="2" fill="none">
+    <line x1="452" y1="346" x2="510" y2="346"/>
+    <path d="M510 346 l-11 -6 v12 z" fill="#3E7C71" stroke="none"/>
+  </g>
+
+  <!-- 门禁 -->
+  <g>
+    <rect x="566" y="314" width="9" height="64" rx="3" fill="#4E6472"/>
+    <rect x="657" y="314" width="9" height="64" rx="3" fill="#4E6472"/>
+    <rect x="566" y="342" width="100" height="9" rx="3" fill="#3E7C71"/>
+  </g>
+  <text class="t sub" x="556" y="398">门禁：结构 / 语义 / 规范</text>
+
+  <!-- 放行 -->
+  <g stroke="#3E7C71" stroke-width="2" fill="none">
+    <line x1="678" y1="332" x2="812" y2="332"/>
+    <path d="M812 332 l-11 -6 v12 z" fill="#3E7C71" stroke="none"/>
+  </g>
+  <text class="m pass" x="834" y="340">✓ 落盘</text>
+
+  <!-- 拒收 -->
+  <g stroke="#B4544A" stroke-width="2" stroke-dasharray="6 5" fill="none">
+    <line x1="678" y1="360" x2="812" y2="360"/>
+    <path d="M812 360 l-11 -6 v12 z" fill="#B4544A" stroke="none"/>
+  </g>
+  <text class="m reject" x="834" y="368">✗ 拒收</text>
+
+  <!-- 右侧空白处只留一句定位，不放伪输出 -->
+  <text class="t sub" x="960" y="340">不合格 → 非零退出</text>
+  <text class="t sub" x="960" y="368">并指出位置</text>
+
+  <rect x="0.5" y="0.5" width="1199" height="419" rx="20" fill="none" stroke="#22303C"/>
+</svg>
