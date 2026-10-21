@@ -60,3 +60,10 @@ Thumbs.db
 .codex-*/
 .review_tmp/
 _g/
+
+# ===== 私有技能（不进公开仓库） =====
+skills/private-skill-a/
+skills/private-skill-b/
+skills/novel-adversarial-critic/
+skills/novel-reader-simulator/
+skills/novel-revision-orchestrator/
