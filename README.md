@@ -2,7 +2,7 @@
 
 <p align="center">
   <img src="./assets/readme/hero.svg" width="100%"
-       alt="skilloom —— Agent 技能包与输出质量门禁。左侧把重复任务写成 SKILL.md，中间由模型生成，右侧门禁按结构、语义、规范三道判定，合格才落盘，不合格直接拒收。">
+       alt="skilloom —— Agent 技能包与输出质量门禁。标题下方给出技能包、Python 脚本与自测数量；底部机制带：技能规范 → 模型生成 → 门禁（结构 / 语义 / 规范）→ 合格放行落盘、不合格拒收并以非零退出。">
 </p>
 
 <p align="center">
