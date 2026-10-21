@@ -70,7 +70,7 @@ Prefer final hand-picked files in each project `output` directory.
   - `Character` for `nanao` and `nanao2`
   - `Concept` for action/concept projects
 - POI / actual person: `No`
-- Mature: true for explicit concept/action models such as `explicit concept`, `explicit action`, `hairj`, `hairop`, `explicit action`
+- Mature: `true` for explicit concept/action models, `false` otherwise
 - Version name: `v1.0`
 - Version notes: `Initial release. Trained for Anima base. Selected checkpoint: <filename>.`
 - Description: mention Anima base and trigger.
